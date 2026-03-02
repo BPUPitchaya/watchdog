@@ -1,6 +1,6 @@
 """
-Main application for Watchdog - Network Security Monitoring System.
-This integrates Flet UI with Scapy packet capture functionality.
+Integrated Watchdog - Runs both UI and sniffer service in one terminal.
+Uses subprocess to manage the sniffer service with proper permissions.
 """
 
 import flet as ft
@@ -8,15 +8,19 @@ import threading
 import time
 import json
 import os
+import subprocess
+import sys
+import signal
 
 
-class WatchdogApp:
-    """Main Watchdog application class."""
+class IntegratedWatchdog:
+    """Integrated Watchdog application with built-in sniffer management."""
     
     def __init__(self):
         self.data_file = "packet_data.json"
         self.stop_signal_file = "stop_signal.txt"
         self.is_sniffing = False
+        self.sniffer_process = None
         self.last_packet_count = 0
         
     def main(self, page: ft.Page):
@@ -43,14 +47,14 @@ class WatchdogApp:
             color=ft.Colors.BLUE_GREY_700
         )
         
-        self.start_button = ft.ElevatedButton(
+        self.start_button = ft.Button(
             "Start Sniffing",
             on_click=self.start_sniffing_handler,
             bgcolor=ft.Colors.GREEN_500,
             color=ft.Colors.WHITE
         )
         
-        self.stop_button = ft.ElevatedButton(
+        self.stop_button = ft.Button(
             "Stop Sniffing",
             on_click=self.stop_sniffing_handler,
             bgcolor=ft.Colors.RED_500,
@@ -104,7 +108,7 @@ class WatchdogApp:
         # Packet display container
         packet_display = ft.Container(
             content=self.packet_list,
-            border=ft.border.all(2, ft.Colors.BLUE_GREY_300),
+            border=ft.Border.all(2, ft.Colors.BLUE_GREY_300),
             border_radius=10,
             bgcolor=ft.Colors.WHITE,
             padding=10,
@@ -137,6 +141,13 @@ class WatchdogApp:
         
         # Store page reference for updates
         self.page = page
+        
+        # Start monitoring thread
+        monitor_thread = threading.Thread(
+            target=self.monitor_sniffer,
+            daemon=True
+        )
+        monitor_thread.start()
     
     def start_sniffing_handler(self, e):
         """Handle start sniffing button click."""
@@ -144,7 +155,7 @@ class WatchdogApp:
             return
             
         self.is_sniffing = True
-        self.status_text.value = "Status: Waiting for sniffer service..."
+        self.status_text.value = "Status: Starting sniffer..."
         self.status_text.color = ft.Colors.ORANGE_600
         self.start_button.disabled = True
         self.stop_button.disabled = False
@@ -154,12 +165,26 @@ class WatchdogApp:
         
         self.page.update()
         
-        # Start monitoring the shared file
-        monitor_thread = threading.Thread(
-            target=self.monitor_sniffer,
-            daemon=True
-        )
-        monitor_thread.start()
+        # Start sniffer process with sudo
+        try:
+            # Use sudo for the sniffer service only
+            self.sniffer_process = subprocess.Popen(
+                ["sudo", sys.executable, "src/network/sniffer_service.py", "start"],
+                cwd=os.getcwd(),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True
+            )
+            
+            # Start monitoring the output
+            output_thread = threading.Thread(
+                target=self.monitor_sniffer_output,
+                daemon=True
+            )
+            output_thread.start()
+            
+        except Exception as e:
+            self.show_error(f"Failed to start sniffer: {str(e)}")
     
     def stop_sniffing_handler(self, e):
         """Handle stop sniffing button click."""
@@ -175,6 +200,16 @@ class WatchdogApp:
         except Exception as e:
             print(f"Error creating stop signal: {e}")
         
+        # Stop the sniffer process
+        if self.sniffer_process:
+            try:
+                self.sniffer_process.terminate()
+                self.sniffer_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.sniffer_process.kill()
+            except:
+                pass
+        
         self.status_text.value = "Status: Stopped"
         self.status_text.color = ft.Colors.RED_600
         self.start_button.disabled = False
@@ -182,9 +217,16 @@ class WatchdogApp:
         
         self.page.update()
     
+    def monitor_sniffer_output(self):
+        """Monitor sniffer process output."""
+        if self.sniffer_process:
+            for line in iter(self.sniffer_process.stdout.readline, ''):
+                if line:
+                    print(f"Sniffer: {line.strip()}")
+    
     def monitor_sniffer(self):
         """Monitor the shared packet data file."""
-        while self.is_sniffing:
+        while True:
             try:
                 if os.path.exists(self.data_file):
                     with open(self.data_file, 'r') as f:
@@ -192,45 +234,53 @@ class WatchdogApp:
                     
                     # Update UI with new data
                     self.page.run_thread(lambda: self.update_ui_from_data(data))
-                    
-                    # Stop if sniffer service stopped
-                    if data.get('status') == 'stopped':
-                        break
                         
             except Exception as e:
-                print(f"Error reading data: {e}")
+                pass  # Ignore file reading errors
             
             time.sleep(1)  # Check every second
-        
-        # Final UI update
-        self.page.run_thread(self.update_ui_after_sniffing)
     
     def update_ui_from_data(self, data):
         """Update UI from shared data."""
-        if not self.is_sniffing:
-            return
-            
-        # Update status
-        if data.get('status') == 'running':
+        # Always update status based on data
+        status = data.get('status', 'stopped')
+        if status == 'running':
             self.status_text.value = "Status: Sniffing..."
             self.status_text.color = ft.Colors.ORANGE_600
+        elif status == 'stopped':
+            if self.is_sniffing:  # Only update if we were sniffing
+                self.status_text.value = "Status: Stopped"
+                self.status_text.color = ft.Colors.RED_600
+                self.start_button.disabled = False
+                self.stop_button.disabled = True
+                self.is_sniffing = False
         
         # Update packet count
         count = data.get('packet_count', 0)
         self.packet_count_text.value = f"Packets Captured: {count}"
         
-        # Add new packets
+        # Get current packets from data
         packets = data.get('packets', [])
-        for packet in packets[self.last_packet_count:]:
-            packet_text = ft.Text(
-                f"#{packet['count']}: {packet['src_ip']} -> {packet['dst_ip']} [{packet['protocol']}]",
-                size=12,
-                color=ft.Colors.BLUE_GREY_800
-            )
-            self.packet_list.controls.append(packet_text)
         
+        # Only update packet display if we're actively sniffing or have packets to show
+        if self.is_sniffing or packets:
+            # Clear the display and show all current packets
+            self.packet_list.controls.clear()
+            
+            # Display all packets from the data file (these are already the latest 100)
+            for packet in packets:
+                packet_text = ft.Text(
+                    f"#{packet['count']}: {packet['src_ip']} -> {packet['dst_ip']} [{packet['protocol']}]",
+                    size=12,
+                    color=ft.Colors.BLUE_GREY_800
+                )
+                self.packet_list.controls.append(packet_text)
+            
+            # Auto-scroll to bottom to show newest packets
+            self.page.update()
+        
+        # Update our counter
         self.last_packet_count = len(packets)
-        self.page.update()
     
     def show_error(self, message):
         """Show error message in UI."""
@@ -241,36 +291,42 @@ class WatchdogApp:
         self.is_sniffing = False
         self.page.update()
     
-    def update_ui_after_sniffing(self):
-        """Update UI after sniffing completes."""
-        self.is_sniffing = False
-        self.status_text.value = "Status: Stopped"
-        self.status_text.color = ft.Colors.RED_600
-        self.start_button.disabled = False
-        self.stop_button.disabled = True
+    def cleanup(self):
+        """Clean up resources on exit."""
+        if self.sniffer_process:
+            try:
+                self.sniffer_process.terminate()
+            except:
+                pass
         
-        # Read final data
-        try:
-            if os.path.exists(self.data_file):
-                with open(self.data_file, 'r') as f:
-                    data = json.load(f)
-                count = data.get('packet_count', 0)
-                self.packet_count_text.value = f"Packets Captured: {count}"
-        except:
-            pass
-        
-        self.page.update()
+        # Clean up signal files
+        for file in [self.stop_signal_file, self.data_file]:
+            try:
+                if os.path.exists(file):
+                    os.remove(file)
+            except:
+                pass
+
+
+def signal_handler(signum, frame):
+    """Handle Ctrl+C gracefully."""
+    print("\nShutting down...")
+    if 'app' in globals():
+        app.cleanup()
+    sys.exit(0)
 
 
 def main():
-    """Main entry point for the application."""
-    app = WatchdogApp()
-    import sys
-    # Check if running with sudo and use web mode
-    if len(sys.argv) > 1 and sys.argv[1] == "--web":
-        ft.run(app.main, view=ft.AppView.WEB_BROWSER)
-    else:
+    """Main entry point for the integrated application."""
+    # Set up signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    app = IntegratedWatchdog()
+    
+    try:
         ft.run(app.main)
+    finally:
+        app.cleanup()
 
 
 if __name__ == "__main__":

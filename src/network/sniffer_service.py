@@ -1,26 +1,25 @@
 """
-Basic packet sniffer using Scapy for Watchdog.
-This module demonstrates basic packet capture functionality.
+Network sniffer service that runs independently and writes to shared data file.
+This allows the UI to run without root privileges while the sniffer runs with sudo.
 """
 
-from scapy.all import sniff, IP, TCP, UDP
-import threading
-import time
 import json
+import time
+import threading
+from scapy.all import sniff, IP, TCP, UDP
 import os
-import sys
 
 
-class BasicSniffer:
-    """Basic network packet sniffer."""
+class SnifferService:
+    """Independent network sniffer service."""
     
-    def __init__(self):
+    def __init__(self, data_file="packet_data.json"):
+        self.data_file = data_file
+        self.stop_signal_file = "stop_signal.txt"
         self.is_running = False
         self.keep_running = True
         self.packet_count = 0
         self.captured_packets = []
-        self.data_file = "packet_data.json"
-        self.stop_signal_file = "stop_signal.txt"
         
         # Load existing packet count if file exists
         try:
@@ -87,7 +86,7 @@ class BasicSniffer:
         """Monitor for stop signal file and stop sniffing when detected."""
         while True:
             if os.path.exists(self.stop_signal_file):
-                print("Stop signal received. Stopping sniffer...")
+                print("Stop signal received. Stopping sniffer service...")
                 os.remove(self.stop_signal_file)
                 self.keep_running = False
                 self.stop_sniffing()
@@ -133,50 +132,37 @@ class BasicSniffer:
         # Write stopped status to file
         self.write_data()
         print("Status updated to 'stopped'")
+
+
+def main():
+    """Main entry point for the sniffer service."""
+    import sys
     
-    def get_captured_packets(self):
-        """Return list of captured packets."""
-        return self.captured_packets.copy()
-    
-    def get_packet_count(self):
-        """Return number of captured packets."""
-        return self.packet_count
-
-
-def test_sniffer():
-    """Test function for the basic sniffer."""
-    sniffer = BasicSniffer()
-    print("Testing basic packet sniffer...")
-    sniffer.start_sniffing(packet_count=5)
-    
-    captured = sniffer.get_captured_packets()
-    print(f"\nCaptured {len(captured)} packets:")
-    for packet in captured:
-        print(f"  {packet['count']}: {packet['src_ip']} -> {packet['dst_ip']} [{packet['protocol']}]")
-
-
-if __name__ == "__main__":
     # Check if running with root privileges
     if os.geteuid() != 0:
-        print("Error: Root privileges required. Run with: sudo python basic_sniffer.py")
+        print("Error: Root privileges required. Run with: sudo python sniffer_service.py")
         sys.exit(1)
     
-    sniffer = BasicSniffer()
+    service = SnifferService()
     
     if len(sys.argv) > 1 and sys.argv[1] == "start":
         # Start stop signal monitor thread
-        stop_monitor_thread = threading.Thread(target=sniffer.monitor_stop_signal, daemon=True)
+        stop_monitor_thread = threading.Thread(target=service.monitor_stop_signal, daemon=True)
         stop_monitor_thread.start()
         try:
-            while sniffer.keep_running:
-                if not sniffer.is_running:
-                    sniffer.start_sniffing(packet_count=50)
+            while service.keep_running:
+                if not service.is_running:
+                    service.start_sniffing(packet_count=50)
                 
                 time.sleep(0.5)  # Brief pause between captures
                 
         except KeyboardInterrupt:
-            print("\nStopping sniffer...")
-            sniffer.stop_sniffing()
+            print("\nStopping sniffer service...")
+            service.stop_sniffing()
     else:
         # Run single capture
-        test_sniffer()
+        service.start_sniffing(packet_count=50)
+
+
+if __name__ == "__main__":
+    main()

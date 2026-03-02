@@ -26,3 +26,5 @@ scipy==1.17.1
 seaborn==0.13.2
 six==1.17.0
 threadpoolctl==3.6.0
+source watchdog_env/bin/activate
+pip freeze > requirements.txt

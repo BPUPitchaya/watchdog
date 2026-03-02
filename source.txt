@@ -1,0 +1,7 @@
+source watchdog_env/bin/activate && sudo python src/network/basic_sniffer.py start
+
+
+source watchdog_env/bin/activate && python main.py
+
+
+source watchdog_env/bin/activate && python integrated_watchdog.py
