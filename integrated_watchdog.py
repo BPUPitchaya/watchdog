@@ -22,6 +22,7 @@ class IntegratedWatchdog:
         self.is_sniffing = False
         self.sniffer_process = None
         self.last_packet_count = 0
+        self.alerts_list = ft.ListView(expand=1, spacing=5, padding=10, auto_scroll=True)
         
     def main(self, page: ft.Page):
         """Main application entry point."""
@@ -129,7 +130,22 @@ class IntegratedWatchdog:
                     weight=ft.FontWeight.BOLD,
                     color=ft.Colors.BLUE_GREY_700
                 ),
-                packet_display
+                packet_display,
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                ft.Text(
+                    "Attack Alerts:",
+                    size=18,
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.Colors.RED_700
+                ),
+                ft.Container(
+                    content=self.alerts_list,
+                    border=ft.Border.all(2, ft.Colors.RED_300),
+                    border_radius=10,
+                    bgcolor=ft.Colors.WHITE,
+                    padding=10,
+                    height=200
+                )
             ],
             scroll=ft.ScrollMode.AUTO,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -167,10 +183,13 @@ class IntegratedWatchdog:
         
         # Start sniffer process with sudo
         try:
+            env = os.environ.copy()
+            env['PYTHONPATH'] = os.getcwd()
             # Use sudo for the sniffer service only
             self.sniffer_process = subprocess.Popen(
-                ["sudo", sys.executable, "src/network/sniffer_service.py", "start"],
+                ["sudo", sys.executable, "-m", "src.network.sniffer_service", "start"],
                 cwd=os.getcwd(),
+                env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True
@@ -268,15 +287,29 @@ class IntegratedWatchdog:
             self.packet_list.controls.clear()
             
             # Display all packets from the data file (these are already the latest 100)
-            for packet in packets:
+            for packet in packets[self.last_packet_count:]:
+                color = ft.Colors.RED_600 if packet.get('is_attack') else ft.Colors.BLUE_GREY_800
+                prediction = packet.get('prediction', 'unknown')
                 packet_text = ft.Text(
-                    f"#{packet['count']}: {packet['src_ip']} -> {packet['dst_ip']} [{packet['protocol']}]",
+                    f"#{packet['count']}: {packet['src_ip']} -> {packet['dst_ip']} [{packet['protocol']}] - {prediction}",
                     size=12,
-                    color=ft.Colors.BLUE_GREY_800
+                    color=color
                 )
                 self.packet_list.controls.append(packet_text)
-            
-            # Auto-scroll to bottom to show newest packets
+        
+            self.last_packet_count = len(packets)
+        
+            # Update alerts
+            alerts = data.get('alerts', [])
+            self.alerts_list.controls.clear()
+            for alert in alerts[-10:]:
+                alert_text = ft.Text(
+                    f"#{alert['count']}: {alert['src_ip']} -> {alert['dst_ip']} [{alert['protocol']}] - {alert['prediction']}",
+                    size=12,
+                    color=ft.Colors.RED_600
+                )
+                self.alerts_list.controls.append(alert_text)
+        
             self.page.update()
         
         # Update our counter
