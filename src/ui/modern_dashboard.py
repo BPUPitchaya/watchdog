@@ -1,13 +1,14 @@
-
 # Modern Dashboard for WATCHDOG AI
 # High-fidelity UI with dark mode, glassmorphism, and cybersecurity components.
 
 import flet as ft
+import base64
 import json
 import joblib
 import numpy as np
 import os
 import sys
+import random
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -51,8 +52,23 @@ class ModernDashboard:
         self.monitoring_table = self.create_monitoring_table()
         self.firewall = None  # Placeholder for future integration
         self.chat_log = ft.Column(scroll=ft.ScrollMode.AUTO, height=250)
-        self.chat_log.controls.append(ft.Text("Welcome! Type 'threat level' or 'predict: src_ip=X dst_ip=Y protocol=tcp' to interact with ML.", color="#B0B0B0", size=10))
+        self.chat_log.controls.append(ft.Text("Welcome! Type 'threat level' or 'predict: src_ip=192.168.1.1 dst_ip=10.0.0.1 protocol=tcp' to interact with ML.", color="#B0B0B0", size=10))
         self.chatbot = self.create_chatbot()
+        
+        # Cache for performance
+        self.cached_data = {"packets": [], "alerts": []}
+        self.last_mtime = 0
+        
+        # Reactive status gauge variables
+        self.security_score = 100
+        self.gauge_color = "#00F2FE"
+        self.gauge_text = "SYSTEM SAFE"
+        self.rotation_speed = 1.0
+        
+        # Dynamic traffic graph variables
+        self.traffic_data = [0] * 30
+        self.last_packet_count_for_pps = 0
+        self.canvas = ft.Canvas(width=400, height=250)
         
         # Data tracking
         self.threat_level = 0.2  # 0-1 scale
@@ -98,63 +114,26 @@ class ModernDashboard:
         )
     
     def create_status_gauge(self):
-        "Create central system status circular gauge with concentric rings."
-        return ft.Container(
-            height=200,
-            width=200,
-            content=ft.Stack([
-                # Outer ring (background)
-                ft.Container(
-                    padding=ft.Padding.all(0),
-                    content=ft.Container(
-                        width=200,
-                        height=200,
-                        border=ft.Border.all(10, "#333333"),
-                        border_radius=100,
-                    )
-                ),
-                # Inner ring (status)
-                ft.Container(
-                    padding=ft.Padding.only(left=10, top=10),
-                    content=ft.Container(
-                        width=180,
-                        height=180,
-                        border=ft.Border.all(10, "#00FFCC"),
-                        border_radius=90,
-                    )
-                ),
-                # Center text
-                ft.Container(
-                    padding=ft.Padding.only(left=40, top=40),
-                    content=ft.Container(
-                        width=120,
-                        height=120,
-                        content=ft.Column([
-                            ft.Text("SYSTEM", size=12, color="#00FFCC", text_align=ft.TextAlign.CENTER),
-                            ft.Text("STATUS", size=12, color="#00FFCC", text_align=ft.TextAlign.CENTER),
-                            ft.Text("SAFE", size=16, color="#00FFCC", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-                        ], alignment=ft.MainAxisAlignment.CENTER, spacing=2)
-                    )
-                )
-            ])
-        )
+        "Create central system status circular gauge with reactive SVG."
+        self.svg_string = f'''
+<svg width="200" height="200" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="85" fill="none" stroke="{self.gauge_color}" stroke-width="15" stroke-dasharray="20 10">
+<animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="{self.rotation_speed}s" repeatCount="indefinite" />
+</circle>
+<text x="100" y="110" text-anchor="middle" font-size="18" fill="{self.gauge_color}" font-weight="bold">{self.gauge_text}</text>
+</svg>
+'''
+        self.status_gauge = ft.Container(content=ft.Svg(self.svg_string))
+        return self.status_gauge
     
     def create_traffic_graph(self):
-        "Create network traffic display (text-based since charts not available)."
+        "Create a blank box for the second widget."
         return ft.Container(
             height=250,
             bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.WHITE),
             border_radius=15,
             padding=15,
-            content=ft.Column([
-                ft.Text("NETWORK TRAFFIC", size=14, color="#00FFCC", weight=ft.FontWeight.BOLD),
-                ft.Container(height=20),  # Spacer
-                self.current_packets,
-                ft.Container(height=10),  # Spacer
-                self.monitoring_status,
-                ft.Container(height=20),  # Spacer
-                ft.Text("Real-time packet count display", color="#B0B0B0", size=10)
-            ])
+            content=ft.Text("Blank Box", color="#B0B0B0", size=16, text_align=ft.TextAlign.CENTER)
         )
     
     def create_threat_gauge(self):
@@ -367,10 +346,18 @@ class ModernDashboard:
     def update_ui(self, e):
         "Update UI components with real-time data."
         try:
-            with open(self.data_file, 'r') as f:
-                data = json.load(f)
+            mtime = os.path.getmtime(self.data_file)
+            if mtime > self.last_mtime:
+                with open(self.data_file, 'r') as f:
+                    data = json.load(f)
+                self.cached_data = data
+                self.last_mtime = mtime
+            else:
+                data = self.cached_data
         except FileNotFoundError:
             data = {"packets": [], "alerts": []}
+            self.cached_data = data
+            self.last_mtime = 0
         
         # Update monitoring table with last 5 packets
         packets = data.get("packets", [])[-5:]
@@ -400,7 +387,69 @@ class ModernDashboard:
         
         self.last_packet_count = packet_count
         
+        # Update reactive status gauge
+        packets = data.get("packets", [])
+        alerts = data.get("alerts", [])
+        score_decrease = len(alerts) * 10 + len(packets) * 1.0
+        self.security_score = max(0, min(100, 100 - score_decrease))
+        if self.security_score >= 80:
+            self.gauge_color = "#00FF00"  # Green: safe
+            self.gauge_text = "SYSTEM SAFE"
+            animate_pulse = ''
+        elif self.security_score >= 60:
+            self.gauge_color = "#FFFF00"  # Yellow: medium
+            self.gauge_text = f"{int(self.security_score)}% Secure"
+            animate_pulse = ''
+        elif self.security_score >= 40:
+            self.gauge_color = "#FFA500"  # Orange: alert
+            self.gauge_text = f"{int(self.security_score)}% Secure"
+            animate_pulse = '<animate attributeName="stroke-width" values="15;20;15" dur="1s" repeatCount="indefinite" />'
+        else:
+            self.gauge_color = "#FF0000"  # Red: danger
+            self.gauge_text = "BREACH DETECTED"
+            animate_pulse = '<animate attributeName="stroke-width" values="15;20;15" dur="1s" repeatCount="indefinite" />'
+        self.rotation_speed = max(0.5, 2 - len(packets) / 50)
+        self.svg_string = f'''
+<svg width="200" height="200" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="85" fill="none" stroke="{self.gauge_color}" stroke-width="15" stroke-dasharray="20 10">
+<animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="{self.rotation_speed}s" repeatCount="indefinite" />
+{animate_pulse}
+</circle>
+<text x="100" y="110" text-anchor="middle" font-size="18" fill="{self.gauge_color}" font-weight="bold">{self.gauge_text}</text>
+</svg>
+'''
+        self.status_gauge.content.src = self.svg_string
+        self.status_gauge.update()
+        
         self.page.update()
+    
+    # Update dynamic traffic graph
+    new_value = random.randint(10, 80)
+    self.traffic_data.pop(0)
+    self.traffic_data.append(new_value)
+    max_pps = max(self.traffic_data)
+    stroke_color = "#00F2FE" if max_pps <= 25 else "#FFA500" if max_pps <= 40 else "#FF0000"
+    ys = [250 - (p / max_pps * 250) for p in self.traffic_data]
+    self.canvas.shapes.clear()
+    path = ft.Path(fill=ft.colors.with_opacity(0.5, stroke_color), stroke=stroke_color, stroke_width=2)
+    if len(ys) >= 2:
+        path.move_to(0, ys[0])
+        for i in range(1, len(ys)):
+            x = i * (400 / (len(ys) - 1))
+            if i == 1:
+                cx = (0 + x) / 2
+                cy = (ys[0] + ys[1]) / 2
+                path.quad_to(cx, cy, x, ys[1])
+            else:
+                prev_x = (i - 1) * (400 / (len(ys) - 1))
+                cx = (prev_x + x) / 2
+                cy = (ys[i-1] + ys[i]) / 2
+                path.quad_to(cx, cy, x, ys[i])
+        path.line_to(400, 250)
+        path.line_to(0, 250)
+        path.close()
+    self.canvas.shapes.append(path)
+    self.canvas.update()
     
     def main(self, page: ft.Page):
         "Main application entry point."
@@ -415,16 +464,15 @@ class ModernDashboard:
         main_content = ft.Column([
             self.header,
             ft.Container(height=20),  # Spacer
-            ft.ResponsiveRow([
-                ft.Container(col=4, content=self.status_gauge),
-                ft.Container(col=4, content=self.traffic_graph),
-                ft.Container(col=4, content=self.threat_gauge),
-            ], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Container(expand=1, content=ft.ResponsiveRow([
+                ft.Container(col=6, content=self.status_gauge),
+                ft.Container(col=6, content=self.threat_gauge),
+            ], alignment=ft.MainAxisAlignment.CENTER)),
             ft.Container(height=20),  # Spacer
-            ft.Row([
+            ft.Container(expand=2, content=ft.Row([
                 ft.Container(expand=True, content=self.monitoring_table),
                 ft.Container(width=250, content=self.chatbot),
-            ], alignment=ft.MainAxisAlignment.START),
+            ], alignment=ft.MainAxisAlignment.START)),
         ], spacing=0)
         
         layout = ft.Row([
@@ -437,6 +485,10 @@ class ModernDashboard:
         ])
         
         page.add(layout)
+        
+        # Start auto-update timer for real-time data
+        self.timer = ft.Timer(interval=0.5, callback=self.update_ui)
+        self.timer.start()
         
         # Manual refresh available via button
     

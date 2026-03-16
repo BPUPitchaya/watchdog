@@ -1,14 +1,23 @@
 import sys
 import os
 import json
+import datetime
 import math
+import random
+import signal
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QListWidget, QTextEdit, QLineEdit, QSplitter, QScrollArea)
-from PyQt6.QtCore import QTimer, Qt, QRectF
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem, 
+    QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
+    QStackedWidget, QDialog
+)
+from PyQt6.QtCore import QTimer, Qt, QRectF, QByteArray
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient
+from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
 import pandas as pd
@@ -19,6 +28,12 @@ from src.ml.feature_extractor import FeatureExtractor
 from src.ai.ollama_client import OllamaClient
 from src.ai.prompts import GENERAL_PROMPT, EXPLANATION_PROMPT, TECHNICAL_ANALYSIS_PROMPT
 from src.ai.utils import format_packet_log
+
+def signal_handler(sig, frame):
+    QApplication.quit()
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 class ThreatGauge(QWidget):
     def __init__(self, parent=None):
@@ -148,81 +163,103 @@ class StatusCore(QWidget):
         painter.setFont(font)
         painter.drawText(QRectF(rect.left(), center.y() + 30, rect.width(), 30), Qt.AlignmentFlag.AlignCenter, "SYSTEM SAFE")
 
-class PacketWidget(QWidget):
+class LiveTrafficWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(400, 200)
+        self.data = [0] * 30
+        self.previous_packets = 0
+        self.y_axis_max = 1000
+        self.is_scanning = False
+        self.scan_timer = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_data)
+        self.timer.start(500)  # 0.5s
+
+    def update_data(self):
+        current_packets = 0
+        packets = []
+        try:
+            with open('packet_data.json', 'r') as f:
+                packet_data = json.load(f)
+            current_packets = packet_data.get('packet_count', 0)
+            packets = packet_data.get('packets', [])[-500:]
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        pps = max(0, current_packets - self.previous_packets)
+        self.previous_packets = current_packets
+        self.data.append(pps)
+        max_pps = max(self.data)
+        if max_pps > 0.8 * self.y_axis_max:
+            self.y_axis_max *= 2
+        elif max_pps < 0.2 * self.y_axis_max and self.y_axis_max > 1000:
+            self.y_axis_max //= 2
+        self.update()  # Force redraw
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        # Define margins for labels
-        left_margin = 60
-        top_margin = 40
-        right_margin = 20
-        bottom_margin = 60
-        chart_rect = self.rect().adjusted(left_margin, top_margin, -right_margin, -bottom_margin)
+        rect = self.rect()
+        
+        # Define chart area with margins for axes
+        chart_left = rect.left() + 50
+        chart_top = rect.top() + 20
+        chart_right = rect.right() - 20
+        chart_bottom = rect.bottom() - 50
+        chart_rect = QRectF(chart_left, chart_top, chart_right - chart_left, chart_bottom - chart_top)
         width = chart_rect.width()
         height = chart_rect.height()
+        
+        # Y-Axis
+        painter.setPen(QPen(QColor(100, 100, 100)))
+        painter.drawLine(int(chart_rect.left()), int(chart_rect.top()), int(chart_rect.left()), int(chart_rect.bottom()))
+        
+        # Y-Labels
+        mono_font = QFont("Monospace", 8)
+        painter.setFont(mono_font)
+        painter.setPen(QPen(Qt.GlobalColor.white))
+        # Max at top
+        painter.drawText(int(chart_rect.left() - 30), int(chart_rect.top() + 5), str(self.y_axis_max))
+        painter.drawText(int(chart_rect.left() + 10), int(chart_rect.top() + 5), "Pkts/s")
+        # Half at middle
+        painter.drawText(int(chart_rect.left() - 30), int(chart_rect.center().y() + 3), str(self.y_axis_max // 2))
+        # 0 at bottom
+        painter.drawText(int(chart_rect.left() - 30), int(chart_rect.bottom() + 3), "0")
+        
+        # X-Axis
+        painter.setPen(QPen(QColor(100, 100, 100)))
+        painter.drawLine(int(chart_rect.left()), int(chart_rect.bottom()), int(chart_rect.right()), int(chart_rect.bottom()))
+        
+        # X-Labels
+        painter.setPen(QPen(Qt.GlobalColor.white))
+        # -15s at left
+        painter.drawText(int(chart_rect.left() - 10), int(chart_rect.bottom() + 15), "-15s")
+        # -7.5s at center
+        painter.drawText(int(chart_rect.center().x() - 15), int(chart_rect.bottom() + 15), "-7.5s")
+        # NOW at right
+        painter.drawText(int(chart_rect.right() - 25), int(chart_rect.bottom() + 15), "NOW")
 
-        # Legend in top-left (removed as per request)
-
-        # Y-axis
-        painter.setPen(QPen(Qt.GlobalColor.white, 1))
-        painter.drawLine(chart_rect.left(), chart_rect.top(), chart_rect.left(), chart_rect.bottom())
-        # Y-label
-        painter.save()
-        painter.translate(chart_rect.left() - 40, chart_rect.center().y())
-        painter.rotate(-90)
-        painter.drawText(0, 0, "Pkts/sec")
-        painter.restore()
-        # Y-markers
-        font = QFont("Arial", 8)
-        painter.setFont(font)
-        for val in [0, 20, 40, 60]:
-            y = chart_rect.bottom() - (val / 60) * height
-            painter.drawLine(chart_rect.left() - 5, int(y), chart_rect.left(), int(y))
-            painter.drawText(chart_rect.left() - 25, int(y) + 4, str(val))
-
-        # X-axis
-        painter.drawLine(chart_rect.left(), chart_rect.bottom(), chart_rect.right(), chart_rect.bottom())
-        # X-label
-        painter.drawText(chart_rect.center().x() - 50, chart_rect.bottom() + 35, "Timeline (Last 15 min)")
-        # X-markers
-        time_labels = ["-15m", "-10m", "-5m", "Now"]
-        num_labels = len(time_labels)
-        for i, label in enumerate(time_labels):
-            x = chart_rect.left() + i * (width / (num_labels - 1))
-            painter.drawLine(int(x), chart_rect.bottom(), int(x), chart_rect.bottom() + 5)
-            painter.drawText(int(x) - 10, chart_rect.bottom() + 15, label)
-
-        # Ultra-thin horizontal grid lines aligned with Y-markers
-        painter.setPen(QPen(QColor(100, 100, 100, 25)))
-        for val in [0, 20, 40, 60]:
-            y = chart_rect.bottom() - (val / 60) * height
-            painter.drawLine(chart_rect.left(), int(y), chart_rect.right(), int(y))
-
-        # Average baseline (if needed, but now grid covers)
-        avg_y = chart_rect.top() + height / 2
-        painter.setPen(QPen(QColor(150, 150, 150, 50), 1))
-        painter.drawLine(chart_rect.left(), int(avg_y), chart_rect.right(), int(avg_y))
-
-        # Sample data
-        data_points = [100, 150, 200, 250, 300, 350, 300, 250, 200, 150, 100, 80, 60, 40, 20]
-        num_points = len(data_points)
-        step_x = width / (num_points - 1)
-
-        # Create smooth path
+        # Draw the path with Bézier
+        max_pps = max(self.data) if self.data else 0
+        stroke_color = "#FF4B2B" if max_pps > 0.8 * self.y_axis_max else "#F59E0B" if max_pps > 0.5 * self.y_axis_max else "#00F2FE"
         path = QPainterPath()
         path.moveTo(chart_rect.left(), chart_rect.bottom())
-        for i, val in enumerate(data_points):
-            x = chart_rect.left() + i * step_x
-            y = chart_rect.bottom() - (val / 400) * height
-            path.lineTo(x, y)
+        num_points = len(self.data)
+        for i in range(num_points):
+            x = chart_rect.left() + i * (width / (num_points - 1)) if num_points > 1 else chart_rect.left()
+            y = chart_rect.bottom() - (self.data[i] / self.y_axis_max) * height
+            if i == 0:
+                path.lineTo(x, y)
+            else:
+                prev_x = chart_rect.left() + (i-1) * (width / (num_points - 1))
+                prev_y = chart_rect.bottom() - (self.data[i-1] / self.y_axis_max) * height
+                cx = (prev_x + x) / 2
+                cy = (prev_y + y) / 2
+                path.quadTo(cx, cy, x, y)
         path.lineTo(chart_rect.right(), chart_rect.bottom())
         path.closeSubpath()
 
-        # Vertical gradient fill
+        # Gradient fill
         gradient = QLinearGradient(0, chart_rect.top(), 0, chart_rect.bottom())
         gradient.setColorAt(0, QColor(0, 242, 254, 77))
         gradient.setColorAt(1, QColor(0, 242, 254, 0))
@@ -230,41 +267,57 @@ class PacketWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawPath(path)
 
-        # Glowing line
-        painter.setPen(QPen(QColor(0, 242, 254, 100), 4))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
+        # Draw the line
+        painter.setPen(QPen(QColor(stroke_color), 1.5))
         for i in range(1, num_points):
-            x1 = chart_rect.left() + (i-1) * step_x
-            y1 = chart_rect.bottom() - (data_points[i-1] / 400) * height
-            x2 = chart_rect.left() + i * step_x
-            y2 = chart_rect.bottom() - (data_points[i] / 400) * height
+            x1 = chart_rect.left() + (i-1) * (width / (num_points - 1))
+            y1 = chart_rect.bottom() - (self.data[i-1] / self.y_axis_max) * height
+            x2 = chart_rect.left() + i * (width / (num_points - 1))
+            y2 = chart_rect.bottom() - (self.data[i] / self.y_axis_max) * height
             painter.drawLine(int(x1), int(y1), int(x2), int(y2))
 
-        # Main line
-        painter.setPen(QPen(QColor(0, 242, 254), 1.5))
-        for i in range(1, num_points):
-            x1 = chart_rect.left() + (i-1) * step_x
-            y1 = chart_rect.bottom() - (data_points[i-1] / 400) * height
-            x2 = chart_rect.left() + i * step_x
-            y2 = chart_rect.bottom() - (data_points[i] / 400) * height
-            painter.drawLine(int(x1), int(y1), int(x2), int(y2))
+class CircularGaugeWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.score = 100
+        self.smoothed_score = 100
+        self.target_score = 100
+        self.svg_widget = QSvgWidget()
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.svg_widget)
+        self.smooth_timer = QTimer(self)
+        self.smooth_timer.timeout.connect(self.update_smooth)
+        self.smooth_timer.start(50)  # 50ms for smooth animation
+        self.update_svg()
 
-        # Glowing dot at peak
-        max_val = max(data_points)
-        max_index = data_points.index(max_val)
-        peak_x = chart_rect.left() + max_index * step_x
-        peak_y = chart_rect.bottom() - (max_val / 400) * height
-        glow_color = QColor(0, 242, 254, 150)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(glow_color))
-        painter.drawEllipse(int(peak_x - 3), int(peak_y - 3), 6, 6)
-        painter.setBrush(QBrush(QColor(0, 242, 254)))
-        painter.drawEllipse(int(peak_x - 2), int(peak_y - 2), 4, 4)
-        # Label
-        painter.setPen(QPen(QColor(0, 242, 254)))
-        font.setPointSize(10)
-        painter.setFont(font)
-        painter.drawText(int(peak_x - 15), int(peak_y - 10), "428 p/s")
+    def update_smooth(self):
+        if abs(self.smoothed_score - self.target_score) > 0.1:
+            self.smoothed_score += (self.target_score - self.smoothed_score) * 0.05
+            self.update_svg()
+
+    def update_svg(self):
+        circumference = 2 * 3.14159 * 80  # radius 80
+        dash_length = (self.smoothed_score / 100) * circumference
+        color = self.get_color()
+        svg = f'''
+<svg width="200" height="200" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="80" fill="none" stroke="#333333" stroke-width="10" stroke-opacity="0.3" />
+<circle cx="100" cy="100" r="80" fill="none" stroke="{color}" stroke-width="10" stroke-dasharray="{dash_length},{circumference}" />
+<text x="100" y="110" text-anchor="middle" font-family="Monospace" font-size="18" fill="{color}">{self.smoothed_score:.0f}% Risk</text>
+</svg>
+'''
+        self.svg_widget.load(QByteArray(svg.encode()))
+
+    def get_color(self):
+        if self.smoothed_score > 80:
+            return "#FF4B2B"  # red
+        elif self.smoothed_score > 50:
+            return "#F59E0B"  # amber
+        else:
+            return "#00F2FE"  # teal
+
+    def set_score(self, score):
+        self.target_score = score
 
 class WatchdogDashboard(QMainWindow):
     def __init__(self):
@@ -272,56 +325,55 @@ class WatchdogDashboard(QMainWindow):
         self.setWindowTitle("WATCHDOG AI Dashboard")
         self.setGeometry(100, 100, 1200, 1000)
 
-        # Load ML
-        try:
-            self.model = joblib.load('models/random_forest_model.pkl')
-            self.extractor = FeatureExtractor()
-        except Exception as e:
-            print(f"Failed to load ML model: {e}")
-            self.model = None
-            self.extractor = None
+        # Check for --layout-only and --no-ai flags
+        import sys
+        self.layout_only = '--layout-only' in sys.argv
+        self.no_ai = '--no-ai' in sys.argv
 
-        self.ai_client = OllamaClient()
+        self.ai_client = None
 
-        self.status_core = StatusCore()
-        self.packet_widget = PacketWidget()
-        self.threat_gauge = ThreatGauge()
-        self.threat_gauge.setThreatLevel(0.2)
+        self.previous_packets = 0
 
         self.status_card = QWidget()
-        self.status_card.setStyleSheet("background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;")
+        self.status_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
         status_layout = QVBoxLayout(self.status_card)
         status_layout.setContentsMargins(24, 24, 24, 24)
         status_title = QLabel("SYSTEM STATUS")
         status_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
+        status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status_layout.addWidget(status_title)
-        status_layout.addWidget(self.status_core)
+        self.left_gauge = StatusCore()
+        status_layout.addWidget(self.left_gauge)
 
-        self.packet_card = QWidget()
-        self.packet_card.setStyleSheet("background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;")
-        packet_layout = QVBoxLayout(self.packet_card)
-        packet_layout.setContentsMargins(24, 24, 24, 24)
-        packet_title = QLabel("NETWORK TRAFFIC")
-        packet_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
-        packet_layout.addWidget(packet_title)
-        packet_layout.addWidget(self.packet_widget)
+        self.live_traffic = LiveTrafficWidget()
+        self.live_traffic_card = QWidget()
+        self.live_traffic_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
+        live_layout = QVBoxLayout(self.live_traffic_card)
+        live_layout.setContentsMargins(24, 24, 24, 24)
+        live_title = QLabel("LIVE TRAFFIC")
+        live_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
+        live_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        live_layout.addWidget(live_title)
+        live_layout.addWidget(self.live_traffic)
 
+        self.right_gauge = CircularGaugeWidget()
         self.threat_card = QWidget()
-        self.threat_card.setStyleSheet("background-color: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;")
+        self.threat_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
         threat_layout = QVBoxLayout(self.threat_card)
         threat_layout.setContentsMargins(24, 24, 24, 24)
         threat_title = QLabel("RISK ANALYSIS")
         threat_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
+        threat_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         threat_layout.addWidget(threat_title)
-        threat_layout.addWidget(self.threat_gauge)
+        threat_layout.addWidget(self.right_gauge)
 
         # Splitter for table and chat
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Src IP", "Dst IP", "Protocol", "Length"])
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["Src IP", "Dst IP", "Protocol", "Length", "Confidence Score", "Action"])
         self.table.setContentsMargins(0, 24, 0, 24)  # py-6 vertical padding
         self.table.verticalHeader().setDefaultSectionSize(50)  # increase row height for breathing room
         splitter.addWidget(self.table)
@@ -393,47 +445,633 @@ class WatchdogDashboard(QMainWindow):
         refresh_btn = QPushButton("Refresh Data")
         refresh_btn.clicked.connect(self.update_ui)
 
-        # Central widget with grid layout
-        central = QWidget()
-        self.setCentralWidget(central)
-        grid = QGridLayout(central)
-        grid.setSpacing(20)
+        # Navigation Sidebar (left)
+        self.nav_sidebar = QWidget()
+        self.nav_sidebar.setFixedWidth(80)
+        self.nav_sidebar.setStyleSheet("""
+            QWidget {
+                background-color: #1a1a1a;
+                border-right: 1px solid #222222;
+            }
+        """)
+        nav_layout = QVBoxLayout(self.nav_sidebar)
+        nav_layout.setContentsMargins(0, 20, 0, 20)
+        nav_layout.setSpacing(20)
+        nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Navigation buttons
+        nav_buttons = [
+            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring"),
+            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice"),
+            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds"),
+            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance"),
+            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap"),
+            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
+        ]
+
+        self.nav_button_group = []
+        for icon, tooltip in nav_buttons:
+            btn = QPushButton(icon)
+            btn.setFixedSize(80, 60)
+            btn.setToolTip(tooltip)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.3);
+                    font-size: 10px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    text-align: center;
+                }
+                QPushButton:hover {
+                    background-color: #2a2a2a;
+                    color: rgba(255, 255, 255, 0.6);
+                }
+                QPushButton:checked {
+                    background-color: transparent;
+                    color: #00D1FF;
+                    border-left: 3px solid #00D1FF;
+                }
+            """)
+            btn.setCheckable(True)
+            nav_layout.addWidget(btn)
+            self.nav_button_group.append(btn)
+
+        # Set first button as active
+        if self.nav_button_group:
+            self.nav_button_group[0].setChecked(True)
+
+        # Main content area
+        main_content = QWidget()
+        main_grid = QGridLayout(main_content)
+        main_grid.setSpacing(20)
 
         # Header
-        header = QLabel("🛡️ WATCHDOG AI Dashboard")
+        header = QLabel("WATCHDOG AI Dashboard")
         header.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet("color: white;")
 
         # Header spanning columns
-        grid.addWidget(header, 0, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
+        main_grid.addWidget(header, 0, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
 
         # Cards row (50%)
-        grid.addWidget(self.status_card, 1, 0)
-        grid.addWidget(self.packet_card, 1, 1)
-        grid.addWidget(self.threat_card, 1, 2)
-
-        # Metrics
-        grid.addLayout(metrics_layout, 2, 0, 1, 3)
+        main_grid.addWidget(self.status_card, 1, 0)
+        main_grid.addWidget(self.live_traffic_card, 1, 1)
+        main_grid.addWidget(self.threat_card, 1, 2)
 
         # Refresh button
-        grid.addWidget(refresh_btn, 3, 0, 1, 3)
+        refresh_btn = QPushButton("Refresh Data")
+        refresh_btn.clicked.connect(self.update_ui)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #00D4FF;
+                color: #121212;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #00B8CC;
+            }
+        """)
+        main_grid.addWidget(refresh_btn, 2, 0, 1, 3)
 
         # Splitter row (50%)
-        grid.addWidget(splitter, 4, 0, 1, 3)
+        main_grid.addWidget(splitter, 3, 0, 1, 3)
 
-        # Set row stretches for 50% each
-        grid.setRowStretch(1, 1)
-        grid.setRowStretch(4, 1)
+        # Set row stretches for 50% each, but bottom thicker
+        main_grid.setRowStretch(1, 1)
 
-        # Timer for auto-update
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_ui)
-        self.timer.start(1000)  # 1 seconds
+class WatchdogDashboard(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("WATCHDOG AI Dashboard")
+        self.setGeometry(100, 100, 1200, 1000)
 
-        # Initial update
-        self.update_ui()
+        # Check for --layout-only and --no-ai flags
+        import sys
+        self.layout_only = '--layout-only' in sys.argv
+        self.no_ai = '--no-ai' in sys.argv
 
-    def update_ui(self):
+        # Initialize attributes
+        self.model = None
+        self.extractor = None
+        self.ai_client = None
+        self.previous_packets = 0
+
+        # Load ML (skip if layout-only)
+        if not self.layout_only:
+            try:
+                self.model = joblib.load('models/random_forest_model.pkl')
+                self.extractor = FeatureExtractor()
+            except Exception as e:
+                print(f"Failed to load ML model: {e}")
+                self.model = None
+                self.extractor = None
+
+            # Initialize AI client (skip if --no-ai flag)
+            if not self.no_ai:
+                try:
+                    self.ai_client = OllamaClient()
+                except Exception as e:
+                    print(f"Failed to initialize AI: {e}")
+                    self.ai_client = None
+
+        # Create UI components
+        self.create_ui()
+
+        # Timer for auto-update (skip in layout-only)
+        if not self.layout_only:
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_ui)
+            self.timer.start(1000)  # 1 seconds
+
+        # Initial update (skip in layout-only)
+        if not self.layout_only:
+            self.update_ui()
+
+    def create_ui(self):
+        # Create page container
+        self.page_container = QStackedWidget()
+        self.create_pages()
+
+        # Navigation Sidebar (left)
+        self.nav_sidebar = QWidget()
+        self.nav_sidebar.setFixedWidth(80)
+        self.nav_sidebar.setStyleSheet("""
+            QWidget {
+                background-color: #1a1a1a;
+                border-right: 1px solid #222222;
+            }
+        """)
+
+        nav_layout = QVBoxLayout(self.nav_sidebar)
+        nav_layout.setContentsMargins(0, 20, 0, 20)
+        nav_layout.setSpacing(20)
+        nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Navigation buttons
+        nav_buttons = [
+            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring"),
+            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice"),
+            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds"),
+            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance"),
+            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap"),
+            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
+        ]
+
+        self.nav_button_group = []
+        for i, (icon, tooltip) in enumerate(nav_buttons):
+            btn = QPushButton(icon)
+            btn.setFixedSize(80, 60)
+            btn.setToolTip(tooltip)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.3);
+                    font-size: 10px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    text-align: center;
+                }
+                QPushButton:hover {
+                    background-color: #2a2a2a;
+                    color: rgba(255, 255, 255, 0.6);
+                }
+                QPushButton:checked {
+                    background-color: transparent;
+                    color: #00D1FF;
+                    border-left: 3px solid #00D1FF;
+                }
+            """)
+            btn.setCheckable(True)
+            btn.clicked.connect(lambda checked, idx=i: self.switch_page(idx))
+            nav_layout.addWidget(btn)
+            self.nav_button_group.append(btn)
+
+        # Set first button as active
+        if self.nav_button_group:
+            self.nav_button_group[0].setChecked(True)
+
+        # Main layout with sidebar and page container
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        main_layout.addWidget(self.nav_sidebar)
+        main_layout.addWidget(self.page_container)
+
+        # Central widget
+        central = QWidget()
+        central.setLayout(main_layout)
+        self.setCentralWidget(central)
+
+    def create_pages(self):
+        # Page 0: Live Sentinel (Dashboard)
+        self.create_live_sentinel_page()
+
+        # Page 1: Forensic Vault
+        self.create_forensic_vault_page()
+
+        # Page 2: Autonomous Shield (placeholder)
+        self.create_placeholder_page("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds")
+
+        # Page 3: AI Mentor (placeholder)
+        self.create_placeholder_page("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance")
+
+        # Page 4: Network Topology (placeholder)
+        self.create_placeholder_page("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap")
+
+        # Page 5: Settings & Privacy (placeholder)
+        self.create_placeholder_page("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
+
+    def create_live_sentinel_page(self):
+        # Main content area
+        main_content = QWidget()
+        main_grid = QGridLayout(main_content)
+        main_grid.setSpacing(30)  # Increased spacing for breathing room
+
+        # Header
+        header = QLabel("WATCHDOG AI Dashboard")
+        header.setFont(QFont("JetBrains Mono", 24, QFont.Weight.Bold))  # Modern monospace font
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet("color: white;")
+
+        # AI Toggle Button
+        self.ai_toggle_btn = QPushButton("AI: ON" if not self.no_ai else "AI: OFF")
+        self.ai_toggle_btn.setCheckable(True)
+        self.ai_toggle_btn.setChecked(not self.no_ai)
+        self.ai_toggle_btn.clicked.connect(self.toggle_ai)
+        self.ai_toggle_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #00D4FF;
+                color: #121212;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-family: 'JetBrains Mono';
+            }
+            QPushButton:hover {
+                background-color: #00B8CC;
+            }
+            QPushButton:checked {
+                background-color: #00D4FF;
+                color: #121212;
+            }
+            QPushButton:!checked {
+                background-color: #666666;
+                color: #CCCCCC;
+            }
+        """)
+
+        # Header layout with title and toggle
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(header, 1)  # Title takes available space
+        header_layout.addWidget(self.ai_toggle_btn, 0)  # Button stays compact
+        header_widget = QWidget()
+        header_widget.setLayout(header_layout)
+
+        # Header spanning columns
+        main_grid.addWidget(header_widget, 0, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
+
+        # Cards with refined styling
+        self.status_card = QWidget()
+        self.status_card.setStyleSheet("""
+            QWidget {
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid #222222;
+                border-radius: 15px;
+            }
+        """)
+        status_layout = QVBoxLayout(self.status_card)
+        status_layout.setContentsMargins(40, 40, 40, 40)  # Increased padding
+        status_title = QLabel("SYSTEM STATUS")
+        status_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
+        status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_layout.addWidget(status_title)
+        self.left_gauge = StatusCore()
+        status_layout.addWidget(self.left_gauge)
+
+        self.live_traffic_card = QWidget()
+        self.live_traffic_card.setStyleSheet("""
+            QWidget {
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid #222222;
+                border-radius: 15px;
+            }
+        """)
+        live_layout = QVBoxLayout(self.live_traffic_card)
+        live_layout.setContentsMargins(40, 40, 40, 40)
+        live_title = QLabel("LIVE TRAFFIC")
+        live_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
+        live_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        live_layout.addWidget(live_title)
+        self.live_traffic = LiveTrafficWidget()
+        live_layout.addWidget(self.live_traffic)
+
+        self.threat_card = QWidget()
+        self.threat_card.setStyleSheet("""
+            QWidget {
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid #222222;
+                border-radius: 15px;
+            }
+        """)
+        threat_layout = QVBoxLayout(self.threat_card)
+        threat_layout.setContentsMargins(40, 40, 40, 40)
+        threat_title = QLabel("RISK ANALYSIS")
+        threat_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
+        threat_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        threat_layout.addWidget(threat_title)
+        self.right_gauge = CircularGaugeWidget()
+        threat_layout.addWidget(self.right_gauge)
+
+        # Cards row
+        main_grid.addWidget(self.status_card, 1, 0)
+        main_grid.addWidget(self.live_traffic_card, 1, 1)
+        main_grid.addWidget(self.threat_card, 1, 2)
+
+        # Ghost button styling
+        refresh_btn = QPushButton("Refresh Data")
+        refresh_btn.clicked.connect(self.update_ui)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #00D4FF;
+                border: 2px solid #00D4FF;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 212, 255, 0.1);
+            }
+        """)
+        main_grid.addWidget(refresh_btn, 2, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
+
+        # Splitter for table and chat
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # Table
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["Src IP", "Dst IP", "Protocol", "Length", "Confidence Score", "Action"])
+        self.table.setContentsMargins(0, 24, 0, 24)
+        self.table.verticalHeader().setDefaultSectionSize(50)
+        splitter.addWidget(self.table)
+
+        # Right: AI Intelligence Sidebar
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(400)
+        self.sidebar.setStyleSheet("background-color: rgba(15, 23, 42, 0.9); border-left: 1px solid rgba(255, 255, 255, 0.05);")
+
+        # Define widgets first
+        header_label = QLabel("FORENSIC ASSISTANT")
+        header_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_label.setStyleSheet("color: white;")
+
+        sub_label = QLabel("Powered by Ollama/Llama 3")
+        sub_label.setFont(QFont("Arial", 10))
+        sub_label.setStyleSheet("color: gray;")
+
+        self.chat_scroll = QScrollArea()
+        self.chat_scroll.setWidgetResizable(True)
+        self.chat_scroll.setStyleSheet("border: none; background-color: transparent;")
+        self.chat_widget = QWidget()
+        self.chat_layout = QVBoxLayout(self.chat_widget)
+        self.chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.chat_scroll.setWidget(self.chat_widget)
+
+        # Input Field - sleek underline
+        input_layout = QHBoxLayout()
+        self.chat_input = QLineEdit()
+        self.chat_input.setStyleSheet("""
+            QLineEdit {
+                border: none;
+                border-bottom: 2px solid #888888;
+                background-color: transparent;
+                color: white;
+                padding: 8px;
+            }
+            QLineEdit:focus {
+                border-bottom: 2px solid #00D4FF;
+            }
+        """)
+        self.chat_input.returnPressed.connect(self.send_message)
+        input_layout.addWidget(self.chat_input)
+
+        self.send_btn = QPushButton("Send")
+        self.send_btn.setStyleSheet("background-color: #2DD4BF; color: white; border: none; padding: 8px;")
+        self.send_btn.clicked.connect(self.send_message)
+        input_layout.addWidget(self.send_btn)
+
+        sidebar_grid = QGridLayout(self.sidebar)
+        sidebar_grid.setContentsMargins(16, 16, 16, 16)
+
+        # Header row 0 (auto)
+        sidebar_grid.addWidget(header_label, 0, 0)
+        sidebar_grid.addWidget(sub_label, 1, 0)
+
+        # Chat row 2 (1fr)
+        sidebar_grid.addWidget(self.chat_scroll, 2, 0)
+
+        # Input row 3 (auto)
+        sidebar_grid.addLayout(input_layout, 3, 0)
+
+        # Set row stretch for chat
+        sidebar_grid.setRowStretch(2, 1)
+
+        splitter.addWidget(self.sidebar)
+
+        # Set proportions: table ~60%, sidebar 40%
+        splitter.setSizes([720, 480])
+
+        # Splitter row
+        main_grid.addWidget(splitter, 3, 0, 1, 3)
+
+        # Set row stretches
+        main_grid.setRowStretch(1, 1)
+        main_grid.setRowStretch(3, 2)
+
+        self.page_container.addWidget(main_content)
+
+    def create_forensic_vault_page(self):
+        # Forensic Vault page widget
+        vault_page = QWidget()
+        vault_layout = QVBoxLayout(vault_page)
+        vault_layout.setContentsMargins(40, 40, 40, 40)
+        vault_layout.setSpacing(20)
+
+        # Header
+        vault_header = QLabel("FORENSIC VAULT")
+        vault_header.setFont(QFont("JetBrains Mono", 28, QFont.Weight.Bold))
+        vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        vault_header.setStyleSheet("color: white; margin-bottom: 20px;")
+        vault_layout.addWidget(vault_header)
+
+        # Subtitle
+        vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
+        vault_subtitle.setFont(QFont("JetBrains Mono", 14))
+        vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        vault_subtitle.setStyleSheet("color: #888888; margin-bottom: 30px;")
+        vault_layout.addWidget(vault_subtitle)
+
+        # Search bar
+        search_layout = QHBoxLayout()
+        search_label = QLabel("Search Flagged Incidents:")
+        search_label.setStyleSheet("color: white; font-family: 'JetBrains Mono';")
+        self.vault_search = QLineEdit()
+        self.vault_search.setPlaceholderText("Enter IP address, protocol, or threat type...")
+        self.vault_search.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid #222222;
+                border-radius: 8px;
+                color: white;
+                padding: 8px;
+                font-family: 'JetBrains Mono';
+            }
+        """)
+        self.vault_search.textChanged.connect(self.filter_vault_table)
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.vault_search)
+        vault_layout.addLayout(search_layout)
+
+        # Flagged incidents table
+        self.vault_table = QTableWidget()
+        self.vault_table.setColumnCount(7)
+        self.vault_table.setHorizontalHeaderLabels([
+            "Timestamp", "Source IP", "Destination IP", "Protocol", 
+            "Confidence", "Threat Level", "AI Summary"
+        ])
+        self.vault_table.setStyleSheet("""
+            QTableWidget {
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid #222222;
+                border-radius: 15px;
+                color: white;
+                font-family: 'JetBrains Mono';
+            }
+            QHeaderView::section {
+                background-color: #1a1a1a;
+                color: white;
+                border: none;
+                padding: 8px;
+                font-weight: bold;
+            }
+        """)
+        # Set column widths - remove fixed widths to allow stretching
+        # self.vault_table.setColumnWidth(0, 170)  # Timestamp
+        # self.vault_table.setColumnWidth(1, 120)  # Source IP
+        # self.vault_table.setColumnWidth(2, 120)  # Destination IP
+        # self.vault_table.setColumnWidth(3, 80)   # Protocol
+        # self.vault_table.setColumnWidth(4, 100)  # Confidence
+        # self.vault_table.setColumnWidth(5, 100)  # Threat Level
+        # self.vault_table.setColumnWidth(6, 180)  # AI Summary
+        
+        # Enable stretching to fill entire page width
+        self.vault_table.horizontalHeader().setStretchLastSection(True)
+        self.vault_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Timestamp - auto-resize
+        self.vault_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Source IP - auto-resize
+        self.vault_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Dest IP - auto-resize
+        self.vault_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Protocol - auto-resize
+        self.vault_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Confidence - auto-resize
+        self.vault_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Threat Level - auto-resize
+        # Last column (AI Summary) will stretch to fill remaining space
+        self.vault_table.verticalHeader().setDefaultSectionSize(50)
+        self.vault_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.vault_table.itemDoubleClicked.connect(self.show_forensic_analysis)
+        vault_layout.addWidget(self.vault_table)
+
+        # Refresh button
+        vault_refresh_btn = QPushButton("Load Flagged Incidents")
+        vault_refresh_btn.clicked.connect(self.load_flagged_incidents)
+        vault_refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #00D4FF;
+                border: 2px solid #00D4FF;
+                border-radius: 6px;
+                padding: 12px 24px;
+                font-weight: bold;
+                font-family: 'JetBrains Mono';
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 212, 255, 0.1);
+            }
+        """)
+        vault_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.page_container.addWidget(vault_page)
+
+    def create_placeholder_page(self, title, description):
+        # Placeholder page for future implementation
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(20)
+
+        page_title = QLabel(title)
+        page_title.setFont(QFont("JetBrains Mono", 28, QFont.Weight.Bold))
+        page_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        page_title.setStyleSheet("color: white;")
+        layout.addWidget(page_title)
+
+        page_desc = QLabel(description)
+        page_desc.setFont(QFont("JetBrains Mono", 14))
+        page_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        page_desc.setStyleSheet("color: #888888;")
+        layout.addWidget(page_desc)
+
+        coming_soon = QLabel("Coming Soon...")
+        coming_soon.setFont(QFont("JetBrains Mono", 16))
+        coming_soon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        coming_soon.setStyleSheet("color: #00D4FF; margin-top: 50px;")
+        layout.addWidget(coming_soon)
+
+        self.page_container.addWidget(page)
+
+    def toggle_ai(self, checked):
+        if checked:
+            # Enable AI
+            if not self.ai_client:
+                try:
+                    self.ai_client = OllamaClient()
+                    print("AI features enabled")
+                except Exception as e:
+                    print(f"Failed to initialize AI: {e}")
+                    self.ai_toggle_btn.setChecked(False)
+                    return
+        else:
+            # Disable AI
+            self.ai_client = None
+            print("AI features disabled")
+        
+        # Update button text and style
+        self.ai_toggle_btn.setText("AI: ON" if checked else "AI: OFF")
+        
+        # Refresh forensic vault to update AI availability
+        if hasattr(self, 'vault_table'):
+            self.load_flagged_incidents()
+
+    def switch_page(self, index):
+        # Update button states
+        for i, btn in enumerate(self.nav_button_group):
+            btn.setChecked(i == index)
+        
+        # Switch to the selected page
+        self.page_container.setCurrentIndex(index)
+        
+        # Load page-specific data
+        if index == 1:  # Forensic Vault
+            self.load_flagged_incidents()
+
+    def load_flagged_incidents(self):
+        # Load flagged incidents from packet_data.json
         try:
             with open('packet_data.json', 'r') as f:
                 data = json.load(f)
@@ -441,9 +1079,194 @@ class WatchdogDashboard(QMainWindow):
             data = {"packets": []}
 
         packets = data.get("packets", [])
+        flagged_packets = []
+        
+        # Filter for packets with ATTACK classification or low confidence
+        for packet in packets:
+            if not self.layout_only and self.model and self.extractor:
+                packet_data = {
+                    'src_ip': packet.get('src_ip', '192.168.1.1'),
+                    'dst_ip': packet.get('dst_ip', '10.0.0.1'),
+                    'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
+                    'length': packet.get('length', 100),
+                    'src_port': packet.get('src_port', 12345),
+                    'dst_port': packet.get('dst_port', 80),
+                    'flags': packet.get('flags', 'S'),
+                    'direction': 'inbound'
+                }
+                features = self.extractor.extract_packet_features(packet_data)
+                selected_features = self.extractor.get_selected_features(features)
+                features_array = np.array(selected_features).reshape(1, -1)
+                prediction = self.model.predict(features_array)[0]
+                probabilities = self.model.predict_proba(features_array)[0]
+                confidence = max(probabilities) * 100
+                
+                # Flag if ATTACK prediction OR low confidence (< 60%)
+                if prediction == 1 or confidence < 60.0:
+                    flagged_packets.append(packet)
+        
+        # Always add sample flagged incidents for demonstration
+        sample_packets = [
+            {
+                'timestamp': 1773629875.0,
+                'src_ip': '192.168.1.100',
+                'dst_ip': '10.0.0.1',
+                'protocol': 'TCP',
+                'length': 1500,
+                'src_port': 4444,
+                'dst_port': 80,
+                'flags': 'S',
+                'count': 9999
+            },
+            {
+                'timestamp': 1773629876.0,
+                'src_ip': '10.10.10.10',
+                'dst_ip': '172.16.40.172',
+                'protocol': 'UDP',
+                'length': 512,
+                'src_port': 53,
+                'dst_port': 53,
+                'flags': '',
+                'count': 10000
+            },
+            {
+                'timestamp': 1773629877.0,
+                'src_ip': '203.0.113.1',
+                'dst_ip': '172.16.40.172',
+                'protocol': 'TCP',
+                'length': 2000,
+                'src_port': 22,
+                'dst_port': 22,
+                'flags': 'SA',
+                'count': 10001
+            }
+        ]
+        
+        # Add samples to ensure vault has content
+        for sample in sample_packets:
+            if len(flagged_packets) < 3:
+                flagged_packets.append(sample)
+
+        self.vault_table.setRowCount(len(flagged_packets))
+        for i, packet in enumerate(flagged_packets):
+            # Convert timestamp to human-readable format
+            timestamp = packet.get('timestamp', 0)
+            if isinstance(timestamp, (int, float)):
+                dt = datetime.datetime.fromtimestamp(timestamp)
+                timestamp = dt.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                timestamp = "Unknown"
+            
+            src_ip = packet.get('src_ip', '')
+            dst_ip = packet.get('dst_ip', '')
+            protocol = packet.get('protocol', 'Other')
+            
+            # Always calculate confidence for all packets
+            confidence = "N/A"
+            threat_level = "UNKNOWN"
+            if not self.layout_only and self.model and self.extractor:
+                packet_data = {
+                    'src_ip': src_ip or '192.168.1.1',
+                    'dst_ip': dst_ip or '10.0.0.1',
+                    'protocol': 6 if protocol.upper() == 'TCP' else 17,
+                    'length': packet.get('length', 100),
+                    'src_port': packet.get('src_port', 12345),
+                    'dst_port': packet.get('dst_port', 80),
+                    'flags': packet.get('flags', 'S'),
+                    'direction': 'inbound'
+                }
+                features = self.extractor.extract_packet_features(packet_data)
+                selected_features = self.extractor.get_selected_features(features)
+                features_array = np.array(selected_features).reshape(1, -1)
+                prediction = self.model.predict(features_array)[0]
+                probabilities = self.model.predict_proba(features_array)[0]
+                confidence = f"{max(probabilities) * 100:.1f}%"
+                threat_level = "ATTACK" if prediction == 1 else "NORMAL"
+            
+            ai_summary = "Click to view AI analysis" if not self.layout_only else "Sample flagged packet"
+
+            self.vault_table.setItem(i, 0, QTableWidgetItem(timestamp))
+            self.vault_table.setItem(i, 1, QTableWidgetItem(src_ip))
+            self.vault_table.setItem(i, 2, QTableWidgetItem(dst_ip))
+            self.vault_table.setItem(i, 3, QTableWidgetItem(protocol))
+            self.vault_table.setItem(i, 4, QTableWidgetItem(confidence))
+            self.vault_table.setItem(i, 5, QTableWidgetItem(threat_level))
+            self.vault_table.setItem(i, 6, QTableWidgetItem(ai_summary))
+
+    def filter_vault_table(self, text):
+        # Filter table rows based on search text
+        for row in range(self.vault_table.rowCount()):
+            show_row = False
+            for col in range(self.vault_table.columnCount()):
+                item = self.vault_table.item(row, col)
+                if item and text.lower() in item.text().lower():
+                    show_row = True
+                    break
+            self.vault_table.setRowHidden(row, not show_row)
+
+    def show_forensic_analysis(self, item):
+        # Show forensic analysis dialog for clicked item
+        row = item.row()
+        
+        # Get packet data from table
+        src_ip = self.vault_table.item(row, 1).text() if self.vault_table.item(row, 1) else ""
+        dst_ip = self.vault_table.item(row, 2).text() if self.vault_table.item(row, 2) else ""
+        protocol = self.vault_table.item(row, 3).text() if self.vault_table.item(row, 3) else ""
+        
+        # Create forensic analysis dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Forensic Analysis")
+        dialog.setModal(True)
+        dialog.setStyleSheet("background-color: #121212; color: white;")
+        
+        layout = QVBoxLayout(dialog)
+        
+        title = QLabel(f"Forensic Analysis: {src_ip} → {dst_ip}")
+        title.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
+        title.setStyleSheet("color: #00D4FF; margin-bottom: 20px;")
+        layout.addWidget(title)
+        
+        # Analysis content
+        if not self.layout_only and self.ai_client:
+            packet_info = f"Source IP: {src_ip}\nDestination IP: {dst_ip}\nProtocol: {protocol}"
+            analysis_text = self.process_command(f"analyze packet: {packet_info}")
+        else:
+            analysis_text = f"This packet from {src_ip} to {dst_ip} using {protocol} was flagged as potentially malicious.\n\nIn a full implementation, Llama 4 Scout would provide detailed forensic analysis explaining why this packet was considered a threat, including:\n\n• Protocol analysis\n• Traffic pattern recognition\n• Known threat signature matching\n• Behavioral anomaly detection"
+        
+        analysis_label = QLabel(analysis_text)
+        analysis_label.setWordWrap(True)
+        analysis_label.setStyleSheet("background-color: rgba(30, 41, 59, 0.8); padding: 20px; border-radius: 10px; border: 1px solid #222222;")
+        layout.addWidget(analysis_label)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #00D4FF;
+                color: #121212;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        dialog.resize(600, 400)
+        dialog.exec()
+
+    def update_ui(self):
+        current_packets = 0
+        try:
+            with open('packet_data.json', 'r') as f:
+                data = json.load(f)
+            current_packets = data.get('packet_count', 0)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {"packets": []}
+
+        packets = data.get("packets", [])
         if packets:
-            # Update metrics
-            self.packets_label.setText(f"Packets: {len(packets)}")
             # Update table
             self.table.setRowCount(min(10, len(packets)))
             for i, packet in enumerate(packets[-10:]):
@@ -452,8 +1275,38 @@ class WatchdogDashboard(QMainWindow):
                 proto = packet.get('protocol', 'Other')
                 self.table.setItem(i, 2, QTableWidgetItem(proto))
                 self.table.setItem(i, 3, QTableWidgetItem(str(packet.get('length', 0))))
-        else:
-            self.packets_label.setText("Packets: 0")
+                
+                # ML predictions for Confidence Score and Action (skip in layout-only)
+                if not self.layout_only and self.model and self.extractor:
+                    packet_data = {
+                        'src_ip': packet.get('src_ip', '192.168.1.1'),
+                        'dst_ip': packet.get('dst_ip', '10.0.0.1'),
+                        'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
+                        'length': packet.get('length', 100),
+                        'src_port': packet.get('src_port', 12345),
+                        'dst_port': packet.get('dst_port', 80),
+                        'flags': packet.get('flags', 'S'),
+                        'direction': 'inbound'
+                    }
+                    features = self.extractor.extract_packet_features(packet_data)
+                    selected_features = self.extractor.get_selected_features(features)
+                    features_array = np.array(selected_features).reshape(1, -1)
+                    prediction = self.model.predict(features_array)[0]
+                    probabilities = self.model.predict_proba(features_array)[0]
+                    confidence = max(probabilities) * 100
+                    action = "NORMAL" if prediction == 0 else "ATTACK"
+                    self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
+                    self.table.setItem(i, 5, QTableWidgetItem(action))
+                else:
+                    self.table.setItem(i, 4, QTableWidgetItem("N/A"))
+                    self.table.setItem(i, 5, QTableWidgetItem("UNKNOWN"))
+
+        # Update pps and gauge (skip in layout-only)
+        if not self.layout_only:
+            pps = max(0, current_packets - self.previous_packets)
+            self.previous_packets = current_packets
+            risk = min(100, (pps / 50) * 100)  # 50 pps = 100% risk
+            self.right_gauge.set_score(risk)
 
     def send_message(self):
         msg = self.chat_input.text().strip()
@@ -488,6 +1341,9 @@ class WatchdogDashboard(QMainWindow):
         self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum())
 
     def process_command(self, msg):
+        if self.layout_only or not self.ai_client:
+            return f"Layout-only mode: Would process '{msg}' with AI analysis."
+        
         msg_lower = msg.lower()
         if "hi" in msg_lower or "hello" in msg_lower:
             return "Hello! I'm the AI assistant for WATCHDOG. Try 'threat level' or 'status'."
@@ -544,6 +1400,80 @@ class WatchdogDashboard(QMainWindow):
         
         else:
             return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
+
+    def process_command(self, msg):
+        if self.layout_only or not self.ai_client:
+            return f"Layout-only mode: Would process '{msg}' with AI analysis."
+        
+        msg_lower = msg.lower()
+        if "hi" in msg_lower or "hello" in msg_lower:
+            return "Hello! I'm the AI assistant for WATCHDOG. Try 'threat level' or 'status'."
+        elif "threat" in msg_lower and "level" in msg_lower:
+            return "Current threat level: LOW (0.2)"
+        elif "status" in msg_lower:
+            return "System status: SAFE - All systems operational."
+        elif msg_lower.startswith("predict"):
+            if not self.model or not self.extractor:
+                return "ML model not available."
+            try:
+                params_str = msg.split(":", 1)[1].strip()
+                params = {}
+                for pair in params_str.split():
+                    if "=" in pair:
+                        key, value = pair.split("=", 1)
+                        params[key.strip()] = value.strip()
+                packet_data = {
+                    'src_ip': params.get('src_ip', '192.168.1.1'),
+                    'dst_ip': params.get('dst_ip', '10.0.0.1'),
+                    'protocol': 6 if params.get('protocol', 'tcp').lower() == 'tcp' else 17,
+                    'length': int(params.get('length', '100')),
+                    'src_port': int(params.get('src_port', '12345')),
+                    'dst_port': int(params.get('dst_port', '80')),
+                    'flags': params.get('flags', 'S'),
+                    'direction': 'inbound'
+                }
+                features = self.extractor.extract_packet_features(packet_data)
+                selected_features = self.extractor.get_selected_features(features)
+                features_array = np.array(selected_features).reshape(1, -1)
+                prediction = self.model.predict(features_array)[0]
+                label_map = {0: 'NORMAL', 1: 'ATTACK'}
+                return f"Prediction: {label_map.get(prediction, 'UNKNOWN')}"
+            except Exception as e:
+                return f"Error: {str(e)}"
+        
+        elif msg_lower.startswith("explain log:"):
+            log_str = msg[12:].strip()
+            try:
+                packet = json.loads(log_str)
+                formatted = format_packet_log(packet)
+                return self.ai_client.query(EXPLANATION_PROMPT.format(log=formatted))
+            except Exception as e:
+                return f"Error processing log: {str(e)}"
+        
+        elif msg_lower.startswith("analyze log:"):
+            log_str = msg[12:].strip()
+            try:
+                packet = json.loads(log_str)
+                formatted = format_packet_log(packet)
+                return self.ai_client.query(TECHNICAL_ANALYSIS_PROMPT.format(log=formatted))
+            except Exception as e:
+                return f"Error processing log: {str(e)}"
+        
+        else:
+            return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
+
+    def closeEvent(self, event):
+        # Stop all timers
+        if hasattr(self, 'timer'):
+            self.timer.stop()
+        if hasattr(self, 'right_gauge') and hasattr(self.right_gauge, 'smooth_timer'):
+            self.right_gauge.smooth_timer.stop()
+        if hasattr(self, 'live_traffic') and hasattr(self.live_traffic, 'timer'):
+            self.live_traffic.timer.stop()
+        # Quit the application
+        QApplication.quit()
+        event.accept()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
