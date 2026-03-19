@@ -13,6 +13,8 @@ python3 src/ui/modern_dashboard.py
 sudo python3 src/network/basic_sniffer.py start
 
 python3 src/ui/pyqt_dashboard.py
+python3 src/ui/pyqt_dashboard.py --layout-only
+python3 src/ui/pyqt_dashboard.py --no-ai
 
 sudo nmap -sS localhost
 

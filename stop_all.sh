@@ -6,4 +6,4 @@ pkill -f "python3 src/ui/pyqt_dashboard.py"
 echo "All stopped."
 
 
-/.stop_all.sh
+/.stop_all.shpython3 src/ui/pyqt_dashboard.py --layout-only
