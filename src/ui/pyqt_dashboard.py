@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem, 
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
-    QStackedWidget, QDialog
+    QStackedWidget, QDialog, QSizePolicy, QListWidget, QMessageBox, QSlider
 )
 from PyQt6.QtCore import QTimer, Qt, QRectF, QByteArray
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient
@@ -677,7 +677,7 @@ class WatchdogDashboard(QMainWindow):
         self.create_forensic_vault_page()
 
         # Page 2: Autonomous Shield (placeholder)
-        self.create_placeholder_page("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds")
+        self.create_autonomous_shield_page()
 
         # Page 3: AI Mentor (placeholder)
         self.create_placeholder_page("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance")
@@ -943,10 +943,10 @@ class WatchdogDashboard(QMainWindow):
 
         # Flagged incidents table
         self.vault_table = QTableWidget()
-        self.vault_table.setColumnCount(7)
+        self.vault_table.setColumnCount(8)
         self.vault_table.setHorizontalHeaderLabels([
             "Timestamp", "Source IP", "Destination IP", "Protocol", 
-            "Confidence", "Threat Level", "AI Summary"
+            "Confidence", "Threat Level", "AI Summary", "Action"
         ])
         self.vault_table.setStyleSheet("""
             QTableWidget {
@@ -981,7 +981,8 @@ class WatchdogDashboard(QMainWindow):
         self.vault_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Protocol - auto-resize
         self.vault_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Confidence - auto-resize
         self.vault_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Threat Level - auto-resize
-        # Last column (AI Summary) will stretch to fill remaining space
+        self.vault_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # AI Summary - auto-resize
+        # Last column (Action) will stretch to fill remaining space
         self.vault_table.verticalHeader().setDefaultSectionSize(50)
         self.vault_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.vault_table.itemDoubleClicked.connect(self.show_forensic_analysis)
@@ -1192,6 +1193,52 @@ class WatchdogDashboard(QMainWindow):
             self.vault_table.setItem(i, 4, QTableWidgetItem(confidence))
             self.vault_table.setItem(i, 5, QTableWidgetItem(threat_level))
             self.vault_table.setItem(i, 6, QTableWidgetItem(ai_summary))
+            
+            # Add Action buttons
+            action_widget = QWidget()
+            action_layout = QHBoxLayout(action_widget)
+            action_layout.setContentsMargins(5, 2, 5, 2)
+            action_layout.setSpacing(5)
+            
+            # Block Source IP button
+            block_src_btn = QPushButton("Block Src")
+            block_src_btn.setFixedSize(70, 25)
+            block_src_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF6B6B;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #FF5252;
+                }
+            """)
+            block_src_btn.clicked.connect(lambda checked, ip=src_ip: self.block_ip_from_vault(ip))
+            action_layout.addWidget(block_src_btn)
+            
+            # Block Destination IP button
+            block_dst_btn = QPushButton("Block Dst")
+            block_dst_btn.setFixedSize(70, 25)
+            block_dst_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #00D4FF;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #00B8CC;
+                }
+            """)
+            block_dst_btn.clicked.connect(lambda checked, ip=dst_ip: self.block_ip_from_vault(ip))
+            action_layout.addWidget(block_dst_btn)
+            
+            self.vault_table.setCellWidget(i, 7, action_widget)
 
     def filter_vault_table(self, text):
         # Filter table rows based on search text
@@ -1203,6 +1250,51 @@ class WatchdogDashboard(QMainWindow):
                     show_row = True
                     break
             self.vault_table.setRowHidden(row, not show_row)
+
+    def block_ip_from_vault(self, ip_address):
+        """Block an IP address from the vault and add it to the shield"""
+        if not ip_address or ip_address in ["", "Unknown"]:
+            return
+            
+        reply = QMessageBox.question(
+            self, 
+            'Block IP Address', 
+            f'Are you sure you want to block {ip_address}?\n\nThis will add it to the Autonomous Shield block list.',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Add to blocked IPs set
+            if hasattr(self, 'blocked_ips'):
+                self.blocked_ips.add(ip_address)
+            
+            # Increment manual block counter
+            if hasattr(self, 'manual_block_count'):
+                self.manual_block_count += 1
+            
+            # Add to shield's blocked list widget if it exists
+            if hasattr(self, 'blocked_list_widget'):
+                # Check if already in list
+                items = []
+                for i in range(self.blocked_list_widget.count()):
+                    item_text = self.blocked_list_widget.item(i).text()
+                    existing_ip = item_text.split(" - ")[0]
+                    items.append(existing_ip)
+                
+                if ip_address not in items:
+                    # Add with description from vault
+                    description = "Blocked from Forensic Vault"
+                    self.blocked_list_widget.addItem(f"{ip_address} - {description}")
+            
+            # Update statistics
+            self.update_shield_statistics()
+            
+            # Show confirmation
+            QMessageBox.information(self, "IP Blocked", 
+                f"Successfully blocked {ip_address}\nAdded to Autonomous Shield block list.")
+            
+            print(f"Blocked IP from vault: {ip_address}")
 
     def show_forensic_analysis(self, item):
         # Show forensic analysis dialog for clicked item
@@ -1461,6 +1553,323 @@ class WatchdogDashboard(QMainWindow):
         
         else:
             return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
+
+    def create_autonomous_shield_page(self):
+        """Create Autonomous Shield page with firewall management"""
+        shield_page = QWidget()
+        
+        # Main layout
+        main_layout = QVBoxLayout(shield_page)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(30)
+        
+        # Header
+        header_widget = QWidget()
+        header_widget.setFixedHeight(80)
+        header_widget.setStyleSheet("""
+            QWidget {
+                background: linear-gradient(135deg, #1a1a1a, #2d3748);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 15px 15px 0 0;
+            }
+        """)
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(40, 20, 40, 20)
+        
+        title_section = QVBoxLayout()
+        title_section.setSpacing(5)
+        
+        shield_title = QLabel("AUTONOMOUS SHIELD")
+        shield_title.setFont(QFont("JetBrains Mono", 24, QFont.Weight.Bold))
+        shield_title.setStyleSheet("color: #FF6B6B; margin: 0;")
+        title_section.addWidget(shield_title)
+        
+        shield_subtitle = QLabel("Firewall Management & AI Confidence Control")
+        shield_subtitle.setFont(QFont("JetBrains Mono", 12))
+        shield_subtitle.setStyleSheet("color: #888888; margin: 0;")
+        title_section.addWidget(shield_subtitle)
+        
+        header_layout.addLayout(title_section)
+        header_layout.addStretch()
+        
+        main_layout.addWidget(header_widget)
+        
+        # Content area with two sections
+        content_area = QWidget()
+        content_layout = QHBoxLayout(content_area)
+        content_layout.setSpacing(30)
+        
+        # Left section - Blocked IPs
+        left_section = QWidget()
+        left_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left_layout = QVBoxLayout(left_section)
+        left_layout.setSpacing(20)
+        
+        # Blocked IPs header
+        blocked_header = QLabel("BLOCKED IP ADDRESSES")
+        blocked_header.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
+        blocked_header.setStyleSheet("color: #FF6B6B; margin-bottom: 10px;")
+        left_layout.addWidget(blocked_header)
+        
+        # Blocked IPs list
+        self.blocked_list_widget = QListWidget()
+        self.blocked_list_widget.setStyleSheet("""
+            QListWidget {
+                background-color: #121212;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 10px;
+                font-family: 'JetBrains Mono';
+                font-size: 14px;
+                color: white;
+            }
+            QListWidget::item {
+                padding: 10px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 5px;
+                margin: 2px 0;
+            }
+            QListWidget::item:selected {
+                background-color: rgba(255, 107, 107, 0.2);
+            }
+            QListWidget::item:hover {
+                background-color: rgba(255, 107, 107, 0.1);
+            }
+        """)
+        
+        # Add some sample blocked IPs
+        sample_blocked_ips = [
+            "192.168.1.100 - Suspicious port scanning",
+            "10.0.0.50 - Multiple failed login attempts", 
+            "203.0.113.1 - Known malicious IP",
+            "198.51.100.0 - Brute force attack detected"
+        ]
+        
+        for ip_info in sample_blocked_ips:
+            self.blocked_list_widget.addItem(ip_info)
+        
+        left_layout.addWidget(self.blocked_list_widget)
+        
+        # Unblock button
+        unblock_btn = QPushButton("UNBLOCK SELECTED")
+        unblock_btn.setFixedHeight(40)
+        unblock_btn.setFont(QFont("JetBrains Mono", 12, QFont.Weight.Bold))
+        unblock_btn.setStyleSheet("""
+            QPushButton {
+                background: linear-gradient(135deg, #FF6B6B, #FF5252);
+                border: 2px solid #FF6B6B;
+                border-radius: 10px;
+                color: white;
+                font-weight: bold;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background: linear-gradient(135deg, #FF5252, #FF3838);
+                border: 2px solid #FF5252;
+            }
+            QPushButton:pressed {
+                background: linear-gradient(135deg, #FF3838, #E91E63);
+                border: 2px solid #FF3838;
+            }
+        """)
+        unblock_btn.clicked.connect(self.unblock_selected_ip)
+        left_layout.addWidget(unblock_btn)
+        
+        # Right section - Confidence Threshold
+        right_section = QWidget()
+        right_section.setFixedWidth(400)
+        right_layout = QVBoxLayout(right_section)
+        right_layout.setSpacing(20)
+        
+        # Confidence threshold header
+        confidence_header = QLabel("AI CONFIDENCE THRESHOLD")
+        confidence_header.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
+        confidence_header.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
+        right_layout.addWidget(confidence_header)
+        
+        # Confidence slider
+        confidence_container = QWidget()
+        confidence_container.setStyleSheet("""
+            QWidget {
+                background-color: #121212;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 20px;
+            }
+        """)
+        confidence_layout = QVBoxLayout(confidence_container)
+        confidence_layout.setSpacing(15)
+        
+        # Current threshold display
+        self.confidence_label = QLabel("Current Threshold: 75%")
+        self.confidence_label.setFont(QFont("JetBrains Mono", 14))
+        self.confidence_label.setStyleSheet("color: #00D4FF; margin: 0;")
+        self.confidence_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        confidence_layout.addWidget(self.confidence_label)
+        
+        # Confidence slider
+        self.confidence_slider = QSlider(Qt.Orientation.Horizontal)
+        self.confidence_slider.setRange(0, 100)
+        self.confidence_slider.setValue(75)
+        self.confidence_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                border: 1px solid #1a1a1a;
+                height: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 #FF6B6B, stop:0.5 #FFD93D, stop:1 #6BCF7F);
+                border-radius: 4px;
+            }
+            QSlider::handle:horizontal {
+                background: #00D4FF;
+                border: 2px solid #1a1a1a;
+                width: 20px;
+                margin: -6px 0;
+                border-radius: 10px;
+            }
+        """)
+        self.confidence_slider.valueChanged.connect(self.update_confidence_threshold)
+        confidence_layout.addWidget(self.confidence_slider)
+        
+        # Threshold labels
+        labels_layout = QHBoxLayout()
+        labels_layout.setSpacing(0)
+        
+        relaxed_label = QLabel("Relaxed")
+        relaxed_label.setFont(QFont("JetBrains Mono", 10))
+        relaxed_label.setStyleSheet("color: #FF6B6B;")
+        
+        balanced_label = QLabel("Balanced")
+        balanced_label.setFont(QFont("JetBrains Mono", 10))
+        balanced_label.setStyleSheet("color: #FFD93D;")
+        balanced_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        aggressive_label = QLabel("Aggressive")
+        aggressive_label.setFont(QFont("JetBrains Mono", 10))
+        aggressive_label.setStyleSheet("color: #6BCF7F;")
+        aggressive_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
+        labels_layout.addWidget(relaxed_label)
+        labels_layout.addStretch()
+        labels_layout.addWidget(balanced_label)
+        labels_layout.addStretch()
+        labels_layout.addWidget(aggressive_label)
+        confidence_layout.addLayout(labels_layout)
+        
+        # Mode description
+        mode_desc = QLabel("Lower values = More blocks (Aggressive)\nHigher values = Fewer false positives (Relaxed)")
+        mode_desc.setFont(QFont("JetBrains Mono", 10))
+        mode_desc.setStyleSheet("color: #888888; margin: 10px 0;")
+        mode_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mode_desc.setWordWrap(True)
+        confidence_layout.addWidget(mode_desc)
+        
+        right_layout.addWidget(confidence_container)
+        
+        # Statistics
+        stats_container = QWidget()
+        stats_container.setStyleSheet("""
+            QWidget {
+                background-color: #121212;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 20px;
+            }
+        """)
+        stats_layout = QVBoxLayout(stats_container)
+        stats_layout.setSpacing(10)
+        
+        stats_title = QLabel("BLOCKING STATISTICS")
+        stats_title.setFont(QFont("JetBrains Mono", 12, QFont.Weight.Bold))
+        stats_title.setStyleSheet("color: #FFD93D; margin: 0;")
+        stats_layout.addWidget(stats_title)
+        
+        self.total_blocked_label = QLabel(f"Total Blocked: {len(sample_blocked_ips)}")
+        self.total_blocked_label.setFont(QFont("JetBrains Mono", 11))
+        self.total_blocked_label.setStyleSheet("color: white; margin: 5px 0;")
+        stats_layout.addWidget(self.total_blocked_label)
+        
+        self.auto_blocked_label = QLabel(f"Auto-Blocked: {len(sample_blocked_ips)}")
+        self.auto_blocked_label.setFont(QFont("JetBrains Mono", 11))
+        self.auto_blocked_label.setStyleSheet("color: #6BCF7F; margin: 5px 0;")
+        stats_layout.addWidget(self.auto_blocked_label)
+        
+        self.manual_blocked_label = QLabel("Manual: 0")
+        self.manual_blocked_label.setFont(QFont("JetBrains Mono", 11))
+        self.manual_blocked_label.setStyleSheet("color: #00D4FF; margin: 5px 0;")
+        stats_layout.addWidget(self.manual_blocked_label)
+        
+        # Initialize manual block counter
+        self.manual_block_count = 0
+        
+        right_layout.addWidget(stats_container)
+        right_layout.addStretch()
+        
+        # Add sections to content
+        content_layout.addWidget(left_section)
+        content_layout.addWidget(right_section)
+        
+        main_layout.addWidget(content_area)
+        shield_page.setLayout(main_layout)
+        self.page_container.addWidget(shield_page)
+        
+        # Initialize blocked IPs list
+        self.blocked_ips = set()
+
+    def update_shield_statistics(self):
+        """Update the shield statistics display"""
+        if hasattr(self, 'total_blocked_label') and hasattr(self, 'blocked_list_widget'):
+            total_count = self.blocked_list_widget.count()
+            auto_count = 4  # Initial sample blocked IPs
+            manual_count = self.manual_block_count if hasattr(self, 'manual_block_count') else 0
+            
+            self.total_blocked_label.setText(f"Total Blocked: {total_count}")
+            self.auto_blocked_label.setText(f"Auto-Blocked: {auto_count}")
+            self.manual_blocked_label.setText(f"Manual: {manual_count}")
+
+    def unblock_selected_ip(self):
+        """Unblock the selected IP from the list"""
+        selected_items = self.blocked_list_widget.selectedItems()
+        if selected_items:
+            item = selected_items[0]
+            ip_address = item.text().split(" - ")[0]  # Extract IP from "IP - description"
+            
+            reply = QMessageBox.question(
+                self, 
+                'Unblock IP', 
+                f'Are you sure you want to unblock {ip_address}?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.blocked_list_widget.takeItem(self.blocked_list_widget.row(item))
+                if ip_address in self.blocked_ips:
+                    self.blocked_ips.remove(ip_address)
+                
+                # Update manual block count if it was a manual block
+                if hasattr(self, 'manual_block_count'):
+                    item_text = item.text()
+                    if "Blocked from Forensic Vault" in item_text or "Manual" in item_text:
+                        self.manual_block_count = max(0, self.manual_block_count - 1)
+                
+                # Update statistics
+                self.update_shield_statistics()
+                
+                print(f"Unblocked IP: {ip_address}")
+
+    def update_confidence_threshold(self, value):
+        """Update the confidence threshold display"""
+        self.confidence_label.setText(f"Current Threshold: {value}%")
+        
+        # Update label color based on threshold
+        if value < 33:
+            color = "#6BCF7F"  # Green for aggressive
+        elif value < 66:
+            color = "#FFD93D"  # Yellow for balanced
+        else:
+            color = "#FF6B6B"  # Red for relaxed
+        
+        self.confidence_label.setStyleSheet(f"color: {color}; margin: 0;")
 
     def closeEvent(self, event):
         # Stop all timers
