@@ -330,232 +330,6 @@ class WatchdogDashboard(QMainWindow):
         self.layout_only = '--layout-only' in sys.argv
         self.no_ai = '--no-ai' in sys.argv
 
-        self.ai_client = None
-
-        self.previous_packets = 0
-
-        self.status_card = QWidget()
-        self.status_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
-        status_layout = QVBoxLayout(self.status_card)
-        status_layout.setContentsMargins(24, 24, 24, 24)
-        status_title = QLabel("SYSTEM STATUS")
-        status_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
-        status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_layout.addWidget(status_title)
-        self.left_gauge = StatusCore()
-        status_layout.addWidget(self.left_gauge)
-
-        self.live_traffic = LiveTrafficWidget()
-        self.live_traffic_card = QWidget()
-        self.live_traffic_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
-        live_layout = QVBoxLayout(self.live_traffic_card)
-        live_layout.setContentsMargins(24, 24, 24, 24)
-        live_title = QLabel("LIVE TRAFFIC")
-        live_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
-        live_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        live_layout.addWidget(live_title)
-        live_layout.addWidget(self.live_traffic)
-
-        self.right_gauge = CircularGaugeWidget()
-        self.threat_card = QWidget()
-        self.threat_card.setStyleSheet("background-color: #1e293b; border-radius: 12px;")
-        threat_layout = QVBoxLayout(self.threat_card)
-        threat_layout.setContentsMargins(24, 24, 24, 24)
-        threat_title = QLabel("RISK ANALYSIS")
-        threat_title.setStyleSheet("color: gray; font-family: Monospace; font-size: 10px; text-transform: uppercase;")
-        threat_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        threat_layout.addWidget(threat_title)
-        threat_layout.addWidget(self.right_gauge)
-
-        # Splitter for table and chat
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        # Table
-        self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Src IP", "Dst IP", "Protocol", "Length", "Confidence Score", "Action"])
-        self.table.setContentsMargins(0, 24, 0, 24)  # py-6 vertical padding
-        self.table.verticalHeader().setDefaultSectionSize(50)  # increase row height for breathing room
-        splitter.addWidget(self.table)
-
-        # Right: AI Intelligence Sidebar
-        self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(400)
-        self.sidebar.setStyleSheet("background-color: rgba(15, 23, 42, 0.5); border-left: 1px solid rgba(255, 255, 255, 0.05);")
-
-        # Define widgets first
-        header_label = QLabel("FORENSIC ASSISTANT")
-        header_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        header_label.setStyleSheet("color: white;")
-
-        sub_label = QLabel("Powered by Ollama/Llama 3")
-        sub_label.setFont(QFont("Arial", 10))
-        sub_label.setStyleSheet("color: gray;")
-
-        self.chat_scroll = QScrollArea()
-        self.chat_scroll.setWidgetResizable(True)
-        self.chat_scroll.setStyleSheet("border: none; background-color: transparent;")
-        self.chat_widget = QWidget()
-        self.chat_layout = QVBoxLayout(self.chat_widget)
-        self.chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.chat_scroll.setWidget(self.chat_widget)
-
-        # Input Field and Send at bottom
-        input_layout = QHBoxLayout()
-        self.chat_input = QLineEdit()
-        self.chat_input.returnPressed.connect(self.send_message)
-        input_layout.addWidget(self.chat_input)
-
-        self.send_btn = QPushButton("Send")
-        self.send_btn.setStyleSheet("background-color: #2DD4BF; color: white; border: none; padding: 8px;")
-        self.send_btn.clicked.connect(self.send_message)
-        input_layout.addWidget(self.send_btn)
-
-        sidebar_grid = QGridLayout(self.sidebar)
-        sidebar_grid.setContentsMargins(16, 16, 16, 16)
-
-        # Header row 0 (auto)
-        sidebar_grid.addWidget(header_label, 0, 0)
-        sidebar_grid.addWidget(sub_label, 1, 0)
-
-        # Chat row 2 (1fr)
-        sidebar_grid.addWidget(self.chat_scroll, 2, 0)
-
-        # Input row 3 (auto)
-        sidebar_grid.addLayout(input_layout, 3, 0)
-
-        # Set row stretch for chat
-        sidebar_grid.setRowStretch(2, 1)
-
-        splitter.addWidget(self.sidebar)
-
-        # Set proportions: table ~60%, sidebar 40%
-        splitter.setSizes([720, 480])
-
-        # Metrics
-        metrics_layout = QHBoxLayout()
-        self.status_label = QLabel("Status: SAFE")
-        self.packets_label = QLabel("Packets: 0")
-        self.status_label.setFont(QFont("Arial", 14))
-        self.packets_label.setFont(QFont("Arial", 14))
-        metrics_layout.addWidget(self.status_label)
-        metrics_layout.addWidget(self.packets_label)
-
-        # Refresh button
-        refresh_btn = QPushButton("Refresh Data")
-        refresh_btn.clicked.connect(self.update_ui)
-
-        # Navigation Sidebar (left)
-        self.nav_sidebar = QWidget()
-        self.nav_sidebar.setFixedWidth(80)
-        self.nav_sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-right: 1px solid #222222;
-            }
-        """)
-        nav_layout = QVBoxLayout(self.nav_sidebar)
-        nav_layout.setContentsMargins(0, 20, 0, 20)
-        nav_layout.setSpacing(20)
-        nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # Navigation buttons
-        nav_buttons = [
-            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring"),
-            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice"),
-            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds"),
-            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance"),
-            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap"),
-            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
-        ]
-
-        self.nav_button_group = []
-        for icon, tooltip in nav_buttons:
-            btn = QPushButton(icon)
-            btn.setFixedSize(80, 60)
-            btn.setToolTip(tooltip)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: transparent;
-                    border: none;
-                    color: rgba(255, 255, 255, 0.3);
-                    font-size: 10px;
-                    font-weight: bold;
-                    border-radius: 8px;
-                    text-align: center;
-                }
-                QPushButton:hover {
-                    background-color: #2a2a2a;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-                QPushButton:checked {
-                    background-color: transparent;
-                    color: #00D1FF;
-                    border-left: 3px solid #00D1FF;
-                }
-            """)
-            btn.setCheckable(True)
-            nav_layout.addWidget(btn)
-            self.nav_button_group.append(btn)
-
-        # Set first button as active
-        if self.nav_button_group:
-            self.nav_button_group[0].setChecked(True)
-
-        # Main content area
-        main_content = QWidget()
-        main_grid = QGridLayout(main_content)
-        main_grid.setSpacing(20)
-
-        # Header
-        header = QLabel("WATCHDOG AI Dashboard")
-        header.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setStyleSheet("color: white;")
-
-        # Header spanning columns
-        main_grid.addWidget(header, 0, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
-
-        # Cards row (50%)
-        main_grid.addWidget(self.status_card, 1, 0)
-        main_grid.addWidget(self.live_traffic_card, 1, 1)
-        main_grid.addWidget(self.threat_card, 1, 2)
-
-        # Refresh button
-        refresh_btn = QPushButton("Refresh Data")
-        refresh_btn.clicked.connect(self.update_ui)
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #00D4FF;
-                color: #121212;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #00B8CC;
-            }
-        """)
-        main_grid.addWidget(refresh_btn, 2, 0, 1, 3)
-
-        # Splitter row (50%)
-        main_grid.addWidget(splitter, 3, 0, 1, 3)
-
-        # Set row stretches for 50% each, but bottom thicker
-        main_grid.setRowStretch(1, 1)
-
-class WatchdogDashboard(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("WATCHDOG AI Dashboard")
-        self.setGeometry(100, 100, 1200, 1000)
-
-        # Check for --layout-only and --no-ai flags
-        import sys
-        self.layout_only = '--layout-only' in sys.argv
-        self.no_ai = '--no-ai' in sys.argv
-
         # Initialize attributes
         self.model = None
         self.extractor = None
@@ -696,7 +470,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Header
         header = QLabel("WATCHDOG AI Dashboard")
-        header.setFont(QFont("Courier New", 24, QFont.Weight.Bold))  # Modern monospace font
+        header.setFont(QFont("JetBrains Mono", 24, QFont.Weight.Bold))  # Modern monospace font
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("color: white;")
 
@@ -713,7 +487,7 @@ class WatchdogDashboard(QMainWindow):
                 padding: 8px 16px;
                 border-radius: 6px;
                 font-weight: bold;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
             }
             QPushButton:hover {
                 background-color: #00B8CC;
@@ -750,7 +524,7 @@ class WatchdogDashboard(QMainWindow):
         status_layout = QVBoxLayout(self.status_card)
         status_layout.setContentsMargins(40, 40, 40, 40)  # Increased padding
         status_title = QLabel("SYSTEM STATUS")
-        status_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
+        status_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
         status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status_layout.addWidget(status_title)
         self.left_gauge = StatusCore()
@@ -767,7 +541,7 @@ class WatchdogDashboard(QMainWindow):
         live_layout = QVBoxLayout(self.live_traffic_card)
         live_layout.setContentsMargins(40, 40, 40, 40)
         live_title = QLabel("LIVE TRAFFIC")
-        live_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
+        live_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
         live_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         live_layout.addWidget(live_title)
         self.live_traffic = LiveTrafficWidget()
@@ -784,7 +558,7 @@ class WatchdogDashboard(QMainWindow):
         threat_layout = QVBoxLayout(self.threat_card)
         threat_layout.setContentsMargins(40, 40, 40, 40)
         threat_title = QLabel("RISK ANALYSIS")
-        threat_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
+        threat_title.setStyleSheet("color: gray; font-family: 'JetBrains Mono'; font-size: 10px; text-transform: uppercase; text-align: center;")
         threat_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         threat_layout.addWidget(threat_title)
         self.right_gauge = CircularGaugeWidget()
@@ -908,14 +682,14 @@ class WatchdogDashboard(QMainWindow):
 
         # Header
         vault_header = QLabel("FORENSIC VAULT")
-        vault_header.setFont(QFont("Courier New", 28, QFont.Weight.Bold))
+        vault_header.setFont(QFont("JetBrains Mono", 28, QFont.Weight.Bold))
         vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vault_header.setStyleSheet("color: white; margin-bottom: 20px;")
         vault_layout.addWidget(vault_header)
 
         # Subtitle
         vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
-        vault_subtitle.setFont(QFont("Courier New", 14))
+        vault_subtitle.setFont(QFont("JetBrains Mono", 14))
         vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vault_subtitle.setStyleSheet("color: #888888; margin-bottom: 30px;")
         vault_layout.addWidget(vault_subtitle)
@@ -923,7 +697,7 @@ class WatchdogDashboard(QMainWindow):
         # Search bar
         search_layout = QHBoxLayout()
         search_label = QLabel("Search Flagged Incidents:")
-        search_label.setStyleSheet("color: white; font-family: 'Courier New', monospace;")
+        search_label.setStyleSheet("color: white; font-family: 'JetBrains Mono';")
         self.vault_search = QLineEdit()
         self.vault_search.setPlaceholderText("Enter IP address, protocol, or threat type...")
         self.vault_search.setStyleSheet("""
@@ -933,7 +707,7 @@ class WatchdogDashboard(QMainWindow):
                 border-radius: 8px;
                 color: white;
                 padding: 8px;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
             }
         """)
         self.vault_search.textChanged.connect(self.filter_vault_table)
@@ -954,7 +728,7 @@ class WatchdogDashboard(QMainWindow):
                 border: 1px solid #222222;
                 border-radius: 15px;
                 color: white;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
             }
             QHeaderView::section {
                 background-color: #1a1a1a;
@@ -999,7 +773,7 @@ class WatchdogDashboard(QMainWindow):
                 border-radius: 6px;
                 padding: 12px 24px;
                 font-weight: bold;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
             }
             QPushButton:hover {
                 background-color: rgba(0, 212, 255, 0.1);
@@ -1017,19 +791,19 @@ class WatchdogDashboard(QMainWindow):
         layout.setSpacing(20)
 
         page_title = QLabel(title)
-        page_title.setFont(QFont("Courier New", 28, QFont.Weight.Bold))
+        page_title.setFont(QFont("JetBrains Mono", 28, QFont.Weight.Bold))
         page_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         page_title.setStyleSheet("color: white;")
         layout.addWidget(page_title)
 
         page_desc = QLabel(description)
-        page_desc.setFont(QFont("Courier New", 14))
+        page_desc.setFont(QFont("JetBrains Mono", 14))
         page_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         page_desc.setStyleSheet("color: #888888;")
         layout.addWidget(page_desc)
 
         coming_soon = QLabel("Coming Soon...")
-        coming_soon.setFont(QFont("Courier New", 16))
+        coming_soon.setFont(QFont("JetBrains Mono", 16))
         coming_soon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         coming_soon.setStyleSheet("color: #00D4FF; margin-top: 50px;")
         layout.addWidget(coming_soon)
@@ -1314,7 +1088,7 @@ class WatchdogDashboard(QMainWindow):
         layout = QVBoxLayout(dialog)
         
         title = QLabel(f"Forensic Analysis: {src_ip} → {dst_ip}")
-        title.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        title.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
         title.setStyleSheet("color: #00D4FF; margin-bottom: 20px;")
         layout.addWidget(title)
         
@@ -1580,12 +1354,12 @@ class WatchdogDashboard(QMainWindow):
         title_section.setSpacing(5)
         
         shield_title = QLabel("AUTONOMOUS SHIELD")
-        shield_title.setFont(QFont("Courier New", 24, QFont.Weight.Bold))
+        shield_title.setFont(QFont("JetBrains Mono", 24, QFont.Weight.Bold))
         shield_title.setStyleSheet("color: #FF6B6B; margin: 0;")
         title_section.addWidget(shield_title)
         
         shield_subtitle = QLabel("Firewall Management & AI Confidence Control")
-        shield_subtitle.setFont(QFont("Courier New", 12))
+        shield_subtitle.setFont(QFont("JetBrains Mono", 12))
         shield_subtitle.setStyleSheet("color: #888888; margin: 0;")
         title_section.addWidget(shield_subtitle)
         
@@ -1607,7 +1381,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Blocked IPs header
         blocked_header = QLabel("BLOCKED IP ADDRESSES")
-        blocked_header.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        blocked_header.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
         blocked_header.setStyleSheet("color: #FF6B6B; margin-bottom: 10px;")
         left_layout.addWidget(blocked_header)
         
@@ -1619,7 +1393,7 @@ class WatchdogDashboard(QMainWindow):
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 10px;
                 padding: 10px;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 14px;
                 color: white;
             }
@@ -1653,7 +1427,7 @@ class WatchdogDashboard(QMainWindow):
         # Unblock button
         unblock_btn = QPushButton("UNBLOCK SELECTED")
         unblock_btn.setFixedHeight(40)
-        unblock_btn.setFont(QFont("Courier New", 12, QFont.Weight.Bold))
+        unblock_btn.setFont(QFont("JetBrains Mono", 12, QFont.Weight.Bold))
         unblock_btn.setStyleSheet("""
             QPushButton {
                 background: linear-gradient(135deg, #FF6B6B, #FF5252);
@@ -1683,7 +1457,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Confidence threshold header
         confidence_header = QLabel("AI CONFIDENCE THRESHOLD")
-        confidence_header.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        confidence_header.setFont(QFont("JetBrains Mono", 16, QFont.Weight.Bold))
         confidence_header.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
         right_layout.addWidget(confidence_header)
         
@@ -1702,7 +1476,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Current threshold display
         self.confidence_label = QLabel("Current Threshold: 75%")
-        self.confidence_label.setFont(QFont("Courier New", 14))
+        self.confidence_label.setFont(QFont("JetBrains Mono", 14))
         self.confidence_label.setStyleSheet("color: #00D4FF; margin: 0;")
         self.confidence_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         confidence_layout.addWidget(self.confidence_label)
@@ -1735,16 +1509,16 @@ class WatchdogDashboard(QMainWindow):
         labels_layout.setSpacing(0)
         
         relaxed_label = QLabel("Relaxed")
-        relaxed_label.setFont(QFont("Courier New", 10))
+        relaxed_label.setFont(QFont("JetBrains Mono", 10))
         relaxed_label.setStyleSheet("color: #FF6B6B;")
         
         balanced_label = QLabel("Balanced")
-        balanced_label.setFont(QFont("Courier New", 10))
+        balanced_label.setFont(QFont("JetBrains Mono", 10))
         balanced_label.setStyleSheet("color: #FFD93D;")
         balanced_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         aggressive_label = QLabel("Aggressive")
-        aggressive_label.setFont(QFont("Courier New", 10))
+        aggressive_label.setFont(QFont("JetBrains Mono", 10))
         aggressive_label.setStyleSheet("color: #6BCF7F;")
         aggressive_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         
@@ -1757,7 +1531,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Mode description
         mode_desc = QLabel("Lower values = More blocks (Aggressive)\nHigher values = Fewer false positives (Relaxed)")
-        mode_desc.setFont(QFont("Courier New", 10))
+        mode_desc.setFont(QFont("JetBrains Mono", 10))
         mode_desc.setStyleSheet("color: #888888; margin: 10px 0;")
         mode_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         mode_desc.setWordWrap(True)
@@ -1779,22 +1553,22 @@ class WatchdogDashboard(QMainWindow):
         stats_layout.setSpacing(10)
         
         stats_title = QLabel("BLOCKING STATISTICS")
-        stats_title.setFont(QFont("Courier New", 12, QFont.Weight.Bold))
+        stats_title.setFont(QFont("JetBrains Mono", 12, QFont.Weight.Bold))
         stats_title.setStyleSheet("color: #FFD93D; margin: 0;")
         stats_layout.addWidget(stats_title)
         
         self.total_blocked_label = QLabel(f"Total Blocked: {len(sample_blocked_ips)}")
-        self.total_blocked_label.setFont(QFont("Courier New", 11))
+        self.total_blocked_label.setFont(QFont("JetBrains Mono", 11))
         self.total_blocked_label.setStyleSheet("color: white; margin: 5px 0;")
         stats_layout.addWidget(self.total_blocked_label)
         
         self.auto_blocked_label = QLabel(f"Auto-Blocked: {len(sample_blocked_ips)}")
-        self.auto_blocked_label.setFont(QFont("Courier New", 11))
+        self.auto_blocked_label.setFont(QFont("JetBrains Mono", 11))
         self.auto_blocked_label.setStyleSheet("color: #6BCF7F; margin: 5px 0;")
         stats_layout.addWidget(self.auto_blocked_label)
         
         self.manual_blocked_label = QLabel("Manual: 0")
-        self.manual_blocked_label.setFont(QFont("Courier New", 11))
+        self.manual_blocked_label.setFont(QFont("JetBrains Mono", 11))
         self.manual_blocked_label.setStyleSheet("color: #00D4FF; margin: 5px 0;")
         stats_layout.addWidget(self.manual_blocked_label)
         
@@ -1882,77 +1656,43 @@ class WatchdogDashboard(QMainWindow):
         main_layout.setSpacing(20)
 
         # LEFT SIDE - Chat Area (70%)
-        chat_container = QWidget()
-        chat_layout = QVBoxLayout(chat_container)
-        chat_layout.setSpacing(10)
 
-        # Status Bar Header
-        status_bar = QFrame()
-        status_bar.setFixedHeight(40)
-        status_bar.setStyleSheet("""
-            QFrame {
-                background: rgba(30, 30, 30, 0.9);
-                border: 1px solid rgba(0, 212, 255, 0.3);
-                border-radius: 8px;
-                color: #00D4FF;
-            }
-        """)
-        status_layout = QHBoxLayout(status_bar)
-        status_layout.setContentsMargins(15, 5, 15, 5)
-        
-        # Sentinel Pulse Icon
-        pulse_icon = QLabel("●")
-        pulse_icon.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
-                font-size: 16px;
-                font-weight: bold;
-            }
-        """)
-        status_layout.addWidget(pulse_icon)
-        
-        # Status Text
-        status_text = QLabel("SYSTEM STATUS: MONITORING | AGENT: LLAMA 4 SCOUT")
-        status_text.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
-                font-family: 'Courier New', monospace;
-                font-size: 12px;
-                font-weight: bold;
-            }
-        """)
-        status_layout.addWidget(status_text)
-        status_layout.addStretch()
-        
-        chat_layout.addWidget(status_bar)
+    # Chat Scroll Area
+    self.mentor_chat_area = QScrollArea()
+    self.mentor_chat_area.setWidgetResizable(True)
+    self.mentor_chat_area.setFrameShape(QFrame.Shape.NoFrame)
+    self.mentor_chat_area.setStyleSheet("""
+        QScrollArea {
+            background: rgba(18, 18, 18, 0.8);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+        }
+    """)
+    self.mentor_chat_area.setContentsMargins(100, 10, 100, 10)
 
-        # Chat Scroll Area
-        self.mentor_chat_area = QScrollArea()
-        self.mentor_chat_area.setWidgetResizable(True)
-        self.mentor_chat_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.mentor_chat_area.setStyleSheet("""
-            QScrollArea {
-                background: rgba(18, 18, 18, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.2);
-                border-radius: 12px;
-            }
-        """)
-        self.mentor_chat_area.setContentsMargins(20, 10, 20, 10)
+    # Chat Container
+    self.mentor_chat_widget = QWidget()
+    self.mentor_chat_layout = QVBoxLayout(self.mentor_chat_widget)
+    self.mentor_chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    self.mentor_chat_layout.setContentsMargins(20, 20, 20, 20)
+    self.mentor_chat_layout.setSpacing(10)
+    self.mentor_chat_area.setWidget(self.mentor_chat_widget)
+    self.mentor_chat_area.setContentsMargins(100, 10, 100, 10)
 
-        # Chat Container
-        self.mentor_chat_widget = QWidget()
-        self.mentor_chat_layout = QVBoxLayout(self.mentor_chat_widget)
-        self.mentor_chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.mentor_chat_layout.setContentsMargins(20, 20, 20, 20)
-        self.mentor_chat_layout.setSpacing(10)
-        self.mentor_chat_area.setWidget(self.mentor_chat_widget)
-
-        chat_layout.addWidget(self.mentor_chat_area, stretch=1)
-
-        # Quick Action Ghost Buttons
-        quick_actions = QFrame()
-        quick_actions.setFixedHeight(50)
-        quick_actions.setStyleSheet("""
+    # Quick Action Ghost Buttons
+    quick_actions = QFrame()
+    quick_actions.setFixedHeight(50)
+    quick_actions.setStyleSheet("""
+        QFrame {
+            background: transparent;
+            border: none;
+        }
+    """)
+    actions_layout = QHBoxLayout(quick_actions)
+    actions_layout.setContentsMargins(100, 10, 100, 10)
+    actions_layout.setSpacing(15)
+    
+    # ... (rest of the code remains the same)
             QFrame {
                 background: transparent;
                 border: none;
@@ -1971,7 +1711,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 11px;
             }
             QPushButton:hover {
@@ -1991,7 +1731,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 11px;
             }
             QPushButton:hover {
@@ -2011,7 +1751,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 11px;
             }
             QPushButton:hover {
@@ -2044,12 +1784,13 @@ class WatchdogDashboard(QMainWindow):
             QLineEdit {
                 background: rgba(30, 30, 30, 0.6);
                 color: white;
-                border: 1px solid #00D4FF;
-                padding: 8px;
+                border: 1px solid rgba(0, 212, 255, 0.4);
+                padding: 8px;  # Reduced padding
                 border-radius: 6px;
+                font-family: 'JetBrains Mono';
             }
             QLineEdit:focus {
-                border: 2px solid #00D4FF;
+                border: 1px solid #00D4FF;
                 background: rgba(30, 30, 30, 0.8);
             }
         """)
@@ -2061,8 +1802,9 @@ class WatchdogDashboard(QMainWindow):
                 border: 1px solid #00D4FF;
                 color: #00D4FF;
                 font-weight: bold;
-                padding: 8px 16px;
+                padding: 8px 16px;  # Reduced padding
                 border-radius: 6px;
+                font-family: 'JetBrains Mono';
             }
             QPushButton:hover {
                 background: rgba(0, 212, 255, 0.3);
@@ -2095,7 +1837,7 @@ class WatchdogDashboard(QMainWindow):
         diag_header.setStyleSheet("""
             QLabel {
                 color: #00D4FF;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 14px;
                 font-weight: bold;
                 border-bottom: 1px solid rgba(0, 212, 255, 0.3);
@@ -2120,7 +1862,7 @@ class WatchdogDashboard(QMainWindow):
         threat_title.setStyleSheet("""
             QLabel {
                 color: #FF6B6B;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 12px;
                 font-weight: bold;
             }
@@ -2131,7 +1873,7 @@ class WatchdogDashboard(QMainWindow):
         self.threat_level_label.setStyleSheet("""
             QLabel {
                 color: #6BCF7F;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 24px;
                 font-weight: bold;
             }
@@ -2156,7 +1898,7 @@ class WatchdogDashboard(QMainWindow):
         activity_title.setStyleSheet("""
             QLabel {
                 color: white;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 12px;
                 font-weight: bold;
             }
@@ -2167,7 +1909,7 @@ class WatchdogDashboard(QMainWindow):
         self.activity_text.setStyleSheet("""
             QLabel {
                 color: #888888;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 10px;
             }
         """)
@@ -2192,7 +1934,7 @@ class WatchdogDashboard(QMainWindow):
         alerts_title.setStyleSheet("""
             QLabel {
                 color: white;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 12px;
                 font-weight: bold;
             }
@@ -2203,7 +1945,7 @@ class WatchdogDashboard(QMainWindow):
         self.alerts_text.setStyleSheet("""
             QLabel {
                 color: #888888;
-                font-family: 'Courier New', monospace;
+                font-family: 'JetBrains Mono';
                 font-size: 10px;
             }
         """)
@@ -2252,56 +1994,102 @@ class WatchdogDashboard(QMainWindow):
         
         # Show typing indicator
         self.show_mentor_typing()
-        
-        # Process instant response
-        QTimer.singleShot(1000, lambda: self.display_instant_response(message))
 
-    def create_insight_card(self, header, content):
-        """Create an XAI Insight Card with glassmorphism styling"""
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: rgba(30, 30, 30, 0.8);
-                border: none;
-                border-radius: 12px;
-                margin: 8px 0;
-                padding: 0;
-            }
-        """)
-        # card.setMaximumWidth(600)  # Removed constraint to fill chat box
-        
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(8, 8, 8, 8)
-        card_layout.setSpacing(8)
-        
-        # Header
-        header_label = QLabel(f"[{header}]")
-        header_label.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
-                font-size: 11px;
-                font-weight: bold;
-                text-transform: uppercase;
-            }
-        """)
-        card_layout.addWidget(header_label)
-        
-        # Content
-        content_label = QLabel(content)
-        content_label.setStyleSheet("""
-            QLabel {
-                color: #E0E0E0;
-                font-size: 12px;
-                line-height: 1.4;
-            }
-        """)
-        content_label.setWordWrap(True)
-        content_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        card_layout.addWidget(content_label)
-        
-        return card
+def create_insight_card(self, header, content):
+"""Create a Forensic Analysis Card with professional styling"""
+card = QFrame()
+card.setStyleSheet("""
+QFrame {
+background: #161618;
+border: 2px solid #00D1FF;
+border-radius: 12px;
+margin: 8px 0;
+padding: 0;
+}
+""")
+card.setMaximumWidth(700)  # Constrain width for readability
+ 
+card_layout = QVBoxLayout(card)
+card_layout.setContentsMargins(20, 16, 20, 16)
+card_layout.setSpacing(12)
+ 
+# Header with status
+header_label = QLabel(f"[{header}]")
+header_label.setStyleSheet("""
+QLabel {
+color: #00D1FF;
+font-family: 'Inter', 'SF Pro Display', Arial, sans-serif;
+font-size: 12px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+padding-bottom: 8px;
+border-bottom: 1px solid #2D3748;
+margin-bottom: 12px;
+}
+""")
+ 
+# Content with markdown-style formatting
+content_label = QLabel(content)
+content_label.setWordWrap(True)
+content_label.setStyleSheet("""
+QLabel {
+color: #E0E0E0;
+font-family: 'Inter', 'SF Pro Display', Arial, sans-serif;
+font-size: 13px;
+line-height: 1.5;
+background: transparent;
+}
+""")
+ 
+# Highlight technical terms in Electric Blue
+formatted_content = content
+technical_terms = ['IP Address', 'Packet', 'Port', 'Protocol', 'Firewall', 'DDoS', 'VLAN', 'Network', 'Segmentation']
+for term in technical_terms:
+formatted_content = formatted_content.replace(term, f'<span style="color: #00D1FF; font-weight: 600;">{term}</span>')
+ 
+content_label.setText(formatted_content)
+ 
+card_layout.addWidget(header_label)
+card_layout.addWidget(content_label)
+ 
+return card
 
-    def add_mentor_message(self, sender, message):
+def add_mentor_message(self, sender, message):
+"""Add a message to the chat display with glassmorphism styling"""
+# Create message widget
+message_widget = QWidget()
+message_layout = QHBoxLayout(message_widget)
+message_layout.setContentsMargins(0, 0, 0, 0)
+ 
+if sender == "You":
+# User message - simple bubble
+message_label = QLabel(message)
+message_label.setWordWrap(True)
+message_label.setFont(QFont("JetBrains Mono", 11))
+message_label.setMaximumWidth(600)
+message_label.setStyleSheet("""
+QLabel {
+background: rgba(0, 123, 255, 0.8);
+color: white;
+padding: 10px 15px;
+border-radius: 12px;
+border: 1px solid rgba(0, 123, 255, 0.4);
+}
+""")
+message_layout.addStretch()
+message_layout.addWidget(message_label)
+message_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+else:
+# AI message - create insight card
+insight_card = self.create_insight_card("ANALYSIS COMPLETE", message)
+message_layout.addWidget(insight_card)
+message_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+ 
+self.mentor_chat_layout.addWidget(message_widget)
+QTimer.singleShot(100, lambda: self.mentor_chat_area.verticalScrollBar().setValue(
+self.mentor_chat_area.verticalScrollBar().maximum()
+))  # Auto-scroll
         """Add a message to the chat display with glassmorphism styling"""
         # Create message widget
         message_widget = QWidget()
@@ -2312,8 +2100,8 @@ class WatchdogDashboard(QMainWindow):
             # User message - simple bubble
             message_label = QLabel(message)
             message_label.setWordWrap(True)
-            message_label.setFont(QFont("Courier New", 11))
-            # message_label.setMaximumWidth(600)  # Removed constraint to fill chat box
+            message_label.setFont(QFont("JetBrains Mono", 11))
+            message_label.setMaximumWidth(600)
             message_label.setStyleSheet("""
                 QLabel {
                     background: rgba(0, 123, 255, 0.8);
@@ -2478,139 +2266,133 @@ Would you like me to elaborate on any of these areas or do you have a more speci
             except:
                 pass
         
-        # Generate and display response
+        # Generate instant response
         response = self.generate_instant_response(message)
+        
+        # Add AI response
         self.add_mentor_message("AI Mentor", response)
 
     def generate_instant_response(self, message):
-        """Generate instant AI response based on keywords"""
+        """Generate instant response based on keywords"""
         msg_lower = message.lower()
         
-        # Greeting responses
-        if msg_lower in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon"]:
-            return random.choice([
-                "Hello! I'm your AI cybersecurity mentor. How can I help you today?",
-                "Hi there! Ready to assist with your security questions. What's on your mind?",
-                "Greetings! I'm here to help with network security and cyber defense topics.",
-                "Hello! Ask me anything about cybersecurity, and I'll provide expert guidance."
-            ])
+        # Greetings
+        if msg_lower in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]:
+            responses = [
+                """Hello! I'm the AI Mentor for WATCHDOG. I'm here to help you with cybersecurity questions, network security, threat analysis, and digital forensics. Feel free to ask me anything about security best practices, vulnerabilities, or network protection!""",
+                
+                """Hi there! I'm your cybersecurity assistant. I can help you with network security, threat detection, vulnerability assessment, and security best practices. What would you like to know about today?""",
+                
+                """Greetings! I'm the WATCHDOG AI Mentor, ready to assist with all your cybersecurity needs. Ask me about firewalls, network segmentation, DDoS protection, or any security topic you're curious about!"""
+            ]
+            return random.choice(responses)
         
         # Network segmentation
-        elif "network" in msg_lower and ("segment" in msg_lower or "segmentation" in msg_lower):
-            return """Network segmentation is a critical security architecture that divides your network into smaller, isolated segments or zones.
+        if "network" in msg_lower and ("segment" in msg_lower or "segmentation" in msg_lower):
+            return """Network segmentation is the practice of dividing a computer network into smaller, isolated sub-networks or segments. Each segment acts as its own network with its own security controls.
 
-**Key Benefits:**
-- **Containment**: Limits lateral movement for attackers
-- **Access Control**: Enforces least privilege principles  
-- **Performance**: Reduces broadcast traffic
-- **Compliance**: Helps meet regulatory requirements
+**Why Network Segmentation is Critical:**
+- Limits lateral movement of attackers
+- Contains breaches to specific segments
+- Improves performance and reduces congestion
+- Enables granular security policies
+- Simplifies compliance and monitoring
 
-**Implementation Strategy:**
-1. **VLAN Segmentation**: Separate by department/function
-2. **Firewall Zones**: Create DMZ, internal, trusted zones
-3. **Micro-segmentation**: Zero-trust approach for critical assets
-4. **Network Access Control**: 802.1X authentication for all segments
+**Common Segmentation Strategies:**
+- **VLAN-based**: Separate network traffic at Layer 2
+- **Subnet-based**: Create isolated IP networks
+- **Application-based**: Segment by application type
+- **User-based**: Segment by user roles/departments
+- **Zero-trust**: Verify every connection request
 
-**Best Practices:**
-- Document all segmentation rules
-- Monitor inter-segment traffic
-- Regular security audits
-- Implement proper routing between segments
-
-Would you like specific guidance on implementing segmentation for your network?"""
-
-        # DDoS attacks
-        elif "ddos" in msg_lower or "distributed denial" in msg_lower:
-            return """DDoS (Distributed Denial of Service) attacks overwhelm your systems with traffic from multiple sources.
-
-**Attack Types:**
-- **Volumetric**: Saturates bandwidth (UDP floods, ICMP floods)
-- **Protocol**: Exploits protocol weaknesses (SYN floods, ACK floods)
-- **Application**: Targets application layer (HTTP floods, slowloris)
-
-**Defense Strategy:**
-1. **Detection**: Monitor traffic patterns, baseline behavior
-2. **Mitigation**: Rate limiting, connection tracking, blackholing
-3. **Scrubbing**: Clean traffic before it reaches your network
-4. **CDN**: Distribute traffic across multiple endpoints
-
-**Prevention Measures:**
-- Deploy WAF with DDoS protection
-- Configure network devices for rate limiting
-- Have incident response plan ready
-- Consider cloud-based DDoS protection services
-
-Need help setting up DDoS protection for your infrastructure?"""
-
-        # Port scanning
-        elif "port scan" in msg_lower or "port scanning" in msg_lower:
-            return """Port scanning is a reconnaissance technique used to discover open ports and services on your network.
-
-**Common Scan Types:**
-- **TCP Connect Scan**: Full three-way handshake
-- **SYN Scan**: Half-open scanning (stealthy)
-- **UDP Scan**: Checks for open UDP ports
-- **Xmas Scan**: Uses FIN, PSH, URG flags
-
-**Detection Methods:**
-1. **IDS/IPS**: Signature-based detection
-2. **Log Analysis**: Monitor connection patterns
-3. **Network Monitoring**: Unusual port access attempts
-4. **Honeypots**: Decoy systems to catch scanners
-
-**Prevention Strategies:**
-- Close unnecessary ports and services
-- Implement firewall rules
-- Use port knocking techniques
-- Deploy intrusion detection systems
-- Regular vulnerability assessments
-
-**Response Protocol:**
-1. Identify scanning source
-2. Block malicious IPs
-3. Document the incident
-4. Strengthen defenses
-
-Would you like help configuring your firewall to prevent port scanning?"""
-
-        # Firewall hardening
-        elif "firewall" in msg_lower and ("harden" in msg_lower or "hardening" in msg_lower or "secure" in msg_lower):
-            return """Firewall hardening is essential for robust network security. Here's a comprehensive approach:
-
-**Basic Configuration:**
-- **Default Deny**: Block all traffic by default, allow only necessary
-- **Rule Cleanup**: Remove unused rules and services
-- **Logging**: Enable comprehensive logging for all rules
-- **Regular Updates**: Keep firewall firmware/software current
-
-**Advanced Hardening:**
-1. **Application Layer Filtering**: Deep packet inspection
-2. **Geo-blocking**: Block traffic from high-risk regions
-3. **Rate Limiting**: Prevent brute force and DDoS
-4. **Intrusion Prevention**: Integrated IPS capabilities
+**Implementation Methods:**
+- Firewalls and ACLs between segments
+- Virtual Local Area Networks (VLANs)
+- Software-defined networking (SDN)
+- Micro-segmentation in cloud environments
+- Container and Kubernetes network policies
 
 **Best Practices:**
-- **Rule Documentation**: Maintain clear rule documentation
-- **Regular Audits**: Review and update rules quarterly
-- **Backup Configuration**: Save working configurations
-- **Test Changes**: Validate in lab environment first
+- Map all data flows and dependencies first
+- Use principle of least privilege
+- Implement proper monitoring between segments
+- Regularly review and update segmentation rules
+- Document all segmentation policies and exceptions"""
+        
+        # Security topics
+        elif "firewall" in msg_lower:
+            return """A firewall is a network security system that monitors and controls incoming and outgoing network traffic based on predetermined security rules. It acts as a barrier between a trusted internal network and untrusted external networks.
 
-**Monitoring:**
-- Real-time traffic analysis
-- Alert on rule violations
-- Performance metrics
-- Security event correlation
+**Key Functions:**
+- Packet filtering
+- Stateful inspection
+- Proxy service
+- Network address translation (NAT)
 
-Need specific firewall configuration guidance for your environment?"""
+**Types:**
+- Hardware firewalls
+- Software firewalls
+- Cloud firewalls
+- Next-generation firewalls (NGFW)"""
+        
+        elif "ddos" in msg_lower or "distributed" in msg_lower:
+            return """A DDoS (Distributed Denial of Service) attack is a malicious attempt to disrupt normal traffic to a targeted server, service or network by overwhelming it with a flood of internet traffic.
 
-        # Default response
+**How it works:**
+1. Attacker compromises multiple computers
+2. Uses them to send requests to the target
+3. Target becomes overwhelmed and unavailable
+
+**Protection:**
+- Rate limiting
+- Traffic filtering
+- CDN services
+- Load balancing
+- DDoS mitigation services"""
+        
+        elif "port" in msg_lower and ("scan" in msg_lower or "open" in msg_lower):
+            return """Port scanning is a technique used to find open ports and services available on a network host. Attackers use it to identify vulnerabilities.
+
+**What are Open Ports?**
+Open ports are network endpoints that accept incoming connections. Each port number (0-65535) is associated with a specific service or application.
+
+**Common Port Examples:**
+- Port 22: SSH (Secure Shell)
+- Port 80: HTTP (Web traffic)
+- Port 443: HTTPS (Secure web)
+- Port 3389: RDP (Remote Desktop)
+- Port 21: FTP (File Transfer)
+
+**Security Risks:**
+- Open ports can be entry points for attackers
+- Unnecessary open ports increase attack surface
+- Default services may have vulnerabilities
+
+**Protection:**
+- Close unused ports
+- Use firewalls to block access
+- Regularly scan for open ports
+- Implement port knocking for sensitive services
+- Monitor port activity with intrusion detection"""
+        
         else:
-            return random.choice([
-                "That's an interesting cybersecurity question. Let me provide some guidance on this topic. Could you be more specific about what aspect you'd like to explore?",
-                "I can help with that security topic. To give you the most relevant advice, could you provide more details about your specific situation or concerns?",
-                "Great question about cybersecurity! I'd be happy to help. What particular aspect of this topic interests you most - prevention, detection, or response?",
-                "I can assist with that security area. For the most accurate guidance, tell me more about your current setup or what you're trying to achieve."
-            ])
+            # Generic responses for any question
+            if "?" in msg_lower:
+                responses = [
+                    """That's an excellent question about cybersecurity! Based on what you're asking, I'd recommend focusing on the fundamentals: always keep your systems updated, use strong authentication, implement proper firewalls, and regularly monitor for suspicious activity. Security is an ongoing process, not a one-time setup.""",
+                    
+                    """Great security question! The key principle is "defense in depth" - multiple layers of security controls. This includes technical controls (firewalls, encryption), administrative controls (policies, training), and physical controls. Each layer compensates for weaknesses in others.""",
+                    
+                    """Interesting security question! Remember that no system is 100% secure, but you can significantly reduce risk by following best practices: regular security audits, vulnerability scanning, incident response planning, and staying informed about the latest threats and vulnerabilities."""
+                ]
+            else:
+                responses = [
+                    """I understand you're interested in network security! The most important thing is to implement a layered security approach with firewalls, encryption, access controls, and regular monitoring. Always stay updated with the latest security patches and best practices.""",
+                    
+                    """Security is all about being proactive rather than reactive. Focus on prevention through regular security assessments, vulnerability scanning, employee training, and keeping your systems updated with the latest security patches."""
+                ]
+            
+            return random.choice(responses)
 
     def closeEvent(self, event):
         # Stop all timers

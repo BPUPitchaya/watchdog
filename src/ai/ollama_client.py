@@ -2,7 +2,7 @@ import requests
 import json
 
 class OllamaClient:
-    def __init__(self, model='llama3', base_url='http://localhost:11434'):
+    def __init__(self, model='phi4', base_url='http://localhost:11434'):
         self.model = model
         self.base_url = base_url
 
