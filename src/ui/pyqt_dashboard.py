@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem, 
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
-    QStackedWidget, QDialog, QSizePolicy, QListWidget, QMessageBox, QSlider
+    QStackedWidget, QDialog, QSizePolicy, QListWidget, QMessageBox, QSlider, QFrame
 )
 from PyQt6.QtCore import QTimer, Qt, QRectF, QByteArray
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient
@@ -680,7 +680,7 @@ class WatchdogDashboard(QMainWindow):
         self.create_autonomous_shield_page()
 
         # Page 3: AI Mentor (placeholder)
-        self.create_placeholder_page("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance")
+        self.create_ai_mentor_page()
 
         # Page 4: Network Topology (placeholder)
         self.create_placeholder_page("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap")
@@ -1870,6 +1870,604 @@ class WatchdogDashboard(QMainWindow):
             color = "#FF6B6B"  # Red for relaxed
         
         self.confidence_label.setStyleSheet(f"color: {color}; margin: 0;")
+
+    def create_ai_mentor_page(self):
+        """Create AI Mentor page as a Forensic Analysis Hub"""
+        # AI Mentor page widget
+        mentor_page = QWidget()
+        
+        # Main Horizontal Layout: 70% chat, 30% diagnostics
+        main_layout = QHBoxLayout(mentor_page)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+
+        # LEFT SIDE - Chat Area (70%)
+        chat_container = QWidget()
+        chat_layout = QVBoxLayout(chat_container)
+        chat_layout.setSpacing(10)
+
+        # Status Bar Header
+        status_bar = QFrame()
+        status_bar.setFixedHeight(40)
+        status_bar.setStyleSheet("""
+            QFrame {
+                background: rgba(30, 30, 30, 0.9);
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+                color: #00D4FF;
+            }
+        """)
+        status_layout = QHBoxLayout(status_bar)
+        status_layout.setContentsMargins(15, 5, 15, 5)
+        
+        # Sentinel Pulse Icon
+        pulse_icon = QLabel("●")
+        pulse_icon.setStyleSheet("""
+            QLabel {
+                color: #00D4FF;
+                font-size: 16px;
+                font-weight: bold;
+            }
+        """)
+        status_layout.addWidget(pulse_icon)
+        
+        # Status Text
+        status_text = QLabel("SYSTEM STATUS: MONITORING | AGENT: LLAMA 4 SCOUT")
+        status_text.setStyleSheet("""
+            QLabel {
+                color: #00D4FF;
+                font-family: 'JetBrains Mono';
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        status_layout.addWidget(status_text)
+        status_layout.addStretch()
+        
+        chat_layout.addWidget(status_bar)
+
+        # Chat Scroll Area
+        self.mentor_chat_area = QScrollArea()
+        self.mentor_chat_area.setWidgetResizable(True)
+        self.mentor_chat_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.mentor_chat_area.setStyleSheet("""
+            QScrollArea {
+                background: rgba(18, 18, 18, 0.8);
+                border: 1px solid rgba(0, 212, 255, 0.2);
+                border-radius: 12px;
+            }
+        """)
+        self.mentor_chat_area.setContentsMargins(100, 10, 100, 10)
+
+        # Chat Container
+        self.mentor_chat_widget = QWidget()
+        self.mentor_chat_layout = QVBoxLayout(self.mentor_chat_widget)
+        self.mentor_chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.mentor_chat_layout.setContentsMargins(20, 20, 20, 20)
+        self.mentor_chat_layout.setSpacing(10)
+        self.mentor_chat_area.setWidget(self.mentor_chat_widget)
+
+        chat_layout.addWidget(self.mentor_chat_area, stretch=1)
+
+        # Quick Action Ghost Buttons
+        quick_actions = QFrame()
+        quick_actions.setFixedHeight(50)
+        quick_actions.setStyleSheet("""
+            QFrame {
+                background: transparent;
+                border: none;
+            }
+        """)
+        actions_layout = QHBoxLayout(quick_actions)
+        actions_layout.setContentsMargins(100, 10, 100, 10)
+        actions_layout.setSpacing(15)
+        
+        # Ghost Button 1
+        btn1 = QPushButton("Analyze Last 5 Minutes")
+        btn1.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-family: 'JetBrains Mono';
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+        """)
+        btn1.clicked.connect(lambda: self.quick_question("Analyze the last 5 minutes of network activity"))
+        actions_layout.addWidget(btn1)
+        
+        # Ghost Button 2
+        btn2 = QPushButton("Scan Local Devices")
+        btn2.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-family: 'JetBrains Mono';
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+        """)
+        btn2.clicked.connect(lambda: self.quick_question("Scan all local devices for security vulnerabilities"))
+        actions_layout.addWidget(btn2)
+        
+        # Ghost Button 3
+        btn3 = QPushButton("Explain Risk Level")
+        btn3.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-family: 'JetBrains Mono';
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+        """)
+        btn3.clicked.connect(lambda: self.quick_question("Explain the current network risk level"))
+        actions_layout.addWidget(btn3)
+        
+        actions_layout.addStretch()
+        chat_layout.addWidget(quick_actions)
+
+        # Input Section
+        input_container = QFrame()
+        input_container.setFixedHeight(50)  # Reduced height
+        input_container.setStyleSheet("""
+            QFrame {
+                background: rgba(30, 30, 30, 0.8);
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                border-radius: 8px;
+            }
+        """)
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(100, 5, 100, 5)  # Reduced margins to bring it up
+        
+        self.mentor_input = QLineEdit()
+        self.mentor_input.setPlaceholderText("Ask me anything about network security...")
+        self.mentor_input.setStyleSheet("""
+            QLineEdit {
+                background: rgba(30, 30, 30, 0.6);
+                color: white;
+                border: 1px solid rgba(0, 212, 255, 0.4);
+                padding: 8px;  # Reduced padding
+                border-radius: 6px;
+                font-family: 'JetBrains Mono';
+            }
+            QLineEdit:focus {
+                border: 1px solid #00D4FF;
+                background: rgba(30, 30, 30, 0.8);
+            }
+        """)
+
+        self.mentor_send_btn = QPushButton("SEND")
+        self.mentor_send_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(0, 212, 255, 0.2);
+                border: 1px solid #00D4FF;
+                color: #00D4FF;
+                font-weight: bold;
+                padding: 8px 16px;  # Reduced padding
+                border-radius: 6px;
+                font-family: 'JetBrains Mono';
+            }
+            QPushButton:hover {
+                background: rgba(0, 212, 255, 0.3);
+            }
+        """)
+
+        input_layout.addWidget(self.mentor_input)
+        input_layout.addWidget(self.mentor_send_btn)
+        chat_layout.addWidget(input_container)
+
+        # Add chat container to main layout (70%)
+        main_layout.addWidget(chat_container, stretch=7)
+
+        # RIGHT SIDE - Live Diagnostics (30%)
+        diagnostics_container = QFrame()
+        diagnostics_container.setFixedWidth(400)
+        diagnostics_container.setStyleSheet("""
+            QFrame {
+                background: rgba(30, 30, 30, 0.8);
+                border: 1px solid rgba(0, 212, 255, 0.2);
+                border-radius: 12px;
+            }
+        """)
+        diagnostics_layout = QVBoxLayout(diagnostics_container)
+        diagnostics_layout.setContentsMargins(20, 20, 20, 20)
+        diagnostics_layout.setSpacing(15)
+
+        # Diagnostics Header
+        diag_header = QLabel("LIVE DIAGNOSTICS")
+        diag_header.setStyleSheet("""
+            QLabel {
+                color: #00D4FF;
+                font-family: 'JetBrains Mono';
+                font-size: 14px;
+                font-weight: bold;
+                border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+                padding-bottom: 10px;
+            }
+        """)
+        diagnostics_layout.addWidget(diag_header)
+
+        # Threat Level Meter
+        threat_frame = QFrame()
+        threat_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 107, 107, 0.3);
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        threat_layout = QVBoxLayout(threat_frame)
+        
+        threat_title = QLabel("THREAT LEVEL")
+        threat_title.setStyleSheet("""
+            QLabel {
+                color: #FF6B6B;
+                font-family: 'JetBrains Mono';
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        threat_layout.addWidget(threat_title)
+        
+        self.threat_level_label = QLabel("LOW")
+        self.threat_level_label.setStyleSheet("""
+            QLabel {
+                color: #6BCF7F;
+                font-family: 'JetBrains Mono';
+                font-size: 24px;
+                font-weight: bold;
+            }
+        """)
+        threat_layout.addWidget(self.threat_level_label)
+        
+        diagnostics_layout.addWidget(threat_frame)
+
+        # Network Activity
+        activity_frame = QFrame()
+        activity_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        activity_layout = QVBoxLayout(activity_frame)
+        
+        activity_title = QLabel("NETWORK ACTIVITY")
+        activity_title.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-family: 'JetBrains Mono';
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        activity_layout.addWidget(activity_title)
+        
+        self.activity_text = QLabel("Monitoring...\nNo suspicious activity detected")
+        self.activity_text.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                font-family: 'JetBrains Mono';
+                font-size: 10px;
+            }
+        """)
+        self.activity_text.setWordWrap(True)
+        activity_layout.addWidget(self.activity_text)
+        
+        diagnostics_layout.addWidget(activity_frame)
+
+        # Recent Alerts
+        alerts_frame = QFrame()
+        alerts_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        alerts_layout = QVBoxLayout(alerts_frame)
+        
+        alerts_title = QLabel("RECENT ALERTS")
+        alerts_title.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-family: 'JetBrains Mono';
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        alerts_layout.addWidget(alerts_title)
+        
+        self.alerts_text = QLabel("No alerts in last hour")
+        self.alerts_text.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                font-family: 'JetBrains Mono';
+                font-size: 10px;
+            }
+        """)
+        self.alerts_text.setWordWrap(True)
+        alerts_layout.addWidget(self.alerts_text)
+        
+        diagnostics_layout.addWidget(alerts_frame)
+        
+        diagnostics_layout.addStretch()
+
+        # Add diagnostics container to main layout (30%)
+        main_layout.addWidget(diagnostics_container, stretch=3)
+        
+        # Store references
+        self.chat_container = self.mentor_chat_widget
+        self.chat_layout = self.mentor_chat_layout
+        self.scroll_area = self.mentor_chat_area
+        self.chat_input = self.mentor_input
+        self.send_button = self.mentor_send_btn
+        
+        # Connect signals
+        self.mentor_input.returnPressed.connect(self.send_mentor_message)
+        self.mentor_send_btn.clicked.connect(self.send_mentor_message)
+        
+        # Add welcome message with XAI Insight Card styling
+        welcome_card = self.create_insight_card("SYSTEM READY", 
+            "AI Forensic Hub initialized. I'm monitoring network activity and ready to analyze security events. Ask me about threats, vulnerabilities, or network behavior.")
+        self.mentor_chat_layout.addWidget(welcome_card)
+        
+        mentor_page.setLayout(main_layout)
+        self.page_container.addWidget(mentor_page)
+
+    def send_mentor_message(self):
+        """Send message to AI Mentor"""
+        message = self.mentor_input.text().strip()
+        if not message:
+            return
+        
+        # Check if chat layout exists before adding messages
+        if not hasattr(self, 'mentor_chat_layout'):
+            return
+        
+        # Add user message
+        self.add_mentor_message("You", message)
+        self.mentor_input.clear()
+        
+        # Show typing indicator
+        self.show_mentor_typing()
+        
+        # Process response (simulate for now)
+        QTimer.singleShot(1500, lambda: self.process_mentor_response(message))
+
+    def create_insight_card(self, header, content):
+        """Create an XAI Insight Card with glassmorphism styling"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: rgba(30, 30, 30, 0.8);
+                border: 1px solid rgba(0, 212, 255, 0.4);
+                border-radius: 12px;
+                margin: 5px 0;
+            }
+        """)
+        card.setMaximumWidth(600)
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(15, 12, 15, 12)
+        card_layout.setSpacing(8)
+        
+        # Header
+        header_label = QLabel(f"[{header}]")
+        header_label.setStyleSheet("""
+            QLabel {
+                color: #00D4FF;
+                font-family: 'JetBrains Mono';
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+        """)
+        card_layout.addWidget(header_label)
+        
+        # Content
+        content_label = QLabel(content)
+        content_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-family: 'JetBrains Mono';
+                font-size: 12px;
+                line-height: 1.4;
+            }
+        """)
+        content_label.setWordWrap(True)
+        card_layout.addWidget(content_label)
+        
+        return card
+
+    def add_mentor_message(self, sender, message):
+        """Add a message to the chat display with glassmorphism styling"""
+        # Create message widget
+        message_widget = QWidget()
+        message_layout = QHBoxLayout(message_widget)
+        message_layout.setContentsMargins(0, 0, 0, 0)
+        
+        if sender == "You":
+            # User message - simple bubble
+            message_label = QLabel(message)
+            message_label.setWordWrap(True)
+            message_label.setFont(QFont("JetBrains Mono", 11))
+            message_label.setMaximumWidth(600)
+            message_label.setStyleSheet("""
+                QLabel {
+                    background: rgba(0, 123, 255, 0.8);
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(0, 123, 255, 0.4);
+                }
+            """)
+            message_layout.addStretch()
+            message_layout.addWidget(message_label)
+            message_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+        else:
+            # AI message - create insight card
+            insight_card = self.create_insight_card("ANALYSIS COMPLETE", message)
+            message_layout.addWidget(insight_card)
+            message_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            
+        self.mentor_chat_layout.addWidget(message_widget)
+        QTimer.singleShot(100, lambda: self.mentor_chat_area.verticalScrollBar().setValue(
+            self.mentor_chat_area.verticalScrollBar().maximum()
+        ))  # Auto-scroll
+
+    def quick_question(self, question):
+        """Handle quick question button clicks"""
+        self.mentor_input.setText(question)
+        self.send_mentor_message()
+
+    def show_mentor_typing(self):
+        """Show typing indicator"""
+        typing_label = QLabel("AI Mentor is typing...")
+        typing_label.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                font-style: italic;
+                font-family: Arial;
+                font-size: 12px;
+                padding: 5px;
+            }
+        """)
+        self.mentor_chat_layout.addWidget(typing_label)
+        
+        # Auto-scroll to typing indicator
+        QTimer.singleShot(100, lambda: self.mentor_chat_area.verticalScrollBar().setValue(
+            self.mentor_chat_area.verticalScrollBar().maximum()
+        ))
+        
+        # Store reference to remove later
+        self.typing_indicator = typing_label
+
+    def process_mentor_response(self, user_message):
+        """Process and display AI response"""
+        # Remove typing indicator
+        if hasattr(self, 'typing_indicator') and self.typing_indicator is not None:
+            try:
+                self.mentor_chat_layout.removeWidget(self.typing_indicator)
+                self.typing_indicator.deleteLater()
+                self.typing_indicator = None
+            except:
+                pass  # Widget already deleted
+        
+        # Generate response (hardcoded for now)
+        response = self.generate_ai_response(user_message)
+        
+        # Add AI response
+        self.add_mentor_message("AI Mentor", response)
+
+    def generate_ai_response(self, message):
+        """Generate AI response based on user message"""
+        message_lower = message.lower()
+        
+        if "router" in message_lower and "harden" in message_lower:
+            return """To harden your router:
+            
+1. Change default admin password
+2. Update firmware regularly  
+3. Disable WPS (Wi-Fi Protected Setup)
+4. Use WPA3 encryption
+5. Disable remote management
+6. Enable firewall features
+7. Change default SSID name
+8. Set up guest network separately
+9. Enable MAC address filtering
+10. Regular security audits"""
+        
+        elif "syn flood" in message_lower:
+            return """A SYN flood attack is a type of DoS attack that exploits the TCP handshake process:
+
+How it works:
+1. Attacker sends multiple SYN packets to target
+2. Target responds with SYN-ACK packets
+3. Attacker never sends ACK packets
+4. Target's connection table fills up
+5. Legitimate connections are blocked
+
+Mitigation:
+- SYN cookies
+- Rate limiting
+- Firewall rules
+- Load balancers
+- Intrusion detection systems"""
+        
+        elif "port scanning" in message_lower:
+            return """Port scanning is the process of checking open ports on a network:
+
+Types:
+- TCP Connect Scan: Full three-way handshake
+- SYN Scan: Half-open scanning
+- UDP Scan: Checks UDP ports
+- Xmas Scan: Uses FIN, PSH, URG flags
+
+Detection:
+- Monitor connection logs
+- Use intrusion detection systems
+- Check for unusual port access patterns
+
+Prevention:
+- Close unused ports
+- Use firewalls
+- Implement port knocking
+- Regular security audits"""
+        
+        elif "firewall" in message_lower and "rules" in message_lower:
+            return """Best practices for firewall rules:
+
+1. Default deny policy
+2. Principle of least privilege
+3. Rule ordering matters
+4. Document all rules
+5. Regular rule reviews
+6. Separate internal/external rules
+7. Use specific IP ranges
+8. Log and monitor rules
+9. Backup configurations
+10. Test changes in staging"""
+        
+        else:
+            return """That's a great cybersecurity question! Based on what you've asked, I recommend:
+
+1. Assess your current security posture
+2. Identify specific vulnerabilities
+3. Implement defense-in-depth strategy
+4. Regular security monitoring
+5. Employee training and awareness
+6. Incident response planning
+
+Would you like me to elaborate on any of these areas or do you have a more specific question?"""
+
+    def quick_question(self, question):
+        """Handle quick suggestion clicks"""
+        self.mentor_input.setText(question)
+        self.send_mentor_message()
 
     def closeEvent(self, event):
         # Stop all timers
