@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
     QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame
 )
-from PyQt6.QtCore import QTimer, Qt, QRectF, QByteArray
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient
+from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
@@ -35,6 +35,22 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+
+# Theme constants for consistent styling across the dashboard
+THEME = {
+    'primary': '#00D4FF',
+    'secondary': '#8B5CF6',
+    'success': '#6BCF7F',
+    'warning': '#FFD93D',
+    'danger': '#FF6B6B',
+    'bg_dark': '#0F172A',
+    'bg_card': '#1E293B',
+    'text_primary': '#FFFFFF',
+    'text_secondary': '#94A3B8',
+    'border': '#334155',
+    'border_highlight': '#475569',
+    'font_mono': "'Courier New', monospace"
+}
 
 class ThreatGauge(QWidget):
     def __init__(self, parent=None):
@@ -153,7 +169,7 @@ class StatusCore(QWidget):
 
         # Core: simple 'S' in center
         painter.setPen(QPen(Qt.GlobalColor.white))
-        font = QFont("Arial", 48, QFont.Weight.Bold)
+        font = QFont("Arial", 48)
         painter.setFont(font)
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "S")
 
@@ -320,6 +336,235 @@ class CircularGaugeWidget(QWidget):
     def set_score(self, score):
         self.target_score = score
 
+class NetworkTopologyWidget(QWidget):
+    """Cisco-style network topology visualization with radial layout"""
+    device_clicked = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(400, 350)
+        self.devices = []
+        self.device_positions = {}
+        self.hovered_device = None
+        self.selected_device = None
+        self.animation_offset = 0
+        
+        self.anim_timer = QTimer(self)
+        self.anim_timer.timeout.connect(self._update_animation)
+        self.anim_timer.start(50)
+        
+    def set_devices(self, devices):
+        self.devices = devices
+        self.device_positions = {}
+        self.hovered_device = None
+        self.selected_device = None
+        self.update()
+        
+    def _update_animation(self):
+        self.animation_offset = (self.animation_offset + 2) % 20
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QColor(THEME['bg_dark']))
+        
+        rect = self.rect().adjusted(20, 20, -20, -20)
+        center_x = rect.center().x()
+        center_y = rect.center().y()
+        center = QPointF(center_x, center_y)
+        
+        gateway_radius = 35
+        orbit_radius = min(rect.width(), rect.height()) / 2 - 70
+        
+        self._draw_connections(painter, center, orbit_radius, gateway_radius)
+        self._draw_gateway(painter, center, gateway_radius)
+        
+        if not self.devices:
+            painter.setPen(QPen(QColor(THEME['text_secondary'])))
+            painter.setFont(QFont(THEME['font_mono'].strip("'"), 14))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "🌐 No devices discovered\nRun a network scan to see topology")
+            return
+            
+        angle_step = 2 * math.pi / len(self.devices)
+        for i, device in enumerate(self.devices):
+            angle = i * angle_step - math.pi / 2
+            x = center_x + orbit_radius * math.cos(angle)
+            y = center_y + orbit_radius * math.sin(angle)
+            device_center = QPointF(x, y)
+            
+            self.device_positions[device['ip']] = {
+                'center': device_center,
+                'radius': 25,
+                'device': device
+            }
+            
+            self._draw_device_node(painter, device_center, 25, device, i)
+            
+        self._draw_legend(painter)
+        
+    def _draw_connections(self, painter, center, orbit_radius, gateway_radius):
+        if not self.devices:
+            return
+            
+        angle_step = 2 * math.pi / len(self.devices)
+        
+        for i, device in enumerate(self.devices):
+            angle = i * angle_step - math.pi / 2
+            x = center.x() + orbit_radius * math.cos(angle)
+            y = center.y() + orbit_radius * math.sin(angle)
+            
+            gradient = QLinearGradient(center.x(), center.y(), x, y)
+            gradient.setColorAt(0, QColor(THEME['primary']))
+            gradient.setColorAt(1, QColor(THEME['success']))
+            
+            pen = QPen(QBrush(gradient), 2)
+            painter.setPen(pen)
+            painter.drawLine(int(center.x()), int(center.y()), int(x), int(y))
+            
+            packet_count = 3
+            for j in range(packet_count):
+                t = ((self.animation_offset + j * 7) % 20) / 20.0
+                packet_x = center.x() + t * (x - center.x())
+                packet_y = center.y() + t * (y - center.y())
+                
+                dist_to_gateway = math.sqrt((packet_x - center.x())**2 + (packet_y - center.y())**2)
+                dist_to_device = math.sqrt((packet_x - x)**2 + (packet_y - y)**2)
+                
+                if dist_to_gateway > gateway_radius and dist_to_device > 20:
+                    painter.setBrush(QBrush(QColor(THEME['primary'])))
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.drawEllipse(QPointF(packet_x, packet_y), 3, 3)
+                    
+    def _draw_gateway(self, painter, center, radius):
+        glow_color = QColor(THEME['primary'])
+        glow_color.setAlpha(80)
+        painter.setBrush(QBrush(glow_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(center, radius + 5, radius + 5)
+        
+        gradient = QRadialGradient(center, radius)
+        gradient.setColorAt(0, QColor(THEME['bg_card']))
+        gradient.setColorAt(1, QColor(THEME['bg_dark']))
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(QPen(QColor(THEME['primary']), 2))
+        painter.drawEllipse(center, radius, radius)
+        
+        icon_size = int(radius // 2)
+        icon_rect = QRect(int(center.x() - icon_size//2), int(center.y() - icon_size//2), icon_size, icon_size)
+        painter.drawRect(icon_rect)
+        painter.drawLine(icon_rect.center().x(), icon_rect.top(), icon_rect.center().x() - 5, icon_rect.top() - 8)
+        painter.drawLine(icon_rect.center().x(), icon_rect.top(), icon_rect.center().x() + 5, icon_rect.top() - 8)
+        
+        painter.setPen(QPen(QColor(THEME['text_primary'])))
+        painter.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        label_rect = QRect(int(center.x() - radius), int(center.y() + radius + 5), radius * 2, 20)
+        painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, "GATEWAY")
+        
+    def _draw_device_node(self, painter, center, radius, device, index):
+        device_type = device.get('type', 'unknown')
+        is_hovered = self.hovered_device == device['ip']
+        is_selected = self.selected_device == device['ip']
+        
+        colors = {
+            'pc': THEME['primary'],
+            'mobile': THEME['warning'],
+            'iot': '#FF9F43',
+            'vm': THEME['success'],
+            'pi': '#E74C3C',
+            'unknown': THEME['danger']
+        }
+        color = colors.get(device_type, THEME['text_secondary'])
+        
+        if is_selected or is_hovered:
+            ring_color = QColor(THEME['primary'])
+            ring_color.setAlpha(100 if is_hovered else 150)
+            painter.setBrush(QBrush(ring_color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(center, radius + 8, radius + 8)
+        
+        gradient = QRadialGradient(center, radius)
+        gradient.setColorAt(0, QColor(THEME['bg_card']))
+        gradient.setColorAt(1, QColor(THEME['bg_dark']))
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(QPen(QColor(color), 2))
+        painter.drawEllipse(center, radius, radius)
+        
+        icons = {
+            'pc': '🖥️',
+            'mobile': '📱',
+            'iot': '📡',
+            'vm': '💻',
+            'pi': '🥧',
+            'unknown': '❓'
+        }
+        icon = icons.get(device_type, '❓')
+        
+        painter.setPen(QPen(QColor(THEME['text_primary'])))
+        painter.setFont(QFont("Segoe UI Emoji", 16))
+        icon_rect = QRect(int(center.x() - 15), int(center.y() - 20), 30, 30)
+        painter.drawText(icon_rect, Qt.AlignmentFlag.AlignCenter, icon)
+        
+        painter.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        ip_rect = QRect(int(center.x() - radius - 20), int(center.y() + radius + 2), radius * 2 + 40, 16)
+        painter.setPen(QPen(QColor(THEME['text_secondary'])))
+        painter.drawText(ip_rect, Qt.AlignmentFlag.AlignCenter, device['ip'])
+        
+        hostname = device.get('hostname', '')[:10]
+        if hostname and hostname != 'Unknown':
+            host_rect = QRect(int(center.x() - radius - 20), int(center.y() + radius + 18), radius * 2 + 40, 14)
+            painter.setPen(QPen(QColor(color)))
+            painter.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+            painter.drawText(host_rect, Qt.AlignmentFlag.AlignCenter, hostname)
+            
+    def _draw_legend(self, painter):
+        legend_x = 10
+        legend_y = self.height() - 100
+        
+        painter.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        painter.setPen(QPen(QColor(THEME['text_primary'])))
+        painter.drawText(legend_x, legend_y, "Device Types:")
+        
+        types = [
+            ('pc', '💻 PC/Server', THEME['primary']),
+            ('mobile', '📱 Mobile', THEME['warning']),
+            ('iot', '📡 IoT', '#FF9F43'),
+            ('unknown', '❓ Unknown', THEME['danger'])
+        ]
+        
+        for i, (type_id, label, color) in enumerate(types):
+            y_pos = legend_y + 18 + i * 16
+            painter.setPen(QPen(QColor(color)))
+            painter.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+            painter.drawText(legend_x + 10, y_pos, label)
+            
+    def mouseMoveEvent(self, event):
+        pos = event.pos()
+        old_hover = self.hovered_device
+        
+        self.hovered_device = None
+        for ip, data in self.device_positions.items():
+            center = data['center']
+            radius = data['radius']
+            distance = math.sqrt((pos.x() - center.x())**2 + (pos.y() - center.y())**2)
+            
+            if distance <= radius:
+                self.hovered_device = ip
+                self.setCursor(Qt.CursorShape.PointingHandCursor)
+                break
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            
+        if old_hover != self.hovered_device:
+            self.update()
+            
+    def mousePressEvent(self, event):
+        if self.hovered_device:
+            self.selected_device = self.hovered_device
+            device_data = self.device_positions[self.hovered_device]
+            self.device_clicked.emit(device_data['device'])
+            self.update()
+
 class WatchdogDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -386,7 +631,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Define widgets first
         header_label = QLabel("FORENSIC ASSISTANT")
-        header_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_label.setFont(QFont("Arial", 16))
         header_label.setStyleSheet("color: white;")
 
         sub_label = QLabel("Powered by Ollama/Llama 3")
@@ -481,7 +726,7 @@ class WatchdogDashboard(QMainWindow):
                     border: none;
                     color: rgba(255, 255, 255, 0.3);
                     font-size: 10px;
-                    font-weight: bold;
+                    
                     border-radius: 8px;
                     text-align: center;
                 }
@@ -510,7 +755,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Header
         header = QLabel("WATCHDOG AI Dashboard")
-        header.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        header.setFont(QFont("Arial", 20))
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("color: white;")
 
@@ -532,7 +777,7 @@ class WatchdogDashboard(QMainWindow):
                 border: none;
                 padding: 12px 24px;
                 border-radius: 6px;
-                font-weight: bold;
+                
             }
             QPushButton:hover {
                 background-color: #00B8CC;
@@ -635,7 +880,7 @@ class WatchdogDashboard(QMainWindow):
                     border: none;
                     color: rgba(255, 255, 255, 0.3);
                     font-size: 10px;
-                    font-weight: bold;
+                    
                     border-radius: 8px;
                     text-align: center;
                 }
@@ -697,7 +942,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Header
         header = QLabel("WATCHDOG AI Dashboard")
-        header.setFont(QFont("Courier New", 24, QFont.Weight.Bold))  # Modern monospace font
+        header.setFont(QFont("Courier New", 24))  # Modern monospace font
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("color: white;")
 
@@ -713,7 +958,7 @@ class WatchdogDashboard(QMainWindow):
                 border: none;
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-weight: bold;
+                
                 font-family: 'Courier New', monospace;
             }
             QPushButton:hover {
@@ -806,7 +1051,7 @@ class WatchdogDashboard(QMainWindow):
                 border: 2px solid #00D4FF;
                 border-radius: 6px;
                 padding: 8px 16px;
-                font-weight: bold;
+                
             }
             QPushButton:hover {
                 background-color: rgba(0, 212, 255, 0.1);
@@ -832,7 +1077,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Define widgets first
         header_label = QLabel("FORENSIC ASSISTANT")
-        header_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_label.setFont(QFont("Arial", 16))
         header_label.setStyleSheet("color: white;")
 
         sub_label = QLabel("Powered by Ollama/Llama 3")
@@ -909,7 +1154,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Header
         vault_header = QLabel("FORENSIC VAULT")
-        vault_header.setFont(QFont("Courier New", 28, QFont.Weight.Bold))
+        vault_header.setFont(QFont("Courier New", 28))
         vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vault_header.setStyleSheet("color: white; margin-bottom: 20px;")
         vault_layout.addWidget(vault_header)
@@ -962,7 +1207,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 border: none;
                 padding: 8px;
-                font-weight: bold;
+                
             }
         """)
         # Set column widths - remove fixed widths to allow stretching
@@ -999,7 +1244,7 @@ class WatchdogDashboard(QMainWindow):
                 border: 2px solid #00D4FF;
                 border-radius: 6px;
                 padding: 12px 24px;
-                font-weight: bold;
+                
                 font-family: 'Courier New', monospace;
             }
             QPushButton:hover {
@@ -1018,7 +1263,7 @@ class WatchdogDashboard(QMainWindow):
         layout.setSpacing(20)
 
         page_title = QLabel(title)
-        page_title.setFont(QFont("Courier New", 28, QFont.Weight.Bold))
+        page_title.setFont(QFont("Courier New", 28))
         page_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         page_title.setStyleSheet("color: white;")
         layout.addWidget(page_title)
@@ -1211,7 +1456,7 @@ class WatchdogDashboard(QMainWindow):
                     border: none;
                     border-radius: 4px;
                     font-size: 10px;
-                    font-weight: bold;
+                    
                 }
                 QPushButton:hover {
                     background-color: #FF5252;
@@ -1230,7 +1475,7 @@ class WatchdogDashboard(QMainWindow):
                     border: none;
                     border-radius: 4px;
                     font-size: 10px;
-                    font-weight: bold;
+                    
                 }
                 QPushButton:hover {
                     background-color: #00B8CC;
@@ -1315,7 +1560,7 @@ class WatchdogDashboard(QMainWindow):
         layout = QVBoxLayout(dialog)
         
         title = QLabel(f"Forensic Analysis: {src_ip} → {dst_ip}")
-        title.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        title.setFont(QFont("Courier New", 16))
         title.setStyleSheet("color: #00D4FF; margin-bottom: 20px;")
         layout.addWidget(title)
         
@@ -1341,7 +1586,7 @@ class WatchdogDashboard(QMainWindow):
                 border: none;
                 padding: 10px 20px;
                 border-radius: 6px;
-                font-weight: bold;
+                
             }
         """)
         layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -1581,7 +1826,7 @@ class WatchdogDashboard(QMainWindow):
         title_section.setSpacing(5)
         
         shield_title = QLabel("AUTONOMOUS SHIELD")
-        shield_title.setFont(QFont("Courier New", 24, QFont.Weight.Bold))
+        shield_title.setFont(QFont("Courier New", 24))
         shield_title.setStyleSheet("color: #FF6B6B; margin: 0;")
         title_section.addWidget(shield_title)
         
@@ -1608,7 +1853,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Blocked IPs header
         blocked_header = QLabel("BLOCKED IP ADDRESSES")
-        blocked_header.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        blocked_header.setFont(QFont("Courier New", 16))
         blocked_header.setStyleSheet("color: #FF6B6B; margin-bottom: 10px;")
         left_layout.addWidget(blocked_header)
         
@@ -1654,14 +1899,14 @@ class WatchdogDashboard(QMainWindow):
         # Unblock button
         unblock_btn = QPushButton("UNBLOCK SELECTED")
         unblock_btn.setFixedHeight(40)
-        unblock_btn.setFont(QFont("Courier New", 12, QFont.Weight.Bold))
+        unblock_btn.setFont(QFont("Courier New", 12))
         unblock_btn.setStyleSheet("""
             QPushButton {
                 background: linear-gradient(135deg, #FF6B6B, #FF5252);
                 border: 2px solid #FF6B6B;
                 border-radius: 10px;
                 color: white;
-                font-weight: bold;
+                
                 padding: 5px 15px;
             }
             QPushButton:hover {
@@ -1684,7 +1929,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Confidence threshold header
         confidence_header = QLabel("AI CONFIDENCE THRESHOLD")
-        confidence_header.setFont(QFont("Courier New", 16, QFont.Weight.Bold))
+        confidence_header.setFont(QFont("Courier New", 16))
         confidence_header.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
         right_layout.addWidget(confidence_header)
         
@@ -1780,7 +2025,7 @@ class WatchdogDashboard(QMainWindow):
         stats_layout.setSpacing(10)
         
         stats_title = QLabel("BLOCKING STATISTICS")
-        stats_title.setFont(QFont("Courier New", 12, QFont.Weight.Bold))
+        stats_title.setFont(QFont("Courier New", 12))
         stats_title.setStyleSheet("color: #FFD93D; margin: 0;")
         stats_layout.addWidget(stats_title)
         
@@ -1907,7 +2152,7 @@ class WatchdogDashboard(QMainWindow):
             QLabel {
                 color: #00D4FF;
                 font-size: 16px;
-                font-weight: bold;
+                
             }
         """)
         status_layout.addWidget(pulse_icon)
@@ -1919,7 +2164,7 @@ class WatchdogDashboard(QMainWindow):
                 color: #00D4FF;
                 font-family: 'Courier New', monospace;
                 font-size: 12px;
-                font-weight: bold;
+                
             }
         """)
         status_layout.addWidget(status_text)
@@ -2061,7 +2306,7 @@ class WatchdogDashboard(QMainWindow):
                 background: rgba(0, 212, 255, 0.2);
                 border: 1px solid #00D4FF;
                 color: #00D4FF;
-                font-weight: bold;
+                
                 padding: 8px 16px;
                 border-radius: 6px;
             }
@@ -2098,7 +2343,7 @@ class WatchdogDashboard(QMainWindow):
                 color: #00D4FF;
                 font-family: 'Courier New', monospace;
                 font-size: 14px;
-                font-weight: bold;
+                
                 border-bottom: 1px solid rgba(0, 212, 255, 0.3);
                 padding-bottom: 10px;
             }
@@ -2123,7 +2368,7 @@ class WatchdogDashboard(QMainWindow):
                 color: #FF6B6B;
                 font-family: 'Courier New', monospace;
                 font-size: 12px;
-                font-weight: bold;
+                
             }
         """)
         threat_layout.addWidget(threat_title)
@@ -2134,7 +2379,7 @@ class WatchdogDashboard(QMainWindow):
                 color: #6BCF7F;
                 font-family: 'Courier New', monospace;
                 font-size: 24px;
-                font-weight: bold;
+                
             }
         """)
         threat_layout.addWidget(self.threat_level_label)
@@ -2159,7 +2404,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 font-family: 'Courier New', monospace;
                 font-size: 12px;
-                font-weight: bold;
+                
             }
         """)
         activity_layout.addWidget(activity_title)
@@ -2195,7 +2440,7 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
                 font-family: 'Courier New', monospace;
                 font-size: 12px;
-                font-weight: bold;
+                
             }
         """)
         alerts_layout.addWidget(alerts_title)
@@ -2281,7 +2526,7 @@ class WatchdogDashboard(QMainWindow):
             QLabel {
                 color: #00D4FF;
                 font-size: 11px;
-                font-weight: bold;
+                
                 text-transform: uppercase;
             }
         """)
@@ -2357,7 +2602,7 @@ class WatchdogDashboard(QMainWindow):
         header_layout.setSpacing(10)
         
         topology_title = QLabel("NETWORK TOPOLOGY DISCOVERY")
-        topology_title.setFont(QFont("Courier New", 28, QFont.Weight.Bold))
+        topology_title.setFont(QFont("Courier New", 28))
         topology_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         topology_title.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
         header_layout.addWidget(topology_title)
@@ -2373,7 +2618,7 @@ class WatchdogDashboard(QMainWindow):
         scan_controls.setSpacing(15)
         
         self.scan_btn = QPushButton("🔍 SCAN NETWORK")
-        self.scan_btn.setFont(QFont("Courier New", 14, QFont.Weight.Bold))
+        self.scan_btn.setFont(QFont("Courier New", 14))
         self.scan_btn.setStyleSheet("""
             QPushButton {
                 background: #00D4FF;
@@ -2381,7 +2626,7 @@ class WatchdogDashboard(QMainWindow):
                 border-radius: 10px;
                 color: #121212;
                 padding: 15px 30px;
-                font-weight: bold;
+                
             }
             QPushButton:hover {
                 background: #00B8CC;
@@ -2439,7 +2684,7 @@ class WatchdogDashboard(QMainWindow):
         stats_layout.setSpacing(40)
         
         self.total_devices_label = QLabel("Total Devices: 0")
-        self.total_devices_label.setStyleSheet("color: white; font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;")
+        self.total_devices_label.setStyleSheet("color: white; font-family: 'Courier New', monospace; font-size: 14px; ")
         stats_layout.addWidget(self.total_devices_label)
         
         self.pc_count_label = QLabel("💻 PCs: 0")
@@ -2468,7 +2713,7 @@ class WatchdogDashboard(QMainWindow):
         device_list_layout.setContentsMargins(0, 0, 0, 0)
         
         device_list_header = QLabel("DISCOVERED DEVICES")
-        device_list_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; margin-bottom: 10px;")
+        device_list_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-bottom: 10px;")
         device_list_layout.addWidget(device_list_header)
         
         self.device_list = QListWidget()
@@ -2505,33 +2750,18 @@ class WatchdogDashboard(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Network Visualization (Simple representation)
+        # Network Visualization (Cisco-style radial topology)
         viz_header = QLabel("NETWORK VISUALIZATION")
-        viz_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; margin-bottom: 10px;")
+        viz_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-bottom: 10px;")
         right_layout.addWidget(viz_header)
         
-        self.network_viz = QWidget()
-        self.network_viz.setStyleSheet("""
-            QWidget {
-                background: rgba(30, 30, 30, 0.6);
-                border: 1px solid rgba(0, 212, 255, 0.3);
-                border-radius: 15px;
-                min-height: 200px;
-            }
-        """)
-        self.viz_layout = QVBoxLayout(self.network_viz)
-        self.viz_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        viz_placeholder = QLabel("🌐 Network visualization will appear here after scan")
-        viz_placeholder.setStyleSheet("color: #888888; font-family: 'Courier New', monospace; font-size: 14px;")
-        viz_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.viz_layout.addWidget(viz_placeholder)
-        
+        self.network_viz = NetworkTopologyWidget()
+        self.network_viz.device_clicked.connect(self._on_topology_device_clicked)
         right_layout.addWidget(self.network_viz)
         
         # Device Details Panel
         details_header = QLabel("DEVICE DETAILS")
-        details_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; margin-top: 20px; margin-bottom: 10px;")
+        details_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-top: 20px; margin-bottom: 10px;")
         right_layout.addWidget(details_header)
         
         self.device_details = QTextEdit()
@@ -2570,12 +2800,8 @@ class WatchdogDashboard(QMainWindow):
         self.scan_status.setStyleSheet("color: #FFD93D; font-family: 'Courier New', monospace; font-size: 12px;")
         self.device_list.clear()
         
-        # Clear visualization
-        print(f"[DEBUG] Clearing visualization, count: {self.viz_layout.count()}")
-        for i in reversed(range(self.viz_layout.count())):
-            widget = self.viz_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+        # Clear topology visualization
+        self.network_viz.set_devices([])
         
         print("[DEBUG] Starting background thread...")
         # Run scan in background thread
@@ -2590,10 +2816,14 @@ class WatchdogDashboard(QMainWindow):
             network_range = self.network_range_input.text().strip()
             print(f"[DEBUG] Starting scan of {network_range}")
             
-            # Check if running as root (required for scapy)
+            # Check if running as root (required for scapy) - Unix only
             import os
-            if os.geteuid() != 0:
-                print("[DEBUG] Not running as root - showing demo devices for testing")
+            is_windows = os.name == 'nt'
+            is_root = hasattr(os, 'geteuid') and os.geteuid() == 0
+            
+            # Show demo devices on Windows, non-root Unix, or in layout-only mode
+            if (is_windows or not is_root) or self.layout_only:
+                print("[DEBUG] Demo/Limited mode - showing demo devices")
                 # Show demo devices for testing without root
                 demo_devices = [
                     {'ip': '192.168.1.1', 'mac': '00:11:22:33:44:55', 'hostname': 'Router-Gateway', 'vendor': 'Netgear', 'type': 'pc'},
@@ -2790,45 +3020,13 @@ class WatchdogDashboard(QMainWindow):
         return icons.get(device_type, '❓')
     
     def _update_network_viz(self, devices):
-        """Update network visualization"""
-        # Clear existing
-        for i in reversed(range(self.viz_layout.count())):
-            self.viz_layout.itemAt(i).widget().setParent(None)
-        
-        if not devices:
-            viz_label = QLabel("No devices discovered")
-            viz_label.setStyleSheet("color: #888888; font-family: 'Courier New', monospace;")
-            viz_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.viz_layout.addWidget(viz_label)
-            return
-        
-        # Create a simple grid layout for device icons
-        grid_widget = QWidget()
-        grid_layout = QGridLayout(grid_widget)
-        grid_layout.setSpacing(20)
-        
-        # Add router/gateway at center
-        router_label = QLabel("🌐\nGateway")
-        router_label.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 12px; font-weight: bold;")
-        router_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        grid_layout.addWidget(router_label, 0, 1, Qt.AlignmentFlag.AlignCenter)
-        
-        # Add discovered devices in rows
-        row = 1
-        col = 0
-        for device in devices:
-            icon = self._get_device_icon(device['type'])
-            device_label = QLabel(f"{icon}\n{device['ip']}")
-            device_label.setStyleSheet("color: white; font-family: 'Courier New', monospace; font-size: 10px;")
-            device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            grid_layout.addWidget(device_label, row, col, Qt.AlignmentFlag.AlignCenter)
-            
-            col += 1
-            if col > 2:
-                col = 0
-                row += 1
-        
-        self.viz_layout.addWidget(grid_widget)
+        """Update network visualization using Cisco-style topology widget"""
+        self.network_viz.set_devices(devices)
+    
+    def _on_topology_device_clicked(self, device):
+        """Handle device click from topology visualization"""
+        # Update device details panel with selected device
+        self.device_details.setHtml(self._format_device_details(device))
     
     def show_device_details(self, item):
         """Show detailed information for selected device"""
@@ -2880,6 +3078,31 @@ class WatchdogDashboard(QMainWindow):
         if device['type'] == 'mobile':
             return "• Ensure device is using WPA3 WiFi\n• Verify mobile device management (MDM) policies\n• Check for unauthorized network access"
         return "• Verify device is authorized on network\n• Ensure proper network segmentation\n• Monitor traffic patterns from this device"
+    
+    def _format_device_details(self, device):
+        """Format device details as HTML"""
+        return f"""
+<b>Device Information</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>IP Address:</b>     {device['ip']}
+<b>MAC Address:</b>   {device['mac']}
+<b>Hostname:</b>      {device['hostname']}
+<b>Vendor:</b>         {device['vendor']}
+<b>Device Type:</b>    {device['type'].upper()}
+
+<b>Security Analysis</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+• Device is actively responding to ARP requests
+• MAC address is {'well-known' if device['vendor'] != 'Unknown Vendor' else 'unknown - potential shadow IT'}
+• Classification: {self._get_device_risk_assessment(device)}
+
+<b>Recommendations</b>
+━━━━━━━━━━━━━━━━━━━━━━━
+
+{self._get_device_recommendations(device)}
+        """
     
     def _scan_error(self, error_msg):
         """Handle scan errors"""
