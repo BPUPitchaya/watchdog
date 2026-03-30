@@ -36,20 +36,25 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-# Theme constants for consistent styling across the dashboard
+# Theme constants for consistent styling across the dashboard - Updated for hi-fi dark teal design
 THEME = {
-    'primary': '#00D4FF',
-    'secondary': '#8B5CF6',
-    'success': '#6BCF7F',
-    'warning': '#FFD93D',
-    'danger': '#FF6B6B',
-    'bg_dark': '#0F172A',
-    'bg_card': '#1E293B',
+    'primary': '#00B4D8',      # Cyan/teal accent
+    'secondary': '#0077B6',     # Darker teal
+    'success': '#00B4D8',       # Cyan for health
+    'warning': '#FF9F43',      # Orange warning
+    'danger': '#FF6B6B',       # Red for risk
+    'bg_dark': '#0A1628',      # Deep dark blue background
+    'bg_card': '#0D1F35',      # Slightly lighter card background
+    'bg_header': '#071220',    # Header background
     'text_primary': '#FFFFFF',
     'text_secondary': '#94A3B8',
-    'border': '#334155',
-    'border_highlight': '#475569',
-    'font_mono': "'Courier New', monospace"
+    'border': '#1E3A5F',       # Teal border
+    'border_highlight': '#00B4D8',
+    'font_mono': "'Courier New', monospace",
+    'gauge_bg': '#1A3A4A',     # Gauge background ring
+    'gauge_active': '#00B4D8', # Gauge active color
+    'risk_low': '#00B4D8',     # Low risk cyan
+    'risk_high': '#FF6B6B'     # High risk red
 }
 
 class ThreatGauge(QWidget):
@@ -180,6 +185,86 @@ class StatusCore(QWidget):
         painter.setFont(font)
         painter.drawText(QRectF(rect.left(), center.y() + 30, rect.width(), 30), Qt.AlignmentFlag.AlignCenter, "SYSTEM SAFE")
 
+class SystemHealthGauge(QWidget):
+    """Circular gauge showing system health percentage"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.health_value = 92
+        self.setMinimumSize(180, 180)
+        
+    def set_health(self, value):
+        self.health_value = max(0, min(100, value))
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        rect = self.rect()
+        center = rect.center()
+        radius = min(rect.width(), rect.height()) // 2 - 20
+        
+        # Background ring
+        painter.setPen(QPen(QColor(THEME['gauge_bg']), 12))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(center, radius, radius)
+        
+        # Active arc (health percentage)
+        angle = int(self.health_value * 3.6 * 16)  # Convert to 1/16 degrees
+        pen = QPen(QColor(THEME['gauge_active']), 12)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
+                       int(radius * 2), int(radius * 2), 90 * 16, -angle)
+        
+        # Center text
+        painter.setPen(QPen(QColor(THEME['gauge_active'])))
+        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        text = f"{self.health_value}%"
+        text_rect = QRect(center.x() - 50, center.y() - 20, 100, 40)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
+
+class RiskAnalysisGauge(QWidget):
+    """Circular gauge showing risk percentage"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.risk_value = 5
+        self.setMinimumSize(180, 180)
+        
+    def set_risk(self, value):
+        self.risk_value = max(0, min(100, value))
+        self.update()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        rect = self.rect()
+        center = rect.center()
+        radius = min(rect.width(), rect.height()) // 2 - 20
+        
+        # Background ring
+        painter.setPen(QPen(QColor(THEME['gauge_bg']), 12))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(center, radius, radius)
+        
+        # Active arc (risk percentage)
+        angle = int(self.risk_value * 3.6 * 16)
+        # Use green for low risk, red for high
+        color = THEME['risk_low'] if self.risk_value < 50 else THEME['risk_high']
+        pen = QPen(QColor(color), 12)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
+                       int(radius * 2), int(radius * 2), 90 * 16, -angle)
+        
+        # Center text
+        painter.setPen(QPen(QColor(color)))
+        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        text = f"{self.risk_value}%"
+        text_rect = QRect(center.x() - 50, center.y() - 20, 100, 40)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
+
 class LiveTrafficWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -248,17 +333,17 @@ class LiveTrafficWidget(QWidget):
         painter.drawLine(int(chart_rect.left()), int(chart_rect.bottom()), int(chart_rect.right()), int(chart_rect.bottom()))
         
         # X-Labels
-        painter.setPen(QPen(Qt.GlobalColor.white))
+        painter.setPen(QPen(QColor(THEME['text_secondary'])))
+        painter.setFont(QFont(THEME['font_mono'].strip("'"), 9))
         # -15s at left
-        painter.drawText(int(chart_rect.left() - 10), int(chart_rect.bottom() + 15), "-15s")
+        painter.drawText(int(chart_rect.left() - 10), int(chart_rect.bottom() + 20), "-15 s")
         # -7.5s at center
-        painter.drawText(int(chart_rect.center().x() - 15), int(chart_rect.bottom() + 15), "-7.5s")
+        painter.drawText(int(chart_rect.center().x() - 15), int(chart_rect.bottom() + 20), "-7.5 s")
         # NOW at right
-        painter.drawText(int(chart_rect.right() - 25), int(chart_rect.bottom() + 15), "NOW")
+        painter.drawText(int(chart_rect.right() - 25), int(chart_rect.bottom() + 20), "Now")
 
-        # Draw the path with Bézier
-        max_pps = max(self.data) if self.data else 0
-        stroke_color = "#FF4B2B" if max_pps > 0.8 * self.y_axis_max else "#F59E0B" if max_pps > 0.5 * self.y_axis_max else "#00F2FE"
+        # Draw the path with Bézier - using teal colors from mockup
+        stroke_color = THEME['primary']
         path = QPainterPath()
         path.moveTo(chart_rect.left(), chart_rect.bottom())
         num_points = len(self.data)
@@ -335,6 +420,106 @@ class CircularGaugeWidget(QWidget):
 
     def set_score(self, score):
         self.target_score = score
+
+class ForensicAssistantPanel(QWidget):
+    """AI chat panel for forensic analysis"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(300, 400)
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Header
+        header = QLabel("Forensic Assistant AI")
+        header.setStyleSheet(f"""
+            background-color: {THEME['primary']};
+            color: white;
+            padding: 12px;
+            font-family: {THEME['font_mono']};
+            font-size: 14px;
+            font-weight: bold;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        """)
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(header)
+        
+        # Chat area
+        self.chat_area = QTextEdit()
+        self.chat_area.setReadOnly(True)
+        self.chat_area.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-top: none;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                padding: 10px;
+            }}
+        """)
+        layout.addWidget(self.chat_area)
+        
+        # Input area
+        input_widget = QWidget()
+        input_layout = QHBoxLayout(input_widget)
+        input_layout.setContentsMargins(10, 10, 10, 10)
+        input_layout.setSpacing(8)
+        input_widget.setStyleSheet(f"""
+            background-color: {THEME['bg_card']};
+            border: 1px solid {THEME['border']};
+            border-top: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        """)
+        
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("Type here to ask AI...")
+        self.input_field.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                padding: 8px 12px;
+            }}
+        """)
+        input_layout.addWidget(self.input_field)
+        
+        send_btn = QPushButton("▶")
+        send_btn.setFixedSize(30, 30)
+        send_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 6px;
+                color: white;
+                font-size: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        send_btn.clicked.connect(self.send_message)
+        input_layout.addWidget(send_btn)
+        
+        # Connect Enter key to send message
+        self.input_field.returnPressed.connect(self.send_message)
+        
+        layout.addWidget(input_widget)
+        
+    def send_message(self):
+        text = self.input_field.text().strip()
+        if text:
+            self.chat_area.append(f"<b>You:</b> {text}")
+            self.chat_area.append(f"<b><span style='color: {THEME['primary']}'>AI:</span></b> I'm analyzing the packet data...")
+            self.input_field.clear()
 
 class NetworkTopologyWidget(QWidget):
     """Cisco-style network topology visualization with radial layout"""
@@ -935,215 +1120,211 @@ class WatchdogDashboard(QMainWindow):
         self.create_placeholder_page("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
 
     def create_live_sentinel_page(self):
-        # Main content area
+        """Create the main dashboard page matching hi-fi mockup design"""
+        # Main content widget with dark background
         main_content = QWidget()
-        main_grid = QGridLayout(main_content)
-        main_grid.setSpacing(30)  # Increased spacing for breathing room
-
-        # Header
-        header = QLabel("WATCHDOG AI Dashboard")
-        header.setFont(QFont("Courier New", 24))  # Modern monospace font
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setStyleSheet("color: white;")
-
-        # AI Toggle Button
-        self.ai_toggle_btn = QPushButton("AI: ON" if not self.no_ai else "AI: OFF")
-        self.ai_toggle_btn.setCheckable(True)
-        self.ai_toggle_btn.setChecked(not self.no_ai)
-        self.ai_toggle_btn.clicked.connect(self.toggle_ai)
-        self.ai_toggle_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #00D4FF;
-                color: #121212;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-                
-                font-family: 'Courier New', monospace;
-            }
-            QPushButton:hover {
-                background-color: #00B8CC;
-            }
-            QPushButton:checked {
-                background-color: #00D4FF;
-                color: #121212;
-            }
-            QPushButton:!checked {
-                background-color: #666666;
-                color: #CCCCCC;
-            }
-        """)
-
-        # Header layout with title and toggle
-        header_layout = QHBoxLayout()
-        header_layout.addWidget(header, 1)  # Title takes available space
-        header_layout.addWidget(self.ai_toggle_btn, 0)  # Button stays compact
+        main_content.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+        main_layout = QVBoxLayout(main_content)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        # ===== HEADER BAR =====
         header_widget = QWidget()
-        header_widget.setLayout(header_layout)
-
-        # Header spanning columns
-        main_grid.addWidget(header_widget, 0, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
-
-        # Cards with refined styling
-        self.status_card = QWidget()
-        self.status_card.setStyleSheet("""
-            QWidget {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid #222222;
-                border-radius: 15px;
-            }
+        header_widget.setFixedHeight(60)
+        header_widget.setStyleSheet(f"""
+            background-color: {THEME['bg_header']};
+            border-bottom: 1px solid {THEME['border']};
         """)
-        status_layout = QVBoxLayout(self.status_card)
-        status_layout.setContentsMargins(40, 40, 40, 40)  # Increased padding
-        status_title = QLabel("SYSTEM STATUS")
-        status_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
-        status_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_layout.addWidget(status_title)
-        self.left_gauge = StatusCore()
-        status_layout.addWidget(self.left_gauge)
-
-        self.live_traffic_card = QWidget()
-        self.live_traffic_card.setStyleSheet("""
-            QWidget {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid #222222;
-                border-radius: 15px;
-            }
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(20, 0, 20, 0)
+        header_layout.setSpacing(15)
+        
+        # Hamburger menu icon
+        menu_btn = QPushButton("☰")
+        menu_btn.setFixedSize(40, 40)
+        menu_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {THEME['primary']};
+                font-size: 24px;
+            }}
         """)
-        live_layout = QVBoxLayout(self.live_traffic_card)
-        live_layout.setContentsMargins(40, 40, 40, 40)
-        live_title = QLabel("LIVE TRAFFIC")
-        live_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
-        live_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        live_layout.addWidget(live_title)
-        self.live_traffic = LiveTrafficWidget()
-        live_layout.addWidget(self.live_traffic)
-
-        self.threat_card = QWidget()
-        self.threat_card.setStyleSheet("""
-            QWidget {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid #222222;
-                border-radius: 15px;
-            }
+        header_layout.addWidget(menu_btn)
+        
+        # Dog/Wolf logo icon
+        logo_label = QLabel("🐺")
+        logo_label.setStyleSheet("font-size: 32px;")
+        header_layout.addWidget(logo_label)
+        
+        # Title
+        title_label = QLabel("WatchDog AI")
+        title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"color: {THEME['primary']};")
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        main_layout.addWidget(header_widget)
+        
+        # ===== TOP ROW: Three Metric Cards =====
+        cards_layout = QHBoxLayout()
+        cards_layout.setSpacing(20)
+        
+        # System Health Card
+        health_card = self._create_metric_card("System Health", SystemHealthGauge())
+        cards_layout.addWidget(health_card)
+        
+        # Live Traffic Card
+        traffic_card = self._create_metric_card("Live Traffic", LiveTrafficWidget())
+        cards_layout.addWidget(traffic_card)
+        
+        # Risk Analysis Card
+        risk_card = self._create_metric_card("Risk Analysis", RiskAnalysisGauge())
+        cards_layout.addWidget(risk_card)
+        
+        main_layout.addLayout(cards_layout)
+        
+        # ===== BOTTOM ROW: Table and AI Panel =====
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setSpacing(20)
+        
+        # Left side: Traffic Table
+        table_container = self._create_traffic_table_section()
+        bottom_layout.addWidget(table_container, stretch=2)
+        
+        # Right side: Forensic Assistant Panel
+        self.forensic_panel = ForensicAssistantPanel()
+        bottom_layout.addWidget(self.forensic_panel, stretch=1)
+        
+        main_layout.addLayout(bottom_layout, stretch=1)
+        
+        self.page_container.addWidget(main_content)
+        
+    def _create_metric_card(self, title, widget):
+        """Create a styled metric card with title"""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 12px;
+            }}
         """)
-        threat_layout = QVBoxLayout(self.threat_card)
-        threat_layout.setContentsMargins(40, 40, 40, 40)
-        threat_title = QLabel("RISK ANALYSIS")
-        threat_title.setStyleSheet("color: gray; font-family: 'Courier New', monospace; font-size: 10px; text-transform: uppercase; text-align: center;")
-        threat_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        threat_layout.addWidget(threat_title)
-        self.right_gauge = CircularGaugeWidget()
-        threat_layout.addWidget(self.right_gauge)
-
-        # Cards row
-        main_grid.addWidget(self.status_card, 1, 0)
-        main_grid.addWidget(self.live_traffic_card, 1, 1)
-        main_grid.addWidget(self.threat_card, 1, 2)
-
-        # Ghost button styling
-        refresh_btn = QPushButton("Refresh Data")
-        refresh_btn.clicked.connect(self.update_ui)
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #00D4FF;
-                border: 2px solid #00D4FF;
-                border-radius: 6px;
-                padding: 8px 16px;
-                
-            }
-            QPushButton:hover {
-                background-color: rgba(0, 212, 255, 0.1);
-            }
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 15, 20, 20)
+        layout.setSpacing(10)
+        
+        # Title
+        title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet(f"""
+            color: {THEME['text_primary']};
+            font-family: {THEME['font_mono']};
+            font-size: 14px;
+            font-weight: bold;
         """)
-        main_grid.addWidget(refresh_btn, 2, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
-
-        # Splitter for table and chat
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        # Table
+        layout.addWidget(title_label)
+        
+        # Widget (gauge or chart)
+        widget.setMinimumHeight(180)
+        layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        return card
+        
+    def _create_traffic_table_section(self):
+        """Create traffic table with teal header and Refresh button"""
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        
+        # Table with teal header
         self.table = QTableWidget()
         self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Src IP", "Dst IP", "Protocol", "Length", "Confidence Score", "Action"])
-        self.table.setContentsMargins(0, 24, 0, 24)
-        self.table.verticalHeader().setDefaultSectionSize(50)
-        splitter.addWidget(self.table)
-
-        # Right: AI Intelligence Sidebar
-        self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(400)
-        self.sidebar.setStyleSheet("background-color: rgba(15, 23, 42, 0.9); border-left: 1px solid rgba(255, 255, 255, 0.05);")
-
-        # Define widgets first
-        header_label = QLabel("FORENSIC ASSISTANT")
-        header_label.setFont(QFont("Arial", 16))
-        header_label.setStyleSheet("color: white;")
-
-        sub_label = QLabel("Powered by Ollama/Llama 3")
-        sub_label.setFont(QFont("Arial", 10))
-        sub_label.setStyleSheet("color: gray;")
-
-        self.chat_scroll = QScrollArea()
-        self.chat_scroll.setWidgetResizable(True)
-        self.chat_scroll.setStyleSheet("border: none; background-color: transparent;")
-        self.chat_widget = QWidget()
-        self.chat_layout = QVBoxLayout(self.chat_widget)
-        self.chat_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.chat_scroll.setWidget(self.chat_widget)
-
-        # Input Field - sleek underline
-        input_layout = QHBoxLayout()
-        self.chat_input = QLineEdit()
-        self.chat_input.setStyleSheet("""
-            QLineEdit {
-                border: none;
-                border-bottom: 2px solid #888888;
-                background-color: transparent;
+        self.table.setHorizontalHeaderLabels([
+            "Source IP", "Destination IP", "Protocol", "Length", "Confidence\nScore", "Action"
+        ])
+        
+        # Make table stretch to fill container
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Stretch all columns to fill width
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setStretchLastSection(True)
+        
+        # Make rows fill vertical space and stretch
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setDefaultSectionSize(40)
+        
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        
+        # Teal header styling with improved sizing
+        self.table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 8px;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                gridline-color: {THEME['border']};
+            }}
+            QTableWidget::item {{
+                padding: 10px;
+                border-bottom: 1px solid {THEME['border']};
+            }}
+            QTableWidget::item:selected {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+            }}
+            QHeaderView::section {{
+                background-color: {THEME['primary']};
                 color: white;
-                padding: 8px;
-            }
-            QLineEdit:focus {
-                border-bottom: 2px solid #00D4FF;
-            }
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+                padding: 12px;
+                border: none;
+            }}
+            QHeaderView::section:first {{
+                border-top-left-radius: 8px;
+            }}
+            QHeaderView::section:last {{
+                border-top-right-radius: 8px;
+            }}
         """)
-        self.chat_input.returnPressed.connect(self.send_message)
-        input_layout.addWidget(self.chat_input)
-
-        self.send_btn = QPushButton("Send")
-        self.send_btn.setStyleSheet("background-color: #2DD4BF; color: white; border: none; padding: 8px;")
-        self.send_btn.clicked.connect(self.send_message)
-        input_layout.addWidget(self.send_btn)
-
-        sidebar_grid = QGridLayout(self.sidebar)
-        sidebar_grid.setContentsMargins(16, 16, 16, 16)
-
-        # Header row 0 (auto)
-        sidebar_grid.addWidget(header_label, 0, 0)
-        sidebar_grid.addWidget(sub_label, 1, 0)
-
-        # Chat row 2 (1fr)
-        sidebar_grid.addWidget(self.chat_scroll, 2, 0)
-
-        # Input row 3 (auto)
-        sidebar_grid.addLayout(input_layout, 3, 0)
-
-        # Set row stretch for chat
-        sidebar_grid.setRowStretch(2, 1)
-
-        splitter.addWidget(self.sidebar)
-
-        # Set proportions: table ~60%, sidebar 40%
-        splitter.setSizes([720, 480])
-
-        # Splitter row
-        main_grid.addWidget(splitter, 3, 0, 1, 3)
-
-        # Set row stretches
-        main_grid.setRowStretch(1, 1)
-        main_grid.setRowStretch(3, 2)
-
-        self.page_container.addWidget(main_content)
+        
+        layout.addWidget(self.table, stretch=1)
+        
+        # Refresh button (centered)
+        btn_container = QWidget()
+        btn_layout = QHBoxLayout(btn_container)
+        btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setFixedSize(100, 35)
+        refresh_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        refresh_btn.clicked.connect(self.update_ui)
+        btn_layout.addWidget(refresh_btn)
+        
+        layout.addWidget(btn_container)
+        
+        return container
 
     def create_forensic_vault_page(self):
         # Forensic Vault page widget
