@@ -876,14 +876,14 @@ class WatchdogDashboard(QMainWindow):
         refresh_btn = QPushButton("Refresh Data")
         refresh_btn.clicked.connect(self.update_ui)
 
-        # Navigation Sidebar (left)
+        # Navigation Sidebar (left) - using universal dark teal theme
         self.nav_sidebar = QWidget()
         self.nav_sidebar.setFixedWidth(80)
-        self.nav_sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-right: 1px solid #222222;
-            }
+        self.nav_sidebar.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_header']};
+                border-right: 1px solid {THEME['border']};
+            }}
         """)
         nav_layout = QVBoxLayout(self.nav_sidebar)
         nav_layout.setContentsMargins(0, 20, 0, 20)
@@ -905,25 +905,25 @@ class WatchdogDashboard(QMainWindow):
             btn = QPushButton(icon)
             btn.setFixedSize(80, 60)
             btn.setToolTip(tooltip)
-            btn.setStyleSheet("""
-                QPushButton {
+            btn.setStyleSheet(f"""
+                QPushButton {{
                     background-color: transparent;
                     border: none;
-                    color: rgba(255, 255, 255, 0.3);
+                    color: {THEME['text_secondary']};
                     font-size: 10px;
                     
                     border-radius: 8px;
                     text-align: center;
-                }
-                QPushButton:hover {
-                    background-color: #2a2a2a;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-                QPushButton:checked {
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['bg_card']};
+                    color: {THEME['text_primary']};
+                }}
+                QPushButton:checked {{
                     background-color: transparent;
-                    color: #00D1FF;
-                    border-left: 3px solid #00D1FF;
-                }
+                    color: {THEME['primary']};
+                    border-left: 3px solid {THEME['primary']};
+                }}
             """)
             btn.setCheckable(True)
             nav_layout.addWidget(btn)
@@ -1029,14 +1029,14 @@ class WatchdogDashboard(QMainWindow):
         self.page_container = QStackedWidget()
         self.create_pages()
 
-        # Navigation Sidebar (left)
+        # Navigation Sidebar (left) - using universal dark teal theme
         self.nav_sidebar = QWidget()
         self.nav_sidebar.setFixedWidth(80)
-        self.nav_sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-right: 1px solid #222222;
-            }
+        self.nav_sidebar.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_header']};
+                border-right: 1px solid {THEME['border']};
+            }}
         """)
 
         nav_layout = QVBoxLayout(self.nav_sidebar)
@@ -1059,25 +1059,25 @@ class WatchdogDashboard(QMainWindow):
             btn = QPushButton(icon)
             btn.setFixedSize(80, 60)
             btn.setToolTip(tooltip)
-            btn.setStyleSheet("""
-                QPushButton {
+            btn.setStyleSheet(f"""
+                QPushButton {{
                     background-color: transparent;
                     border: none;
-                    color: rgba(255, 255, 255, 0.3);
+                    color: {THEME['text_secondary']};
                     font-size: 10px;
                     
                     border-radius: 8px;
                     text-align: center;
-                }
-                QPushButton:hover {
-                    background-color: #2a2a2a;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-                QPushButton:checked {
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['bg_card']};
+                    color: {THEME['text_primary']};
+                }}
+                QPushButton:checked {{
                     background-color: transparent;
-                    color: #00D1FF;
-                    border-left: 3px solid #00D1FF;
-                }
+                    color: {THEME['primary']};
+                    border-left: 3px solid {THEME['primary']};
+                }}
             """)
             btn.setCheckable(True)
             btn.clicked.connect(lambda checked, idx=i: self.switch_page(idx))
@@ -1327,41 +1327,45 @@ class WatchdogDashboard(QMainWindow):
         return container
 
     def create_forensic_vault_page(self):
-        # Forensic Vault page widget
+        """Create Forensic Vault page with dark teal theme"""
         vault_page = QWidget()
+        vault_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         vault_layout = QVBoxLayout(vault_page)
         vault_layout.setContentsMargins(40, 40, 40, 40)
         vault_layout.setSpacing(20)
 
         # Header
         vault_header = QLabel("FORENSIC VAULT")
-        vault_header.setFont(QFont("Courier New", 28))
+        vault_header.setFont(QFont(THEME['font_mono'].strip("'"), 28))
         vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_header.setStyleSheet("color: white; margin-bottom: 20px;")
+        vault_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
         vault_layout.addWidget(vault_header)
 
         # Subtitle
         vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
-        vault_subtitle.setFont(QFont("Courier New", 14))
+        vault_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
         vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_subtitle.setStyleSheet("color: #888888; margin-bottom: 30px;")
+        vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin-bottom: 30px;")
         vault_layout.addWidget(vault_subtitle)
 
         # Search bar
         search_layout = QHBoxLayout()
         search_label = QLabel("Search Flagged Incidents:")
-        search_label.setStyleSheet("color: white; font-family: 'Courier New', monospace;")
+        search_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']};")
         self.vault_search = QLineEdit()
         self.vault_search.setPlaceholderText("Enter IP address, protocol, or threat type...")
-        self.vault_search.setStyleSheet("""
-            QLineEdit {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid #222222;
+        self.vault_search.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
-                color: white;
+                color: {THEME['text_primary']};
                 padding: 8px;
-                font-family: 'Courier New', monospace;
-            }
+                font-family: {THEME['font_mono']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
+            }}
         """)
         self.vault_search.textChanged.connect(self.filter_vault_table)
         search_layout.addWidget(search_label)
@@ -1375,21 +1379,37 @@ class WatchdogDashboard(QMainWindow):
             "Timestamp", "Source IP", "Destination IP", "Protocol", 
             "Confidence", "Threat Level", "AI Summary", "Action"
         ])
-        self.vault_table.setStyleSheet("""
-            QTableWidget {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid #222222;
+        self.vault_table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 15px;
-                color: white;
-                font-family: 'Courier New', monospace;
-            }
-            QHeaderView::section {
-                background-color: #1a1a1a;
-                color: white;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                gridline-color: {THEME['border']};
+            }}
+            QTableWidget::item {{
+                padding: 10px;
+                border-bottom: 1px solid {THEME['border']};
+            }}
+            QTableWidget::item:selected {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+            }}
+            QHeaderView::section {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
                 border: none;
-                padding: 8px;
-                
-            }
+                padding: 12px;
+                font-weight: bold;
+                font-family: {THEME['font_mono']};
+            }}
+            QHeaderView::section:first {{
+                border-top-left-radius: 15px;
+            }}
+            QHeaderView::section:last {{
+                border-top-right-radius: 15px;
+            }}
         """)
         # Set column widths - remove fixed widths to allow stretching
         # self.vault_table.setColumnWidth(0, 170)  # Timestamp
@@ -1418,47 +1438,48 @@ class WatchdogDashboard(QMainWindow):
         # Refresh button
         vault_refresh_btn = QPushButton("Load Flagged Incidents")
         vault_refresh_btn.clicked.connect(self.load_flagged_incidents)
-        vault_refresh_btn.setStyleSheet("""
-            QPushButton {
+        vault_refresh_btn.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
-                color: #00D4FF;
-                border: 2px solid #00D4FF;
+                color: {THEME['primary']};
+                border: 2px solid {THEME['primary']};
                 border-radius: 6px;
                 padding: 12px 24px;
-                
-                font-family: 'Courier New', monospace;
-            }
-            QPushButton:hover {
-                background-color: rgba(0, 212, 255, 0.1);
-            }
+                font-weight: bold;
+                font-family: {THEME['font_mono']};
+            }}
+            QPushButton:hover {{
+                background-color: rgba(0, 180, 216, 0.2);
+            }}
         """)
         vault_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.page_container.addWidget(vault_page)
 
     def create_placeholder_page(self, title, description):
-        # Placeholder page for future implementation
+        # Placeholder page for future implementation with universal dark teal theme
         page = QWidget()
+        page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(20)
 
         page_title = QLabel(title)
-        page_title.setFont(QFont("Courier New", 28))
+        page_title.setFont(QFont(THEME['font_mono'].strip("'"), 28))
         page_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        page_title.setStyleSheet("color: white;")
+        page_title.setStyleSheet(f"color: {THEME['primary']};")
         layout.addWidget(page_title)
 
         page_desc = QLabel(description)
-        page_desc.setFont(QFont("Courier New", 14))
+        page_desc.setFont(QFont(THEME['font_mono'].strip("'"), 14))
         page_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        page_desc.setStyleSheet("color: #888888;")
+        page_desc.setStyleSheet(f"color: {THEME['text_secondary']};")
         layout.addWidget(page_desc)
 
         coming_soon = QLabel("Coming Soon...")
-        coming_soon.setFont(QFont("Courier New", 16))
+        coming_soon.setFont(QFont(THEME['font_mono'].strip("'"), 16))
         coming_soon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        coming_soon.setStyleSheet("color: #00D4FF; margin-top: 50px;")
+        coming_soon.setStyleSheet(f"color: {THEME['primary']}; margin-top: 50px;")
         layout.addWidget(coming_soon)
 
         self.page_container.addWidget(page)
@@ -1982,8 +2003,9 @@ class WatchdogDashboard(QMainWindow):
             return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
 
     def create_autonomous_shield_page(self):
-        """Create Autonomous Shield page with firewall management"""
+        """Create Autonomous Shield page with firewall management - using universal dark teal theme"""
         shield_page = QWidget()
+        shield_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
         # Main layout
         main_layout = QVBoxLayout(shield_page)
@@ -1993,12 +2015,12 @@ class WatchdogDashboard(QMainWindow):
         # Header
         header_widget = QWidget()
         header_widget.setFixedHeight(80)
-        header_widget.setStyleSheet("""
-            QWidget {
-                background: linear-gradient(135deg, #1a1a1a, #2d3748);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 15px 15px 0 0;
-            }
+        header_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_header']};
+                border-bottom: 1px solid {THEME['border']};
+                border-radius: 12px;
+            }}
         """)
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(40, 20, 40, 20)
@@ -2007,13 +2029,13 @@ class WatchdogDashboard(QMainWindow):
         title_section.setSpacing(5)
         
         shield_title = QLabel("AUTONOMOUS SHIELD")
-        shield_title.setFont(QFont("Courier New", 24))
-        shield_title.setStyleSheet("color: #FF6B6B; margin: 0;")
+        shield_title.setFont(QFont(THEME['font_mono'].strip("'"), 24))
+        shield_title.setStyleSheet(f"color: {THEME['danger']}; margin: 0;")
         title_section.addWidget(shield_title)
         
         shield_subtitle = QLabel("Firewall Management & AI Confidence Control")
-        shield_subtitle.setFont(QFont("Courier New", 12))
-        shield_subtitle.setStyleSheet("color: #888888; margin: 0;")
+        shield_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        shield_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin: 0;")
         title_section.addWidget(shield_subtitle)
         
         header_layout.addLayout(title_section)
@@ -2034,34 +2056,35 @@ class WatchdogDashboard(QMainWindow):
         
         # Blocked IPs header
         blocked_header = QLabel("BLOCKED IP ADDRESSES")
-        blocked_header.setFont(QFont("Courier New", 16))
-        blocked_header.setStyleSheet("color: #FF6B6B; margin-bottom: 10px;")
+        blocked_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        blocked_header.setStyleSheet(f"color: {THEME['danger']}; margin-bottom: 10px;")
         left_layout.addWidget(blocked_header)
         
-        # Blocked IPs list
+        # Blocked IPs list with dark teal theme
         self.blocked_list_widget = QListWidget()
-        self.blocked_list_widget.setStyleSheet("""
-            QListWidget {
-                background-color: #121212;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+        self.blocked_list_widget.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 10px;
-                font-family: 'Courier New', monospace;
+                font-family: {THEME['font_mono']};
                 font-size: 14px;
-                color: white;
-            }
-            QListWidget::item {
+                color: {THEME['text_primary']};
+            }}
+            QListWidget::item {{
                 padding: 10px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                border-bottom: 1px solid {THEME['border']};
                 border-radius: 5px;
                 margin: 2px 0;
-            }
-            QListWidget::item:selected {
+            }}
+            QListWidget::item:selected {{
+                background-color: {THEME['danger']};
+                color: white;
+            }}
+            QListWidget::item:hover {{
                 background-color: rgba(255, 107, 107, 0.2);
-            }
-            QListWidget::item:hover {
-                background-color: rgba(255, 107, 107, 0.1);
-            }
+            }}
         """)
         
         # Add some sample blocked IPs
@@ -2080,24 +2103,20 @@ class WatchdogDashboard(QMainWindow):
         # Unblock button
         unblock_btn = QPushButton("UNBLOCK SELECTED")
         unblock_btn.setFixedHeight(40)
-        unblock_btn.setFont(QFont("Courier New", 12))
-        unblock_btn.setStyleSheet("""
-            QPushButton {
-                background: linear-gradient(135deg, #FF6B6B, #FF5252);
-                border: 2px solid #FF6B6B;
+        unblock_btn.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        unblock_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: linear-gradient(135deg, {THEME['danger']}, #FF5252);
+                border: 2px solid {THEME['danger']};
                 border-radius: 10px;
                 color: white;
-                
+                font-weight: bold;
                 padding: 5px 15px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background: linear-gradient(135deg, #FF5252, #FF3838);
                 border: 2px solid #FF5252;
-            }
-            QPushButton:pressed {
-                background: linear-gradient(135deg, #FF3838, #E91E63);
-                border: 2px solid #FF3838;
-            }
+            }}
         """)
         unblock_btn.clicked.connect(self.unblock_selected_ip)
         left_layout.addWidget(unblock_btn)
@@ -2110,49 +2129,49 @@ class WatchdogDashboard(QMainWindow):
         
         # Confidence threshold header
         confidence_header = QLabel("AI CONFIDENCE THRESHOLD")
-        confidence_header.setFont(QFont("Courier New", 16))
-        confidence_header.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
+        confidence_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        confidence_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 10px;")
         right_layout.addWidget(confidence_header)
         
-        # Confidence slider
+        # Confidence slider container
         confidence_container = QWidget()
-        confidence_container.setStyleSheet("""
-            QWidget {
-                background-color: #121212;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+        confidence_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 20px;
-            }
+            }}
         """)
         confidence_layout = QVBoxLayout(confidence_container)
         confidence_layout.setSpacing(15)
         
         # Current threshold display
         self.confidence_label = QLabel("Current Threshold: 75%")
-        self.confidence_label.setFont(QFont("Courier New", 14))
-        self.confidence_label.setStyleSheet("color: #00D4FF; margin: 0;")
+        self.confidence_label.setFont(QFont(THEME['font_mono'].strip("'"), 14))
+        self.confidence_label.setStyleSheet(f"color: {THEME['primary']}; margin: 0;")
         self.confidence_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         confidence_layout.addWidget(self.confidence_label)
         
-        # Confidence slider
+        # Confidence slider with theme colors
         self.confidence_slider = QSlider(Qt.Orientation.Horizontal)
         self.confidence_slider.setRange(0, 100)
         self.confidence_slider.setValue(75)
-        self.confidence_slider.setStyleSheet("""
-            QSlider::groove:horizontal {
-                border: 1px solid #1a1a1a;
+        self.confidence_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {THEME['border']};
                 height: 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 #FF6B6B, stop:0.5 #FFD93D, stop:1 #6BCF7F);
+                    stop:0 {THEME['danger']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['success']});
                 border-radius: 4px;
-            }
-            QSlider::handle:horizontal {
-                background: #00D4FF;
-                border: 2px solid #1a1a1a;
+            }}
+            QSlider::handle:horizontal {{
+                background: {THEME['primary']};
+                border: 2px solid {THEME['border']};
                 width: 20px;
                 margin: -6px 0;
                 border-radius: 10px;
-            }
+            }}
         """)
         self.confidence_slider.valueChanged.connect(self.update_confidence_threshold)
         confidence_layout.addWidget(self.confidence_slider)
@@ -2162,17 +2181,17 @@ class WatchdogDashboard(QMainWindow):
         labels_layout.setSpacing(0)
         
         relaxed_label = QLabel("Relaxed")
-        relaxed_label.setFont(QFont("Courier New", 10))
-        relaxed_label.setStyleSheet("color: #FF6B6B;")
+        relaxed_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        relaxed_label.setStyleSheet(f"color: {THEME['danger']};")
         
         balanced_label = QLabel("Balanced")
-        balanced_label.setFont(QFont("Courier New", 10))
-        balanced_label.setStyleSheet("color: #FFD93D;")
+        balanced_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        balanced_label.setStyleSheet(f"color: {THEME['warning']};")
         balanced_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         aggressive_label = QLabel("Aggressive")
-        aggressive_label.setFont(QFont("Courier New", 10))
-        aggressive_label.setStyleSheet("color: #6BCF7F;")
+        aggressive_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        aggressive_label.setStyleSheet(f"color: {THEME['success']};")
         aggressive_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         labels_layout.addWidget(relaxed_label)
@@ -2184,8 +2203,8 @@ class WatchdogDashboard(QMainWindow):
         
         # Mode description
         mode_desc = QLabel("Lower values = More blocks (Aggressive)\nHigher values = Fewer false positives (Relaxed)")
-        mode_desc.setFont(QFont("Courier New", 10))
-        mode_desc.setStyleSheet("color: #888888; margin: 10px 0;")
+        mode_desc.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        mode_desc.setStyleSheet(f"color: {THEME['text_secondary']}; margin: 10px 0;")
         mode_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         mode_desc.setWordWrap(True)
         confidence_layout.addWidget(mode_desc)
@@ -2194,38 +2213,48 @@ class WatchdogDashboard(QMainWindow):
         
         # Statistics
         stats_container = QWidget()
-        stats_container.setStyleSheet("""
-            QWidget {
-                background-color: #121212;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+        stats_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 20px;
-            }
+            }}
         """)
         stats_layout = QVBoxLayout(stats_container)
         stats_layout.setSpacing(10)
         
         stats_title = QLabel("BLOCKING STATISTICS")
-        stats_title.setFont(QFont("Courier New", 12))
-        stats_title.setStyleSheet("color: #FFD93D; margin: 0;")
+        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        stats_title.setStyleSheet(f"color: {THEME['warning']}; margin: 0;")
         stats_layout.addWidget(stats_title)
         
-        self.total_blocked_label = QLabel(f"Total Blocked: {len(sample_blocked_ips)}")
-        self.total_blocked_label.setFont(QFont("Courier New", 11))
-        self.total_blocked_label.setStyleSheet("color: white; margin: 5px 0;")
+        self.total_blocked_label = QLabel(f"Total Blocked: 4")
+        self.total_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        self.total_blocked_label.setStyleSheet(f"color: {THEME['text_primary']}; margin: 5px 0;")
         stats_layout.addWidget(self.total_blocked_label)
         
-        self.auto_blocked_label = QLabel(f"Auto-Blocked: {len(sample_blocked_ips)}")
-        self.auto_blocked_label.setFont(QFont("Courier New", 11))
-        self.auto_blocked_label.setStyleSheet("color: #6BCF7F; margin: 5px 0;")
+        self.auto_blocked_label = QLabel(f"Auto-Blocked: 4")
+        self.auto_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        self.auto_blocked_label.setStyleSheet(f"color: {THEME['success']}; margin: 5px 0;")
         stats_layout.addWidget(self.auto_blocked_label)
         
         self.manual_blocked_label = QLabel("Manual: 0")
-        self.manual_blocked_label.setFont(QFont("Courier New", 11))
-        self.manual_blocked_label.setStyleSheet("color: #00D4FF; margin: 5px 0;")
+        self.manual_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        self.manual_blocked_label.setStyleSheet(f"color: {THEME['primary']}; margin: 5px 0;")
         stats_layout.addWidget(self.manual_blocked_label)
         
         # Initialize manual block counter
+        self.manual_block_count = 0
+        
+        right_layout.addWidget(stats_container)
+        
+        content_layout.addWidget(left_section, stretch=2)
+        content_layout.addWidget(right_section, stretch=1)
+        
+        main_layout.addWidget(content_area, stretch=1)
+        
+        self.page_container.addWidget(shield_page)
         self.manual_block_count = 0
         
         right_layout.addWidget(stats_container)
@@ -2299,9 +2328,10 @@ class WatchdogDashboard(QMainWindow):
         self.confidence_label.setStyleSheet(f"color: {color}; margin: 0;")
 
     def create_ai_mentor_page(self):
-        """Create AI Mentor page as a Forensic Analysis Hub"""
+        """Create AI Mentor page as a Forensic Analysis Hub with dark teal theme"""
         # AI Mentor page widget
         mentor_page = QWidget()
+        mentor_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
         # Main Horizontal Layout: 70% chat, 30% diagnostics
         main_layout = QHBoxLayout(mentor_page)
@@ -2316,37 +2346,37 @@ class WatchdogDashboard(QMainWindow):
         # Status Bar Header
         status_bar = QFrame()
         status_bar.setFixedHeight(40)
-        status_bar.setStyleSheet("""
-            QFrame {
-                background: rgba(30, 30, 30, 0.9);
-                border: 1px solid rgba(0, 212, 255, 0.3);
+        status_bar.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
-                color: #00D4FF;
-            }
+                color: {THEME['primary']};
+            }}
         """)
         status_layout = QHBoxLayout(status_bar)
         status_layout.setContentsMargins(15, 5, 15, 5)
         
         # Sentinel Pulse Icon
         pulse_icon = QLabel("●")
-        pulse_icon.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
+        pulse_icon.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['primary']};
                 font-size: 16px;
                 
-            }
+            }}
         """)
         status_layout.addWidget(pulse_icon)
         
         # Status Text
         status_text = QLabel("SYSTEM STATUS: MONITORING | AGENT: LLAMA 4 SCOUT")
-        status_text.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
-                font-family: 'Courier New', monospace;
+        status_text.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['primary']};
+                font-family: {THEME['font_mono']};
                 font-size: 12px;
                 
-            }
+            }}
         """)
         status_layout.addWidget(status_text)
         status_layout.addStretch()
@@ -2357,12 +2387,12 @@ class WatchdogDashboard(QMainWindow):
         self.mentor_chat_area = QScrollArea()
         self.mentor_chat_area.setWidgetResizable(True)
         self.mentor_chat_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.mentor_chat_area.setStyleSheet("""
-            QScrollArea {
-                background: rgba(18, 18, 18, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.2);
+        self.mentor_chat_area.setStyleSheet(f"""
+            QScrollArea {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 12px;
-            }
+            }}
         """)
         self.mentor_chat_area.setContentsMargins(20, 10, 20, 10)
 
@@ -2391,60 +2421,60 @@ class WatchdogDashboard(QMainWindow):
         
         # Ghost Button 1
         btn1 = QPushButton("Analyze Last 5 Minutes")
-        btn1.setStyleSheet("""
-            QPushButton {
+        btn1.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
+                border: 1px solid {THEME['border']};
+                color: {THEME['text_primary']};
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: {THEME['font_mono']};
                 font-size: 11px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.5);
-            }
+            }}
+            QPushButton:hover {{
+                background: rgba(0, 180, 216, 0.1);
+                border: 1px solid {THEME['primary']};
+            }}
         """)
         btn1.clicked.connect(lambda: self.quick_question("Analyze the last 5 minutes of network activity"))
         actions_layout.addWidget(btn1)
         
         # Ghost Button 2
         btn2 = QPushButton("Scan Local Devices")
-        btn2.setStyleSheet("""
-            QPushButton {
+        btn2.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
+                border: 1px solid {THEME['border']};
+                color: {THEME['text_primary']};
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: {THEME['font_mono']};
                 font-size: 11px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.5);
-            }
+            }}
+            QPushButton:hover {{
+                background: rgba(0, 180, 216, 0.1);
+                border: 1px solid {THEME['primary']};
+            }}
         """)
         btn2.clicked.connect(lambda: self.quick_question("Scan all local devices for security vulnerabilities"))
         actions_layout.addWidget(btn2)
         
         # Ghost Button 3
         btn3 = QPushButton("Explain Risk Level")
-        btn3.setStyleSheet("""
-            QPushButton {
+        btn3.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
+                border: 1px solid {THEME['border']};
+                color: {THEME['text_primary']};
                 padding: 8px 16px;
                 border-radius: 6px;
-                font-family: 'Courier New', monospace;
+                font-family: {THEME['font_mono']};
                 font-size: 11px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.5);
-            }
+            }}
+            QPushButton:hover {{
+                background: rgba(0, 180, 216, 0.1);
+                border: 1px solid {THEME['primary']};
+            }}
         """)
         btn3.clicked.connect(lambda: self.quick_question("Explain the current network risk level"))
         actions_layout.addWidget(btn3)
@@ -2454,46 +2484,46 @@ class WatchdogDashboard(QMainWindow):
 
         # Input Section
         input_container = QFrame()
-        input_container.setFixedHeight(50)  # Reduced height
-        input_container.setStyleSheet("""
-            QFrame {
-                background: rgba(30, 30, 30, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.3);
+        input_container.setFixedHeight(50)
+        input_container.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
-            }
+            }}
         """)
         input_layout = QHBoxLayout(input_container)
-        input_layout.setContentsMargins(100, 5, 100, 5)  # Reduced margins to bring it up
+        input_layout.setContentsMargins(100, 5, 100, 5)
         
         self.mentor_input = QLineEdit()
         self.mentor_input.setPlaceholderText("Ask me anything about network security...")
-        self.mentor_input.setStyleSheet("""
-            QLineEdit {
-                background: rgba(30, 30, 30, 0.6);
-                color: white;
-                border: 1px solid #00D4FF;
+        self.mentor_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: {THEME['bg_dark']};
+                color: {THEME['text_primary']};
+                border: 1px solid {THEME['border']};
                 padding: 8px;
                 border-radius: 6px;
-            }
-            QLineEdit:focus {
-                border: 2px solid #00D4FF;
-                background: rgba(30, 30, 30, 0.8);
-            }
+                font-family: {THEME['font_mono']};
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {THEME['primary']};
+            }}
         """)
 
         self.mentor_send_btn = QPushButton("SEND")
-        self.mentor_send_btn.setStyleSheet("""
-            QPushButton {
-                background: rgba(0, 212, 255, 0.2);
-                border: 1px solid #00D4FF;
-                color: #00D4FF;
-                
+        self.mentor_send_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: rgba(0, 180, 216, 0.2);
+                border: 1px solid {THEME['primary']};
+                color: {THEME['primary']};
+                font-weight: bold;
                 padding: 8px 16px;
                 border-radius: 6px;
-            }
-            QPushButton:hover {
-                background: rgba(0, 212, 255, 0.3);
-            }
+            }}
+            QPushButton:hover {{
+                background: rgba(0, 180, 216, 0.3);
+            }}
         """)
 
         input_layout.addWidget(self.mentor_input)
@@ -2506,12 +2536,12 @@ class WatchdogDashboard(QMainWindow):
         # RIGHT SIDE - Live Diagnostics (30%)
         diagnostics_container = QFrame()
         diagnostics_container.setFixedWidth(400)
-        diagnostics_container.setStyleSheet("""
-            QFrame {
-                background: rgba(30, 30, 30, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.2);
+        diagnostics_container.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 12px;
-            }
+            }}
         """)
         diagnostics_layout = QVBoxLayout(diagnostics_container)
         diagnostics_layout.setContentsMargins(20, 20, 20, 20)
@@ -2519,49 +2549,49 @@ class WatchdogDashboard(QMainWindow):
 
         # Diagnostics Header
         diag_header = QLabel("LIVE DIAGNOSTICS")
-        diag_header.setStyleSheet("""
-            QLabel {
-                color: #00D4FF;
-                font-family: 'Courier New', monospace;
+        diag_header.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['primary']};
+                font-family: {THEME['font_mono']};
                 font-size: 14px;
-                
-                border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+                font-weight: bold;
+                border-bottom: 1px solid {THEME['border']};
                 padding-bottom: 10px;
-            }
+            }}
         """)
         diagnostics_layout.addWidget(diag_header)
 
         # Threat Level Meter
         threat_frame = QFrame()
-        threat_frame.setStyleSheet("""
-            QFrame {
-                background: rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 107, 107, 0.3);
+        threat_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
                 padding: 10px;
-            }
+            }}
         """)
         threat_layout = QVBoxLayout(threat_frame)
         
         threat_title = QLabel("THREAT LEVEL")
-        threat_title.setStyleSheet("""
-            QLabel {
-                color: #FF6B6B;
-                font-family: 'Courier New', monospace;
+        threat_title.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['danger']};
+                font-family: {THEME['font_mono']};
                 font-size: 12px;
-                
-            }
+                font-weight: bold;
+            }}
         """)
         threat_layout.addWidget(threat_title)
         
         self.threat_level_label = QLabel("LOW")
-        self.threat_level_label.setStyleSheet("""
-            QLabel {
-                color: #6BCF7F;
-                font-family: 'Courier New', monospace;
+        self.threat_level_label.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['success']};
+                font-family: {THEME['font_mono']};
                 font-size: 24px;
-                
-            }
+                font-weight: bold;
+            }}
         """)
         threat_layout.addWidget(self.threat_level_label)
         
@@ -2569,34 +2599,34 @@ class WatchdogDashboard(QMainWindow):
 
         # Network Activity
         activity_frame = QFrame()
-        activity_frame.setStyleSheet("""
-            QFrame {
-                background: rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+        activity_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
                 padding: 10px;
-            }
+            }}
         """)
         activity_layout = QVBoxLayout(activity_frame)
         
         activity_title = QLabel("NETWORK ACTIVITY")
-        activity_title.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-family: 'Courier New', monospace;
+        activity_title.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
                 font-size: 12px;
-                
-            }
+                font-weight: bold;
+            }}
         """)
         activity_layout.addWidget(activity_title)
         
         self.activity_text = QLabel("Monitoring...\nNo suspicious activity detected")
-        self.activity_text.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-family: 'Courier New', monospace;
+        self.activity_text.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['text_secondary']};
+                font-family: {THEME['font_mono']};
                 font-size: 10px;
-            }
+            }}
         """)
         self.activity_text.setWordWrap(True)
         activity_layout.addWidget(self.activity_text)
@@ -2605,34 +2635,34 @@ class WatchdogDashboard(QMainWindow):
 
         # Recent Alerts
         alerts_frame = QFrame()
-        alerts_frame.setStyleSheet("""
-            QFrame {
-                background: rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+        alerts_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
                 border-radius: 8px;
                 padding: 10px;
-            }
+            }}
         """)
         alerts_layout = QVBoxLayout(alerts_frame)
         
         alerts_title = QLabel("RECENT ALERTS")
-        alerts_title.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-family: 'Courier New', monospace;
+        alerts_title.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
                 font-size: 12px;
-                
-            }
+                font-weight: bold;
+            }}
         """)
         alerts_layout.addWidget(alerts_title)
         
         self.alerts_text = QLabel("No alerts in last hour")
-        self.alerts_text.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-family: 'Courier New', monospace;
+        self.alerts_text.setStyleSheet(f"""
+            QLabel {{
+                color: {THEME['text_secondary']};
+                font-family: {THEME['font_mono']};
                 font-size: 10px;
-            }
+            }}
         """)
         self.alerts_text.setWordWrap(True)
         alerts_layout.addWidget(self.alerts_text)
@@ -2771,8 +2801,9 @@ class WatchdogDashboard(QMainWindow):
         self.send_mentor_message()
 
     def create_network_topology_page(self):
-        """Create Network Topology Discovery page with device scanning"""
+        """Create Network Topology Discovery page with device scanning - using universal dark teal theme"""
         topology_page = QWidget()
+        topology_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         topology_layout = QVBoxLayout(topology_page)
         topology_layout.setContentsMargins(20, 20, 20, 20)
         topology_layout.setSpacing(20)
@@ -2783,15 +2814,15 @@ class WatchdogDashboard(QMainWindow):
         header_layout.setSpacing(10)
         
         topology_title = QLabel("NETWORK TOPOLOGY DISCOVERY")
-        topology_title.setFont(QFont("Courier New", 28))
+        topology_title.setFont(QFont(THEME['font_mono'].strip("'"), 28))
         topology_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        topology_title.setStyleSheet("color: #00D4FF; margin-bottom: 10px;")
+        topology_title.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 10px;")
         header_layout.addWidget(topology_title)
         
         topology_subtitle = QLabel("Scan your LAN to discover all connected devices and identify potential shadow IT")
-        topology_subtitle.setFont(QFont("Courier New", 14))
+        topology_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
         topology_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        topology_subtitle.setStyleSheet("color: #888888; margin-bottom: 20px;")
+        topology_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin-bottom: 20px;")
         header_layout.addWidget(topology_subtitle)
         
         # Scan Controls
@@ -2799,23 +2830,23 @@ class WatchdogDashboard(QMainWindow):
         scan_controls.setSpacing(15)
         
         self.scan_btn = QPushButton("🔍 SCAN NETWORK")
-        self.scan_btn.setFont(QFont("Courier New", 14))
-        self.scan_btn.setStyleSheet("""
-            QPushButton {
-                background: #00D4FF;
+        self.scan_btn.setFont(QFont(THEME['font_mono'].strip("'"), 14))
+        self.scan_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {THEME['primary']};
                 border: none;
                 border-radius: 10px;
-                color: #121212;
+                color: {THEME['bg_dark']};
                 padding: 15px 30px;
-                
-            }
-            QPushButton:hover {
-                background: #00B8CC;
-            }
-            QPushButton:disabled {
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background: {THEME['secondary']};
+            }}
+            QPushButton:disabled {{
                 background: #666666;
                 color: #999999;
-            }
+            }}
         """)
         print("[DEBUG] Connecting scan button...")
         self.scan_btn.clicked.connect(self.scan_network_devices)
@@ -2826,18 +2857,21 @@ class WatchdogDashboard(QMainWindow):
         # Network Range Input
         range_layout = QHBoxLayout()
         range_label = QLabel("Network Range:")
-        range_label.setStyleSheet("color: white; font-family: 'Courier New', monospace; font-size: 12px;")
+        range_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-size: 12px;")
         self.network_range_input = QLineEdit("172.16.40.0/24")
-        self.network_range_input.setStyleSheet("""
-            QLineEdit {
-                background: rgba(30, 30, 30, 0.8);
-                border: 1px solid #00D4FF;
+        self.network_range_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 6px;
-                color: white;
+                color: {THEME['text_primary']};
                 padding: 8px;
-                font-family: 'Courier New', monospace;
+                font-family: {THEME['font_mono']};
                 min-width: 150px;
-            }
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
+            }}
         """)
         range_layout.addWidget(range_label)
         range_layout.addWidget(self.network_range_input)
@@ -2846,7 +2880,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Status Label
         self.scan_status = QLabel("Ready to scan")
-        self.scan_status.setStyleSheet("color: #6BCF7F; font-family: 'Courier New', monospace; font-size: 12px;")
+        self.scan_status.setStyleSheet(f"color: {THEME['success']}; font-family: {THEME['font_mono']}; font-size: 12px;")
         scan_controls.addWidget(self.scan_status)
         
         scan_controls.addStretch()
@@ -2854,30 +2888,31 @@ class WatchdogDashboard(QMainWindow):
         
         # Stats Bar
         stats_widget = QWidget()
-        stats_widget.setStyleSheet("""
-            QWidget {
-                background: rgba(30, 30, 30, 0.6);
+        stats_widget.setStyleSheet(f"""
+            QWidget {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 10px;
-            }
+            }}
         """)
         stats_layout = QHBoxLayout(stats_widget)
         stats_layout.setSpacing(40)
         
         self.total_devices_label = QLabel("Total Devices: 0")
-        self.total_devices_label.setStyleSheet("color: white; font-family: 'Courier New', monospace; font-size: 14px; ")
+        self.total_devices_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-size: 14px; ")
         stats_layout.addWidget(self.total_devices_label)
         
         self.pc_count_label = QLabel("💻 PCs: 0")
-        self.pc_count_label.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 14px;")
+        self.pc_count_label.setStyleSheet(f"color: {THEME['primary']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.pc_count_label)
         
         self.iot_count_label = QLabel("📱 Mobile/IoT: 0")
-        self.iot_count_label.setStyleSheet("color: #FFD93D; font-family: 'Courier New', monospace; font-size: 14px;")
+        self.iot_count_label.setStyleSheet(f"color: {THEME['warning']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.iot_count_label)
         
         self.unknown_count_label = QLabel("❓ Unknown: 0")
-        self.unknown_count_label.setStyleSheet("color: #FF6B6B; font-family: 'Courier New', monospace; font-size: 14px;")
+        self.unknown_count_label.setStyleSheet(f"color: {THEME['danger']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.unknown_count_label)
         
         stats_layout.addStretch()
@@ -2894,32 +2929,32 @@ class WatchdogDashboard(QMainWindow):
         device_list_layout.setContentsMargins(0, 0, 0, 0)
         
         device_list_header = QLabel("DISCOVERED DEVICES")
-        device_list_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-bottom: 10px;")
+        device_list_header.setStyleSheet(f"color: {THEME['primary']}; font-family: {THEME['font_mono']}; font-size: 16px;  margin-bottom: 10px;")
         device_list_layout.addWidget(device_list_header)
         
         self.device_list = QListWidget()
-        self.device_list.setStyleSheet("""
-            QListWidget {
-                background: rgba(30, 30, 30, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.3);
+        self.device_list.setStyleSheet(f"""
+            QListWidget {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 10px;
-                color: white;
-                font-family: 'Courier New', monospace;
-            }
-            QListWidget::item {
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+            }}
+            QListWidget::item {{
                 padding: 10px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom: 1px solid {THEME['border']};
                 border-radius: 5px;
                 margin: 2px 0;
-            }
-            QListWidget::item:selected {
-                background: rgba(0, 212, 255, 0.2);
-                border: 1px solid #00D4FF;
-            }
-            QListWidget::item:hover {
-                background: rgba(255, 255, 255, 0.05);
-            }
+            }}
+            QListWidget::item:selected {{
+                background: {THEME['primary']};
+                color: {THEME['bg_dark']};
+            }}
+            QListWidget::item:hover {{
+                background: rgba(0, 180, 216, 0.2);
+            }}
         """)
         self.device_list.itemClicked.connect(self.show_device_details)
         device_list_layout.addWidget(self.device_list)
@@ -2933,7 +2968,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Network Visualization (Cisco-style radial topology)
         viz_header = QLabel("NETWORK VISUALIZATION")
-        viz_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-bottom: 10px;")
+        viz_header.setStyleSheet(f"color: {THEME['primary']}; font-family: {THEME['font_mono']}; font-size: 16px;  margin-bottom: 10px;")
         right_layout.addWidget(viz_header)
         
         self.network_viz = NetworkTopologyWidget()
@@ -2942,22 +2977,22 @@ class WatchdogDashboard(QMainWindow):
         
         # Device Details Panel
         details_header = QLabel("DEVICE DETAILS")
-        details_header.setStyleSheet("color: #00D4FF; font-family: 'Courier New', monospace; font-size: 16px;  margin-top: 20px; margin-bottom: 10px;")
+        details_header.setStyleSheet(f"color: {THEME['primary']}; font-family: {THEME['font_mono']}; font-size: 16px;  margin-top: 20px; margin-bottom: 10px;")
         right_layout.addWidget(details_header)
         
         self.device_details = QTextEdit()
         self.device_details.setReadOnly(True)
-        self.device_details.setStyleSheet("""
-            QTextEdit {
-                background: rgba(30, 30, 30, 0.8);
-                border: 1px solid rgba(0, 212, 255, 0.3);
+        self.device_details.setStyleSheet(f"""
+            QTextEdit {{
+                background: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 15px;
-                color: #E0E0E0;
-                font-family: 'Courier New', monospace;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
                 font-size: 12px;
                 line-height: 1.6;
-            }
+            }}
         """)
         self.device_details.setPlaceholderText("Select a device from the list to view detailed information...")
         self.device_details.setMaximumHeight(200)
