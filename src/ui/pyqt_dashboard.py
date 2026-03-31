@@ -1025,20 +1025,35 @@ class WatchdogDashboard(QMainWindow):
             self.update_ui()
 
     def create_ui(self):
-        # Create page container
+        # Create page container first (full-size content area)
         self.page_container = QStackedWidget()
+        self.page_container.setStyleSheet("background-color: transparent;")
         self.create_pages()
-
-        # Navigation Sidebar (left) - using universal dark teal theme
-        self.nav_sidebar = QWidget()
-        self.sidebar_expanded = False  # Track sidebar state
-        self.nav_sidebar.setMinimumWidth(70)
-        self.nav_sidebar.setMaximumWidth(70)
+        
+        # Create overlay container widget (this will be the central widget)
+        self.overlay_container = QWidget()
+        self.overlay_container.setStyleSheet("background-color: transparent;")
+        
+        # Use absolute positioning within the overlay container
+        # Page container fills the entire overlay but with left margin for sidebar
+        self.page_container.setParent(self.overlay_container)
+        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
+        
+        # Sidebar is a child of overlay container, positioned absolutely on the left
+        self.nav_sidebar = QWidget(self.overlay_container)
+        self.nav_sidebar.setGeometry(0, 0, 70, self.overlay_container.height())
         self.nav_sidebar.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_header']};
             }}
         """)
+        self.sidebar_expanded = False
+        
+        # Set the overlay container as central widget
+        self.setCentralWidget(self.overlay_container)
+        
+        # Handle resize of overlay container
+        self.overlay_container.resizeEvent = self._on_overlay_resize
 
         nav_layout = QVBoxLayout(self.nav_sidebar)
         nav_layout.setContentsMargins(0, 20, 0, 20)
@@ -1068,12 +1083,12 @@ class WatchdogDashboard(QMainWindow):
 
         # Navigation buttons with icons
         nav_buttons = [
-            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring", "dashboard icon.png"),
-            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice", "log vault icon.png"),
-            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
-            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
+            ("DASHBOARD", "Real-time visibility and high-frequency packet monitoring", "dashboard icon.png"),
+            ("FORENSIC LOG VAULT", "Translating complex metadata into human-readable advice", "log vault icon.png"),
+            ("SECURITY CONTROL", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
+            ("FORENSIC AI ASSISTANT", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
             ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap", "network topology icon.png"),
-            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
+            ("SETTINGS AND PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
         ]
 
         self.nav_button_group = []
@@ -1125,17 +1140,8 @@ class WatchdogDashboard(QMainWindow):
         if self.nav_button_group:
             self.nav_button_group[0].setChecked(True)
 
-        # Main layout with sidebar and page container
-        main_layout = QHBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        main_layout.addWidget(self.nav_sidebar)
-        main_layout.addWidget(self.page_container)
-
-        # Central widget
-        central = QWidget()
-        central.setLayout(main_layout)
-        self.setCentralWidget(central)
+        # Set the overlay container as central widget
+        self.setCentralWidget(self.overlay_container)
 
         # Enable hover events for sidebar (must be after sidebar is created)
         self.nav_sidebar.setMouseTracking(True)
@@ -1146,6 +1152,18 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_collapse_timer = QTimer()
         self.sidebar_collapse_timer.setSingleShot(True)
         self.sidebar_collapse_timer.timeout.connect(self._contract_sidebar)
+
+    def _on_overlay_resize(self, event):
+        """Update page container and sidebar when overlay container is resized"""
+        # Update page container with left margin for sidebar
+        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
+        # Update sidebar height
+        self.nav_sidebar.setGeometry(
+            self.nav_sidebar.x(), 
+            0, 
+            self.nav_sidebar.width(), 
+            self.overlay_container.height()
+        )
 
     def create_pages(self):
         # Page 0: Live Sentinel (Dashboard)
@@ -1178,82 +1196,61 @@ class WatchdogDashboard(QMainWindow):
             self.sidebar_collapse_timer.start(300)  # 300ms delay before collapsing
 
     def _expand_sidebar(self):
-        """Expand sidebar to 200px with animation"""
+        """Expand sidebar to 200px with animation - overlay mode"""
         self.sidebar_expanded = True
         target_width = 200
         
-        # Create animation for minimumWidth
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        # Create animation for geometry (width only, keep left position at 0)
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
         self.animation.setDuration(300)
-        self.animation.setStartValue(self.nav_sidebar.width())
-        self.animation.setEndValue(target_width)
+        current_geom = self.nav_sidebar.geometry()
+        self.animation.setStartValue(current_geom)
+        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
         self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
-        
-        # Create animation for maximumWidth
-        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
-        self.animation2.setDuration(300)
-        self.animation2.setStartValue(self.nav_sidebar.width())
-        self.animation2.setEndValue(target_width)
-        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
         
         # Connect to update button text when animation finishes
         self.animation.finished.connect(self._update_sidebar_buttons)
         
-        # Start animations
+        # Start animation
         self.animation.start()
-        self.animation2.start()
 
     def _contract_sidebar(self):
-        """Contract sidebar to 70px with animation"""
+        """Contract sidebar to 70px with animation - overlay mode"""
         self.sidebar_expanded = False
         target_width = 70
         
-        # Create animation for minimumWidth
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        # Create animation for geometry (width only)
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
         self.animation.setDuration(300)
-        self.animation.setStartValue(self.nav_sidebar.width())
-        self.animation.setEndValue(target_width)
+        current_geom = self.nav_sidebar.geometry()
+        self.animation.setStartValue(current_geom)
+        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
         self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
-        
-        # Create animation for maximumWidth
-        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
-        self.animation2.setDuration(300)
-        self.animation2.setStartValue(self.nav_sidebar.width())
-        self.animation2.setEndValue(target_width)
-        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
         
         # Connect to update button text when animation finishes
         self.animation.finished.connect(self._update_sidebar_buttons)
         
-        # Start animations
+        # Start animation
         self.animation.start()
-        self.animation2.start()
 
     def toggle_sidebar(self):
-        """Toggle sidebar between collapsed (70px) and expanded (200px) with animation"""
+        """Toggle sidebar between collapsed (70px) and expanded (200px) with animation - overlay mode"""
         # Determine target width
         target_width = 200 if not self.sidebar_expanded else 70
         
-        # Create animation
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        # Create animation for geometry
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
         self.animation.setDuration(300)  # 300ms animation
-        self.animation.setStartValue(self.nav_sidebar.width())
-        self.animation.setEndValue(target_width)
+        current_geom = self.nav_sidebar.geometry()
+        self.animation.setStartValue(current_geom)
+        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
         self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
-        
-        # Also animate maximum width
-        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
-        self.animation2.setDuration(300)
-        self.animation2.setStartValue(self.nav_sidebar.width())
-        self.animation2.setEndValue(target_width)
-        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
         
         # Connect to update button text when animation finishes
         self.animation.finished.connect(self._update_sidebar_buttons)
         
-        # Start animations
+        # Start animation
         self.animation.start()
-        self.animation2.start()
         
         # Toggle state
         self.sidebar_expanded = not self.sidebar_expanded
