@@ -1661,7 +1661,7 @@ class WatchdogDashboard(QMainWindow):
         self.vault_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Threat Level - auto-resize
         self.vault_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # AI Summary - auto-resize
         # Last column (Action) will stretch to fill remaining space
-        self.vault_table.verticalHeader().setDefaultSectionSize(50)
+        self.vault_table.verticalHeader().setDefaultSectionSize(55)
         self.vault_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.vault_table.itemDoubleClicked.connect(self.show_forensic_analysis)
         vault_layout.addWidget(self.vault_table)
@@ -2300,43 +2300,45 @@ class WatchdogDashboard(QMainWindow):
             
             # Add Action buttons
             action_widget = QWidget()
+            action_widget.setStyleSheet("background-color: transparent;")
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(5, 2, 5, 2)
-            action_layout.setSpacing(5)
+            action_layout.setContentsMargins(2, 2, 2, 2)
+            action_layout.setSpacing(8)
+            action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             # Block Source IP button
-            block_src_btn = QPushButton("Block Src")
-            block_src_btn.setFixedSize(70, 25)
+            block_src_btn = QPushButton("Block Source")
+            block_src_btn.setFixedSize(95, 32)
             block_src_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #FF6B6B;
+                    background-color: #B91C1C;
                     color: white;
                     border: none;
-                    border-radius: 4px;
-                    font-size: 10px;
-                    
+                    border-radius: 6px;
+                    font-size: 11px;
+                    font-weight: bold;
                 }
                 QPushButton:hover {
-                    background-color: #FF5252;
+                    background-color: #DC2626;
                 }
             """)
             block_src_btn.clicked.connect(lambda checked, ip=src_ip: self.block_ip_from_vault(ip))
             action_layout.addWidget(block_src_btn)
             
             # Block Destination IP button
-            block_dst_btn = QPushButton("Block Dst")
-            block_dst_btn.setFixedSize(70, 25)
+            block_dst_btn = QPushButton("Block Destination")
+            block_dst_btn.setFixedSize(105, 32)
             block_dst_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #00D4FF;
+                    background-color: #06B6D4;
                     color: white;
                     border: none;
-                    border-radius: 4px;
-                    font-size: 10px;
-                    
+                    border-radius: 6px;
+                    font-size: 11px;
+                    font-weight: bold;
                 }
                 QPushButton:hover {
-                    background-color: #00B8CC;
+                    background-color: #0891B2;
                 }
             """)
             block_dst_btn.clicked.connect(lambda checked, ip=dst_ip: self.block_ip_from_vault(ip))
