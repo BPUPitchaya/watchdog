@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
     QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
 )
-from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF, QEasingCurve, QPropertyAnimation, QSize
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QByteArray
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
 from PyQt6.QtSvgWidgets import QSvgWidget
 
@@ -1060,26 +1060,42 @@ class WatchdogDashboard(QMainWindow):
         nav_layout.setSpacing(20)
         nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Logo at top of sidebar - wrapped in container for smooth centering
-        self.sidebar_logo_container = QWidget()
-        self.sidebar_logo_container.setStyleSheet("background-color: transparent;")
-        logo_container_layout = QHBoxLayout(self.sidebar_logo_container)
-        logo_container_layout.setContentsMargins(0, 0, 0, 0)
-        logo_container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Logo and title header container
+        self.sidebar_header = QWidget()
+        self.sidebar_header.setMinimumHeight(50)
+        self.sidebar_header.setStyleSheet("background-color: transparent;")
+        header_layout = QHBoxLayout(self.sidebar_header)
+        header_layout.setContentsMargins(5, 5, 5, 5)
+        header_layout.setSpacing(8)
+        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
+        # Logo
         self.sidebar_logo = QLabel()
         self.sidebar_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
-            scaled_logo = logo_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            scaled_logo = logo_pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.sidebar_logo.setPixmap(scaled_logo)
         else:
             self.sidebar_logo.setText("🐺")
-            self.sidebar_logo.setStyleSheet("font-size: 32px;")
-        self.sidebar_logo.setFixedSize(64, 64)
-        logo_container_layout.addWidget(self.sidebar_logo)
-        nav_layout.addWidget(self.sidebar_logo_container)
+            self.sidebar_logo.setStyleSheet("font-size: 20px;")
+        self.sidebar_logo.setFixedSize(32, 32)
+        header_layout.addWidget(self.sidebar_logo)
+        
+        # Sidebar title (hidden when collapsed)
+        self.sidebar_title = QLabel("WATCHDOG")
+        self.sidebar_title.setStyleSheet(f"""
+            color: {THEME['primary']};
+            font-family: {THEME['font_mono']};
+            font-size: 16px;
+            font-weight: bold;
+        """)
+        self.sidebar_title.setVisible(False)
+        header_layout.addWidget(self.sidebar_title, alignment=Qt.AlignmentFlag.AlignVCenter)
+        header_layout.addStretch()
+        
+        nav_layout.addWidget(self.sidebar_header)
 
         # Navigation buttons with icons
         nav_buttons = [
@@ -1094,43 +1110,63 @@ class WatchdogDashboard(QMainWindow):
         self.nav_button_group = []
         self.nav_button_labels = []  # Store text labels for show/hide
         self.nav_button_icons = []  # Store icon paths
+        self.nav_item_containers = []  # Store container widgets
+        self.nav_item_icon_labels = []  # Store icon labels
+        self.nav_item_text_labels = []  # Store text labels
+        
         for i, (label, tooltip, icon_file) in enumerate(nav_buttons):
-            # Create button with no text initially (icon will be set)
-            btn = QPushButton()
-            btn.setFixedSize(70, 60)
-            btn.setToolTip(tooltip)
+            # Create container widget for icon + text
+            container = QWidget()
+            container.setFixedSize(70, 60)
+            container.setCursor(Qt.CursorShape.PointingHandCursor)
+            container.setToolTip(tooltip)
+            container_layout = QHBoxLayout(container)
+            container_layout.setContentsMargins(5, 0, 5, 0)
+            container_layout.setSpacing(5)
+            container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            # Load icon for collapsed state
+            # Icon label (always visible)
+            icon_label = QLabel()
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             icon_path = os.path.join(os.path.dirname(__file__), "assets", icon_file)
             if os.path.exists(icon_path):
-                pixmap = QPixmap(icon_path).scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                btn.setIcon(QIcon(pixmap))
-                btn.setIconSize(QSize(40, 40))
+                pixmap = QPixmap(icon_path).scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                icon_label.setPixmap(pixmap)
+            icon_label.setFixedSize(48, 48)
+            container_layout.addWidget(icon_label)
             
-            btn.setStyleSheet(f"""
-                QPushButton {{
+            # Text label (hidden when collapsed)
+            text_label = QLabel(label)
+            text_label.setStyleSheet(f"""
+                color: {THEME['text_secondary']};
+                font-size: 12px;
+                font-weight: bold;
+                font-family: {THEME['font_mono']};
+            """)
+            text_label.setVisible(False)
+            container_layout.addWidget(text_label)
+            container_layout.addStretch()
+            
+            # Style container like a button
+            container.setStyleSheet(f"""
+                QWidget {{
                     background-color: transparent;
                     border: none;
-                    color: {THEME['text_secondary']};
-                    font-size: 10px;
-                    font-weight: bold;
                     border-radius: 8px;
-                    text-align: center;
                 }}
-                QPushButton:hover {{
+                QWidget:hover {{
                     background-color: {THEME['bg_card']};
-                    color: {THEME['text_primary']};
-                }}
-                QPushButton:checked {{
-                    background-color: transparent;
-                    color: {THEME['primary']};
-                    border-left: 3px solid {THEME['primary']};
                 }}
             """)
-            btn.setCheckable(True)
-            btn.clicked.connect(lambda checked, idx=i: self.switch_page(idx))
-            nav_layout.addWidget(btn)
-            self.nav_button_group.append(btn)
+            
+            # Make clickable
+            container.mousePressEvent = lambda event, idx=i: self.switch_page(idx)
+            
+            nav_layout.addWidget(container)
+            self.nav_button_group.append(container)
+            self.nav_item_containers.append(container)
+            self.nav_item_icon_labels.append(icon_label)
+            self.nav_item_text_labels.append(text_label)
             
             # Store the full text and icon for later
             self.nav_button_labels.append(label)
@@ -1138,7 +1174,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Set first button as active
         if self.nav_button_group:
-            self.nav_button_group[0].setChecked(True)
+            self._set_nav_active(0)
 
         # Set the overlay container as central widget
         self.setCentralWidget(self.overlay_container)
@@ -1196,82 +1232,128 @@ class WatchdogDashboard(QMainWindow):
             self.sidebar_collapse_timer.start(300)  # 300ms delay before collapsing
 
     def _expand_sidebar(self):
-        """Expand sidebar to 200px with animation - overlay mode"""
+        """Expand sidebar with coordinated animation - logo moves left, titles slide in"""
         self.sidebar_expanded = True
-        target_width = 200
+        target_width = 280
         
-        # Create animation for geometry (width only, keep left position at 0)
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
-        self.animation.setDuration(300)
-        current_geom = self.nav_sidebar.geometry()
-        self.animation.setStartValue(current_geom)
-        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
-        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        # Create parallel animation group for coordinated animation
+        self.animation_group = QParallelAnimationGroup()
         
-        # Connect to update button text when animation finishes
-        self.animation.finished.connect(self._update_sidebar_buttons)
+        # 1. Animate sidebar width
+        sidebar_anim = QPropertyAnimation(self.nav_sidebar, b"geometry")
+        sidebar_anim.setDuration(350)
+        sidebar_anim.setStartValue(self.nav_sidebar.geometry())
+        sidebar_anim.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
+        sidebar_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.animation_group.addAnimation(sidebar_anim)
+        
+        # 2. Show title label
+        self.sidebar_title.setVisible(True)
+        
+        # Connect to update button text and animate text labels when animation finishes
+        self.animation_group.finished.connect(self._update_sidebar_buttons)
+        self.animation_group.finished.connect(self._adjust_logo_alignment)
         
         # Start animation
-        self.animation.start()
+        self.animation_group.start()
 
     def _contract_sidebar(self):
-        """Contract sidebar to 70px with animation - overlay mode"""
+        """Contract sidebar with coordinated animation"""
         self.sidebar_expanded = False
         target_width = 70
         
-        # Create animation for geometry (width only)
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
-        self.animation.setDuration(300)
-        current_geom = self.nav_sidebar.geometry()
-        self.animation.setStartValue(current_geom)
-        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
-        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        # Update buttons first (remove text, show icons)
+        self._update_sidebar_buttons()
         
-        # Connect to update button text when animation finishes
-        self.animation.finished.connect(self._update_sidebar_buttons)
+        # Hide title
+        self.sidebar_title.setVisible(False)
+        
+        # Create parallel animation group
+        self.animation_group = QParallelAnimationGroup()
+        
+        # Animate sidebar width
+        sidebar_anim = QPropertyAnimation(self.nav_sidebar, b"geometry")
+        sidebar_anim.setDuration(350)
+        sidebar_anim.setStartValue(self.nav_sidebar.geometry())
+        sidebar_anim.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
+        sidebar_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.animation_group.addAnimation(sidebar_anim)
+        
+        # Connect to adjust logo alignment when done
+        self.animation_group.finished.connect(self._adjust_logo_alignment)
         
         # Start animation
-        self.animation.start()
+        self.animation_group.start()
 
     def toggle_sidebar(self):
-        """Toggle sidebar between collapsed (70px) and expanded (200px) with animation - overlay mode"""
-        # Determine target width
-        target_width = 200 if not self.sidebar_expanded else 70
-        
-        # Create animation for geometry
-        self.animation = QPropertyAnimation(self.nav_sidebar, b"geometry")
-        self.animation.setDuration(300)  # 300ms animation
-        current_geom = self.nav_sidebar.geometry()
-        self.animation.setStartValue(current_geom)
-        self.animation.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
-        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
-        
-        # Connect to update button text when animation finishes
-        self.animation.finished.connect(self._update_sidebar_buttons)
-        
-        # Start animation
-        self.animation.start()
-        
-        # Toggle state
-        self.sidebar_expanded = not self.sidebar_expanded
+        """Toggle sidebar with coordinated animation"""
+        if self.sidebar_expanded:
+            self._contract_sidebar()
+        else:
+            self._expand_sidebar()
     
     def _update_sidebar_buttons(self):
-        """Update button text/icons based on sidebar state"""
-        for i, btn in enumerate(self.nav_button_group):
+        """Update button containers based on sidebar state"""
+        for i, container in enumerate(self.nav_item_containers):
+            text_label = self.nav_item_text_labels[i]
             if self.sidebar_expanded:
-                # Show full text, clear icon
-                btn.setText(self.nav_button_labels[i])
-                btn.setIcon(QIcon())  # Clear icon
-                btn.setFixedSize(180, 60)
+                # Wider container, text visible
+                container.setFixedSize(260, 60)
+                text_label.setVisible(True)
             else:
-                # Show icon, clear text
-                btn.setText("")
-                icon_path = self.nav_button_icons[i]
-                if os.path.exists(icon_path):
-                    pixmap = QPixmap(icon_path).scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                    btn.setIcon(QIcon(pixmap))
-                    btn.setIconSize(QSize(40, 40))
-                btn.setFixedSize(70, 60)
+                # Narrow container, text hidden
+                container.setFixedSize(70, 60)
+                text_label.setVisible(False)
+    
+    def _adjust_logo_alignment(self):
+        """Adjust logo alignment based on sidebar state"""
+        header_layout = self.sidebar_header.layout()
+        if self.sidebar_expanded:
+            header_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        else:
+            header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    
+    def _set_nav_active(self, index):
+        """Set active navigation item styling"""
+        for i, container in enumerate(self.nav_item_containers):
+            text_label = self.nav_item_text_labels[i]
+            if i == index:
+                container.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {THEME['bg_card']};
+                        border-radius: 8px;
+                    }}
+                """)
+                text_label.setStyleSheet(f"""
+                    color: {THEME['primary']};
+                    font-size: 12px;
+                    font-weight: bold;
+                    font-family: {THEME['font_mono']};
+                """)
+            else:
+                container.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: transparent;
+                        border: none;
+                        border-radius: 8px;
+                    }}
+                    QWidget:hover {{
+                        background-color: {THEME['bg_card']};
+                    }}
+                """)
+                text_label.setStyleSheet(f"""
+                    color: {THEME['text_secondary']};
+                    font-size: 12px;
+                    font-weight: bold;
+                    font-family: {THEME['font_mono']};
+                """)
+    
+    def _animate_text_labels_in(self):
+        """Show text labels after expansion completes"""
+        for container in self.nav_item_containers:
+            container.setFixedSize(260, 60)
+        for text_label in self.nav_item_text_labels:
+            text_label.setVisible(True)
 
     def create_live_sentinel_page(self):
         """Create the main dashboard page matching hi-fi mockup design"""
@@ -2083,9 +2165,8 @@ class WatchdogDashboard(QMainWindow):
             self.load_flagged_incidents()
 
     def switch_page(self, index):
-        # Update button states
-        for i, btn in enumerate(self.nav_button_group):
-            btn.setChecked(i == index)
+        # Update active navigation styling
+        self._set_nav_active(index)
         
         # Switch to the selected page
         self.page_container.setCurrentIndex(index)
