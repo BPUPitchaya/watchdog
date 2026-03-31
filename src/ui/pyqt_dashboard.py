@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
     QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
 )
-from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF, QEasingCurve, QPropertyAnimation
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap
+from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF, QEasingCurve, QPropertyAnimation, QSize
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
@@ -1057,35 +1057,41 @@ class WatchdogDashboard(QMainWindow):
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
-            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            scaled_logo = logo_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.sidebar_logo.setPixmap(scaled_logo)
         else:
             self.sidebar_logo.setText("🐺")
             self.sidebar_logo.setStyleSheet("font-size: 32px;")
-        self.sidebar_logo.setFixedSize(48, 48)
+        self.sidebar_logo.setFixedSize(64, 64)
         logo_container_layout.addWidget(self.sidebar_logo)
         nav_layout.addWidget(self.sidebar_logo_container)
 
-        # Navigation buttons
+        # Navigation buttons with icons
         nav_buttons = [
-            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring"),
-            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice"),
-            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds"),
-            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance"),
-            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap"),
-            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
+            ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring", "dashboard icon.png"),
+            ("FORENSIC VAULT", "Translating complex metadata into human-readable advice", "log vault icon.png"),
+            ("AUTONOMOUS SHIELD", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
+            ("AI MENTOR", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
+            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap", "network topology icon.png"),
+            ("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
         ]
 
         self.nav_button_group = []
         self.nav_button_labels = []  # Store text labels for show/hide
-        for i, (icon, tooltip) in enumerate(nav_buttons):
-            # Create abbreviated text for collapsed state
-            abbreviated = ''.join([word[0] for word in icon.split() if word[0].isalpha()])[:3]
-            
-            # Create button with abbreviated text initially
-            btn = QPushButton(abbreviated)
+        self.nav_button_icons = []  # Store icon paths
+        for i, (label, tooltip, icon_file) in enumerate(nav_buttons):
+            # Create button with no text initially (icon will be set)
+            btn = QPushButton()
             btn.setFixedSize(70, 60)
             btn.setToolTip(tooltip)
+            
+            # Load icon for collapsed state
+            icon_path = os.path.join(os.path.dirname(__file__), "assets", icon_file)
+            if os.path.exists(icon_path):
+                pixmap = QPixmap(icon_path).scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                btn.setIcon(QIcon(pixmap))
+                btn.setIconSize(QSize(40, 40))
+            
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: transparent;
@@ -1111,8 +1117,9 @@ class WatchdogDashboard(QMainWindow):
             nav_layout.addWidget(btn)
             self.nav_button_group.append(btn)
             
-            # Store the full text for later expansion
-            self.nav_button_labels.append(icon)
+            # Store the full text and icon for later
+            self.nav_button_labels.append(label)
+            self.nav_button_icons.append(icon_path)
 
         # Set first button as active
         if self.nav_button_group:
@@ -1252,18 +1259,21 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_expanded = not self.sidebar_expanded
     
     def _update_sidebar_buttons(self):
-        """Update button text based on sidebar state"""
+        """Update button text/icons based on sidebar state"""
         for i, btn in enumerate(self.nav_button_group):
             if self.sidebar_expanded:
-                # Show full text
+                # Show full text, clear icon
                 btn.setText(self.nav_button_labels[i])
+                btn.setIcon(QIcon())  # Clear icon
                 btn.setFixedSize(180, 60)
             else:
-                # Show only first letter/abbreviation
-                text = self.nav_button_labels[i]
-                # Create abbreviated version (first letter of each word)
-                abbreviated = ''.join([word[0] for word in text.split() if word[0].isalpha()])[:3]
-                btn.setText(abbreviated if abbreviated else text[:3])
+                # Show icon, clear text
+                btn.setText("")
+                icon_path = self.nav_button_icons[i]
+                if os.path.exists(icon_path):
+                    pixmap = QPixmap(icon_path).scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    btn.setIcon(QIcon(pixmap))
+                    btn.setIconSize(QSize(40, 40))
                 btn.setFixedSize(70, 60)
 
     def create_live_sentinel_page(self):
