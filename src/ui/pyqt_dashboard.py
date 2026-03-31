@@ -14,10 +14,10 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem, 
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
-    QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame
+    QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
 )
 from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
@@ -1044,6 +1044,20 @@ class WatchdogDashboard(QMainWindow):
         nav_layout.setSpacing(20)
         nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        # Logo at top of sidebar
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path)
+            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(scaled_logo)
+        else:
+            logo_label.setText("🐺")
+            logo_label.setStyleSheet("font-size: 32px;")
+        logo_label.setFixedSize(80, 60)
+        nav_layout.addWidget(logo_label)
+
         # Navigation buttons
         nav_buttons = [
             ("LIVE SENTINEL", "Real-time visibility and high-frequency packet monitoring"),
@@ -1116,8 +1130,8 @@ class WatchdogDashboard(QMainWindow):
         # Page 4: Network Topology
         self.create_network_topology_page()
 
-        # Page 5: Settings & Privacy (placeholder)
-        self.create_placeholder_page("SETTINGS & PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles")
+        # Page 5: Settings & Privacy (full implementation)
+        self.create_settings_page()
 
     def create_live_sentinel_page(self):
         """Create the main dashboard page matching hi-fi mockup design"""
@@ -1153,8 +1167,16 @@ class WatchdogDashboard(QMainWindow):
         header_layout.addWidget(menu_btn)
         
         # Dog/Wolf logo icon
-        logo_label = QLabel("🐺")
-        logo_label.setStyleSheet("font-size: 32px;")
+        logo_label = QLabel()
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path)
+            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(scaled_logo)
+        else:
+            logo_label.setText("🐺")
+            logo_label.setStyleSheet("font-size: 32px;")
+        logo_label.setFixedSize(48, 48)
         header_layout.addWidget(logo_label)
         
         # Title
@@ -1483,6 +1505,432 @@ class WatchdogDashboard(QMainWindow):
         layout.addWidget(coming_soon)
 
         self.page_container.addWidget(page)
+
+    def create_settings_page(self):
+        """Create Settings & Privacy page with QListWidget navigation and QStackedWidget content"""
+        settings_page = QWidget()
+        settings_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+        
+        # Main horizontal layout
+        main_layout = QHBoxLayout(settings_page)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        # LEFT: Navigation List
+        nav_widget = QWidget()
+        nav_widget.setFixedWidth(200)
+        nav_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_header']};
+                border: 1px solid {THEME['border']};
+                border-radius: 12px;
+            }}
+        """)
+        nav_layout = QVBoxLayout(nav_widget)
+        nav_layout.setContentsMargins(10, 20, 10, 20)
+        nav_layout.setSpacing(10)
+        
+        # Settings title
+        settings_title = QLabel("SETTINGS")
+        settings_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        settings_title.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        settings_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        nav_layout.addWidget(settings_title)
+        
+        # Navigation list
+        self.settings_nav = QListWidget()
+        self.settings_nav.setStyleSheet(f"""
+            QListWidget {{
+                background-color: transparent;
+                border: none;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 13px;
+                outline: none;
+            }}
+            QListWidget::item {{
+                padding: 12px 15px;
+                border-radius: 8px;
+                margin: 2px 0;
+            }}
+            QListWidget::item:selected {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+            }}
+            QListWidget::item:hover {{
+                background-color: {THEME['bg_card']};
+            }}
+        """)
+        self.settings_nav.addItem("Network")
+        self.settings_nav.addItem("AI Brain")
+        self.settings_nav.addItem("Security")
+        self.settings_nav.addItem("Privacy")
+        nav_layout.addWidget(self.settings_nav)
+        nav_layout.addStretch()
+        
+        main_layout.addWidget(nav_widget)
+        
+        # RIGHT: Content Stack
+        self.settings_content = QStackedWidget()
+        self.settings_content.setStyleSheet(f"""
+            QStackedWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 12px;
+            }}
+        """)
+        
+        # === NETWORK TAB ===
+        network_tab = QWidget()
+        network_layout = QVBoxLayout(network_tab)
+        network_layout.setContentsMargins(30, 30, 30, 30)
+        network_layout.setSpacing(20)
+        
+        network_header = QLabel("Network Settings")
+        network_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
+        network_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        network_layout.addWidget(network_header)
+        
+        # Active Interface dropdown
+        interface_container = QWidget()
+        interface_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        interface_layout = QVBoxLayout(interface_container)
+        
+        interface_label = QLabel("Active Interface")
+        interface_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        interface_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        interface_layout.addWidget(interface_label)
+        
+        self.interface_combo = QComboBox()
+        self.interface_combo.addItems(["eth0", "wlan0", "lo", "en0", "Wi-Fi", "Ethernet"])
+        self.interface_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                color: {THEME['text_primary']};
+                padding: 8px;
+                font-family: {THEME['font_mono']};
+                min-width: 200px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                padding-right: 10px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {THEME['primary']};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {THEME['bg_card']};
+                color: {THEME['text_primary']};
+                selection-background-color: {THEME['primary']};
+                selection-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+            }}
+        """)
+        interface_layout.addWidget(self.interface_combo)
+        
+        network_layout.addWidget(interface_container)
+        
+        # Network range input
+        range_container = QWidget()
+        range_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        range_layout = QVBoxLayout(range_container)
+        
+        range_label = QLabel("Network Range")
+        range_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        range_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        range_layout.addWidget(range_label)
+        
+        self.settings_range_input = QLineEdit("172.16.40.0/24")
+        self.settings_range_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                color: {THEME['text_primary']};
+                padding: 8px;
+                font-family: {THEME['font_mono']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
+            }}
+        """)
+        range_layout.addWidget(self.settings_range_input)
+        
+        network_layout.addWidget(range_container)
+        network_layout.addStretch()
+        
+        self.settings_content.addWidget(network_tab)
+        
+        # === AI BRAIN TAB ===
+        ai_tab = QWidget()
+        ai_layout = QVBoxLayout(ai_tab)
+        ai_layout.setContentsMargins(30, 30, 30, 30)
+        ai_layout.setSpacing(20)
+        
+        ai_header = QLabel("AI Brain Settings")
+        ai_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
+        ai_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        ai_layout.addWidget(ai_header)
+        
+        # Explanation Detail slider
+        explanation_container = QWidget()
+        explanation_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        explanation_layout = QVBoxLayout(explanation_container)
+        
+        explanation_label = QLabel("Explanation Detail")
+        explanation_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        explanation_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        explanation_layout.addWidget(explanation_label)
+        
+        self.explanation_slider = QSlider(Qt.Orientation.Horizontal)
+        self.explanation_slider.setRange(1, 5)
+        self.explanation_slider.setValue(3)
+        self.explanation_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {THEME['border']};
+                height: 8px;
+                background: {THEME['bg_card']};
+                border-radius: 4px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: #00D1FF;
+                border: 1px solid #00D1FF;
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: #00D1FF;
+                border: 2px solid {THEME['bg_dark']};
+                width: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }}
+        """)
+        
+        # Slider labels
+        slider_labels = QHBoxLayout()
+        for label in ["Minimal", "Brief", "Standard", "Detailed", "Verbose"]:
+            lbl = QLabel(label)
+            lbl.setFont(QFont(THEME['font_mono'].strip("'"), 9))
+            lbl.setStyleSheet(f"color: {THEME['text_secondary']};")
+            slider_labels.addWidget(lbl)
+        ai_layout.addWidget(explanation_container)
+        
+        # Local Model toggle
+        local_model_container = QWidget()
+        local_model_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        local_model_layout = QHBoxLayout(local_model_container)
+        
+        local_model_label = QLabel("Use Local Model")
+        local_model_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        local_model_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        local_model_layout.addWidget(local_model_label)
+        local_model_layout.addStretch()
+        
+        self.local_model_toggle = QCheckBox()
+        self.local_model_toggle.setChecked(True)
+        self.local_model_toggle.setStyleSheet(f"""
+            QCheckBox {{
+                spacing: 5px;
+            }}
+            QCheckBox::indicator {{
+                width: 40px;
+                height: 20px;
+                border-radius: 10px;
+                background: {THEME['bg_card']};
+                border: 2px solid {THEME['border']};
+            }}
+            QCheckBox::indicator:checked {{
+                background: #00D1FF;
+                border: 2px solid #00D1FF;
+            }}
+            QCheckBox::indicator::handle {{
+                background: white;
+                border-radius: 8px;
+                width: 16px;
+                height: 16px;
+                margin: 2px;
+            }}
+        """)
+        local_model_layout.addWidget(self.local_model_toggle)
+        
+        ai_layout.addWidget(local_model_container)
+        ai_layout.addStretch()
+        
+        self.settings_content.addWidget(ai_tab)
+        
+        # === SECURITY TAB ===
+        security_tab = QWidget()
+        security_layout = QVBoxLayout(security_tab)
+        security_layout.setContentsMargins(30, 30, 30, 30)
+        security_layout.setSpacing(20)
+        
+        security_header = QLabel("Security Settings")
+        security_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
+        security_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        security_layout.addWidget(security_header)
+        
+        # Sensitivity slider
+        sensitivity_container = QWidget()
+        sensitivity_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        sensitivity_layout = QVBoxLayout(sensitivity_container)
+        
+        sensitivity_label = QLabel("Detection Sensitivity")
+        sensitivity_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        sensitivity_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        sensitivity_layout.addWidget(sensitivity_label)
+        
+        self.sensitivity_slider = QSlider(Qt.Orientation.Horizontal)
+        self.sensitivity_slider.setRange(0, 100)
+        self.sensitivity_slider.setValue(75)
+        self.sensitivity_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {THEME['border']};
+                height: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {THEME['success']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['danger']});
+                border-radius: 4px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: #00D1FF;
+                border: 1px solid #00D1FF;
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: #00D1FF;
+                border: 2px solid {THEME['bg_dark']};
+                width: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }}
+        """)
+        sensitivity_layout.addWidget(self.sensitivity_slider)
+        
+        # Sensitivity labels
+        sens_labels = QHBoxLayout()
+        relaxed_lbl = QLabel("Relaxed")
+        relaxed_lbl.setStyleSheet(f"color: {THEME['success']}; font-family: {THEME['font_mono']};")
+        balanced_lbl = QLabel("Balanced")
+        balanced_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        balanced_lbl.setStyleSheet(f"color: {THEME['warning']}; font-family: {THEME['font_mono']};")
+        aggressive_lbl = QLabel("Aggressive")
+        aggressive_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        aggressive_lbl.setStyleSheet(f"color: {THEME['danger']}; font-family: {THEME['font_mono']};")
+        sens_labels.addWidget(relaxed_lbl)
+        sens_labels.addWidget(balanced_lbl)
+        sens_labels.addWidget(aggressive_lbl)
+        sensitivity_layout.addLayout(sens_labels)
+        
+        security_layout.addWidget(sensitivity_container)
+        
+        # Auto-block toggle
+        autoblock_container = QWidget()
+        autoblock_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        autoblock_layout = QHBoxLayout(autoblock_container)
+        
+        autoblock_label = QLabel("Auto-Block Threats")
+        autoblock_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        autoblock_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        autoblock_layout.addWidget(autoblock_label)
+        autoblock_layout.addStretch()
+        
+        self.autoblock_toggle = QCheckBox()
+        self.autoblock_toggle.setChecked(True)
+        self.autoblock_toggle.setStyleSheet(f"""
+            QCheckBox {{
+                spacing: 5px;
+            }}
+            QCheckBox::indicator {{
+                width: 40px;
+                height: 20px;
+                border-radius: 10px;
+                background: {THEME['bg_card']};
+                border: 2px solid {THEME['border']};
+            }}
+            QCheckBox::indicator:checked {{
+                background: #00D1FF;
+                border: 2px solid #00D1FF;
+            }}
+        """)
+        autoblock_layout.addWidget(self.autoblock_toggle)
+        
+        security_layout.addWidget(autoblock_container)
+        security_layout.addStretch()
+        
+        self.settings_content.addWidget(security_tab)
+        
+        # === PRIVACY TAB ===
+        privacy_tab = QWidget()
+        privacy_layout = QVBoxLayout(privacy_tab)
+        privacy_layout.setContentsMargins(30, 30, 30, 30)
+        privacy_layout.setSpacing(20)
+        
+        privacy_header = QLabel("Privacy Settings")
+        privacy_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
+        privacy_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        privacy_layout.addWidget(privacy_header)
+        
+        privacy_info = QLabel("NZ Privacy Act 2020 Compliance\n\nYour data is processed locally.\nNo data is sent to external servers.")
+        privacy_info.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        privacy_info.setStyleSheet(f"color: {THEME['text_secondary']};")
+        privacy_info.setWordWrap(True)
+        privacy_layout.addWidget(privacy_info)
+        privacy_layout.addStretch()
+        
+        self.settings_content.addWidget(privacy_tab)
+        
+        # Connect navigation to content
+        self.settings_nav.currentRowChanged.connect(self.settings_content.setCurrentIndex)
+        
+        main_layout.addWidget(self.settings_content, stretch=1)
+        
+        self.page_container.addWidget(settings_page)
 
     def toggle_ai(self, checked):
         if checked:
