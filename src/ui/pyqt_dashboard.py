@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
     QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
 )
-from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF
+from PyQt6.QtCore import QTimer, Qt, QRectF, QRect, QByteArray, pyqtSignal, QPointF, QEasingCurve, QPropertyAnimation
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap
 from PyQt6.QtSvgWidgets import QSvgWidget
 
@@ -1031,11 +1031,12 @@ class WatchdogDashboard(QMainWindow):
 
         # Navigation Sidebar (left) - using universal dark teal theme
         self.nav_sidebar = QWidget()
-        self.nav_sidebar.setFixedWidth(80)
+        self.sidebar_expanded = False  # Track sidebar state
+        self.nav_sidebar.setMinimumWidth(70)
+        self.nav_sidebar.setMaximumWidth(70)
         self.nav_sidebar.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_header']};
-                border-right: 1px solid {THEME['border']};
             }}
         """)
 
@@ -1044,19 +1045,26 @@ class WatchdogDashboard(QMainWindow):
         nav_layout.setSpacing(20)
         nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Logo at top of sidebar
-        logo_label = QLabel()
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Logo at top of sidebar - wrapped in container for smooth centering
+        self.sidebar_logo_container = QWidget()
+        self.sidebar_logo_container.setStyleSheet("background-color: transparent;")
+        logo_container_layout = QHBoxLayout(self.sidebar_logo_container)
+        logo_container_layout.setContentsMargins(0, 0, 0, 0)
+        logo_container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.sidebar_logo = QLabel()
+        self.sidebar_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
             scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            logo_label.setPixmap(scaled_logo)
+            self.sidebar_logo.setPixmap(scaled_logo)
         else:
-            logo_label.setText("🐺")
-            logo_label.setStyleSheet("font-size: 32px;")
-        logo_label.setFixedSize(80, 60)
-        nav_layout.addWidget(logo_label)
+            self.sidebar_logo.setText("🐺")
+            self.sidebar_logo.setStyleSheet("font-size: 32px;")
+        self.sidebar_logo.setFixedSize(48, 48)
+        logo_container_layout.addWidget(self.sidebar_logo)
+        nav_layout.addWidget(self.sidebar_logo_container)
 
         # Navigation buttons
         nav_buttons = [
@@ -1069,9 +1077,14 @@ class WatchdogDashboard(QMainWindow):
         ]
 
         self.nav_button_group = []
+        self.nav_button_labels = []  # Store text labels for show/hide
         for i, (icon, tooltip) in enumerate(nav_buttons):
-            btn = QPushButton(icon)
-            btn.setFixedSize(80, 60)
+            # Create abbreviated text for collapsed state
+            abbreviated = ''.join([word[0] for word in icon.split() if word[0].isalpha()])[:3]
+            
+            # Create button with abbreviated text initially
+            btn = QPushButton(abbreviated)
+            btn.setFixedSize(70, 60)
             btn.setToolTip(tooltip)
             btn.setStyleSheet(f"""
                 QPushButton {{
@@ -1079,7 +1092,7 @@ class WatchdogDashboard(QMainWindow):
                     border: none;
                     color: {THEME['text_secondary']};
                     font-size: 10px;
-                    
+                    font-weight: bold;
                     border-radius: 8px;
                     text-align: center;
                 }}
@@ -1097,6 +1110,9 @@ class WatchdogDashboard(QMainWindow):
             btn.clicked.connect(lambda checked, idx=i: self.switch_page(idx))
             nav_layout.addWidget(btn)
             self.nav_button_group.append(btn)
+            
+            # Store the full text for later expansion
+            self.nav_button_labels.append(icon)
 
         # Set first button as active
         if self.nav_button_group:
@@ -1113,6 +1129,16 @@ class WatchdogDashboard(QMainWindow):
         central = QWidget()
         central.setLayout(main_layout)
         self.setCentralWidget(central)
+
+        # Enable hover events for sidebar (must be after sidebar is created)
+        self.nav_sidebar.setMouseTracking(True)
+        self.nav_sidebar.enterEvent = self._on_sidebar_enter
+        self.nav_sidebar.leaveEvent = self._on_sidebar_leave
+        
+        # Timer for delayed collapse
+        self.sidebar_collapse_timer = QTimer()
+        self.sidebar_collapse_timer.setSingleShot(True)
+        self.sidebar_collapse_timer.timeout.connect(self._contract_sidebar)
 
     def create_pages(self):
         # Page 0: Live Sentinel (Dashboard)
@@ -1133,6 +1159,113 @@ class WatchdogDashboard(QMainWindow):
         # Page 5: Settings & Privacy (full implementation)
         self.create_settings_page()
 
+    def _on_sidebar_enter(self, event):
+        """Expand sidebar when mouse enters"""
+        self.sidebar_collapse_timer.stop()  # Cancel any pending collapse
+        if not self.sidebar_expanded:
+            self._expand_sidebar()
+
+    def _on_sidebar_leave(self, event):
+        """Start timer to collapse sidebar when mouse leaves"""
+        if self.sidebar_expanded:
+            self.sidebar_collapse_timer.start(300)  # 300ms delay before collapsing
+
+    def _expand_sidebar(self):
+        """Expand sidebar to 200px with animation"""
+        self.sidebar_expanded = True
+        target_width = 200
+        
+        # Create animation for minimumWidth
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        self.animation.setDuration(300)
+        self.animation.setStartValue(self.nav_sidebar.width())
+        self.animation.setEndValue(target_width)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Create animation for maximumWidth
+        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
+        self.animation2.setDuration(300)
+        self.animation2.setStartValue(self.nav_sidebar.width())
+        self.animation2.setEndValue(target_width)
+        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Connect to update button text when animation finishes
+        self.animation.finished.connect(self._update_sidebar_buttons)
+        
+        # Start animations
+        self.animation.start()
+        self.animation2.start()
+
+    def _contract_sidebar(self):
+        """Contract sidebar to 70px with animation"""
+        self.sidebar_expanded = False
+        target_width = 70
+        
+        # Create animation for minimumWidth
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        self.animation.setDuration(300)
+        self.animation.setStartValue(self.nav_sidebar.width())
+        self.animation.setEndValue(target_width)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Create animation for maximumWidth
+        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
+        self.animation2.setDuration(300)
+        self.animation2.setStartValue(self.nav_sidebar.width())
+        self.animation2.setEndValue(target_width)
+        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Connect to update button text when animation finishes
+        self.animation.finished.connect(self._update_sidebar_buttons)
+        
+        # Start animations
+        self.animation.start()
+        self.animation2.start()
+
+    def toggle_sidebar(self):
+        """Toggle sidebar between collapsed (70px) and expanded (200px) with animation"""
+        # Determine target width
+        target_width = 200 if not self.sidebar_expanded else 70
+        
+        # Create animation
+        self.animation = QPropertyAnimation(self.nav_sidebar, b"minimumWidth")
+        self.animation.setDuration(300)  # 300ms animation
+        self.animation.setStartValue(self.nav_sidebar.width())
+        self.animation.setEndValue(target_width)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Also animate maximum width
+        self.animation2 = QPropertyAnimation(self.nav_sidebar, b"maximumWidth")
+        self.animation2.setDuration(300)
+        self.animation2.setStartValue(self.nav_sidebar.width())
+        self.animation2.setEndValue(target_width)
+        self.animation2.setEasingCurve(QEasingCurve.Type.InOutQuart)
+        
+        # Connect to update button text when animation finishes
+        self.animation.finished.connect(self._update_sidebar_buttons)
+        
+        # Start animations
+        self.animation.start()
+        self.animation2.start()
+        
+        # Toggle state
+        self.sidebar_expanded = not self.sidebar_expanded
+    
+    def _update_sidebar_buttons(self):
+        """Update button text based on sidebar state"""
+        for i, btn in enumerate(self.nav_button_group):
+            if self.sidebar_expanded:
+                # Show full text
+                btn.setText(self.nav_button_labels[i])
+                btn.setFixedSize(180, 60)
+            else:
+                # Show only first letter/abbreviation
+                text = self.nav_button_labels[i]
+                # Create abbreviated version (first letter of each word)
+                abbreviated = ''.join([word[0] for word in text.split() if word[0].isalpha()])[:3]
+                btn.setText(abbreviated if abbreviated else text[:3])
+                btn.setFixedSize(70, 60)
+
     def create_live_sentinel_page(self):
         """Create the main dashboard page matching hi-fi mockup design"""
         # Main content widget with dark background
@@ -1152,19 +1285,6 @@ class WatchdogDashboard(QMainWindow):
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(20, 0, 20, 0)
         header_layout.setSpacing(15)
-        
-        # Hamburger menu icon
-        menu_btn = QPushButton("☰")
-        menu_btn.setFixedSize(40, 40)
-        menu_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: transparent;
-                border: none;
-                color: {THEME['primary']};
-                font-size: 24px;
-            }}
-        """)
-        header_layout.addWidget(menu_btn)
         
         # Dog/Wolf logo icon
         logo_label = QLabel()
