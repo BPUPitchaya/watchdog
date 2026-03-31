@@ -2661,278 +2661,352 @@ class WatchdogDashboard(QMainWindow):
             return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
 
     def create_autonomous_shield_page(self):
-        """Create Autonomous Shield page with firewall management - using universal dark teal theme"""
+        """Create Autonomous Shield page matching hi-fi mockup design"""
         shield_page = QWidget()
         shield_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
-        # Main layout
         main_layout = QVBoxLayout(shield_page)
-        main_layout.setContentsMargins(40, 40, 40, 40)
-        main_layout.setSpacing(30)
+        main_layout.setContentsMargins(30, 20, 30, 30)
+        main_layout.setSpacing(20)
         
-        # Header
-        header_widget = QWidget()
-        header_widget.setFixedHeight(80)
-        header_widget.setStyleSheet(f"""
+        # Page title at top left (gray)
+        page_title = QLabel("Security Control")
+        page_title.setFont(QFont(THEME['font_mono'].strip("'"), 18))
+        page_title.setStyleSheet(f"color: {THEME['text_secondary']};")
+        main_layout.addWidget(page_title)
+        
+        # Main content container
+        content_container = QWidget()
+        content_container.setStyleSheet(f"""
             QWidget {{
-                background-color: {THEME['bg_header']};
-                border-bottom: 1px solid {THEME['border']};
-                border-radius: 12px;
+                background-color: {THEME['bg_dark']};
+                border-radius: 15px;
             }}
         """)
-        header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(40, 20, 40, 20)
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(20)
         
-        title_section = QVBoxLayout()
-        title_section.setSpacing(5)
+        # Header - Autonomous Shield (cyan)
+        shield_header = QLabel("Autonomous Shield (Security Control)")
+        shield_header.setFont(QFont(THEME['font_mono'].strip("'"), 24))
+        shield_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        shield_header.setStyleSheet(f"color: {THEME['primary']};")
+        content_layout.addWidget(shield_header)
         
-        shield_title = QLabel("AUTONOMOUS SHIELD")
-        shield_title.setFont(QFont(THEME['font_mono'].strip("'"), 24))
-        shield_title.setStyleSheet(f"color: {THEME['danger']}; margin: 0;")
-        title_section.addWidget(shield_title)
-        
-        shield_subtitle = QLabel("Firewall Management & AI Confidence Control")
+        # Subtitle
+        shield_subtitle = QLabel("Firewall Management and AI Confidence Control")
         shield_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        shield_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin: 0;")
-        title_section.addWidget(shield_subtitle)
+        shield_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        shield_subtitle.setStyleSheet(f"color: {THEME['text_primary']};")
+        content_layout.addWidget(shield_subtitle)
         
-        header_layout.addLayout(title_section)
-        header_layout.addStretch()
+        # Split layout for left/right sections
+        split_layout = QHBoxLayout()
+        split_layout.setSpacing(20)
         
-        main_layout.addWidget(header_widget)
-        
-        # Content area with two sections
-        content_area = QWidget()
-        content_layout = QHBoxLayout(content_area)
-        content_layout.setSpacing(30)
-        
-        # Left section - Blocked IPs
+        # LEFT SECTION - Blocked IP Addresses
         left_section = QWidget()
-        left_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         left_layout = QVBoxLayout(left_section)
-        left_layout.setSpacing(20)
+        left_layout.setSpacing(10)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
-        # Blocked IPs header
-        blocked_header = QLabel("BLOCKED IP ADDRESSES")
-        blocked_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        blocked_header.setStyleSheet(f"color: {THEME['danger']}; margin-bottom: 10px;")
-        left_layout.addWidget(blocked_header)
+        blocked_title = QLabel("Blocked IP Addresses")
+        blocked_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        blocked_title.setStyleSheet(f"color: {THEME['danger']};")
+        left_layout.addWidget(blocked_title)
         
-        # Blocked IPs list with dark teal theme
-        self.blocked_list_widget = QListWidget()
-        self.blocked_list_widget.setStyleSheet(f"""
-            QListWidget {{
+        # Blocked IPs table container
+        blocked_container = QWidget()
+        blocked_container.setStyleSheet(f"""
+            QWidget {{
                 background-color: {THEME['bg_card']};
                 border: 1px solid {THEME['border']};
                 border-radius: 10px;
-                padding: 10px;
+            }}
+        """)
+        blocked_table_layout = QVBoxLayout(blocked_container)
+        blocked_table_layout.setContentsMargins(0, 0, 0, 0)
+        blocked_table_layout.setSpacing(0)
+        
+        # Header row
+        header_row = QWidget()
+        header_row.setStyleSheet(f"""
+            QWidget {{
+                background-color: transparent;
+                border: none;
+            }}
+        """)
+        header_row_layout = QHBoxLayout(header_row)
+        header_row_layout.setContentsMargins(15, 10, 15, 5)
+        header_row_layout.setSpacing(0)
+        
+        ip_header = QLabel("IP Address")
+        ip_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: bold; font-family: {THEME['font_mono']};")
+        ip_header.setFixedWidth(160)
+        desc_header = QLabel("Description")
+        desc_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: bold; font-family: {THEME['font_mono']};")
+        header_row_layout.addWidget(ip_header)
+        header_row_layout.addWidget(desc_header, stretch=1)
+        blocked_table_layout.addWidget(header_row)
+        
+        # IP table widget (2 columns: IP Address, Description)
+        from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
+        self.blocked_ip_table = QTableWidget()
+        self.blocked_ip_table.setColumnCount(2)
+        self.blocked_ip_table.setHorizontalHeaderLabels(["IP Address", "Description"])
+        self.blocked_ip_table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: transparent;
+                border: none;
                 font-family: {THEME['font_mono']};
-                font-size: 14px;
+                font-size: 13px;
                 color: {THEME['text_primary']};
             }}
-            QListWidget::item {{
-                padding: 10px;
+            QTableWidget::item {{
+                padding: 12px 15px;
                 border-bottom: 1px solid {THEME['border']};
-                border-radius: 5px;
-                margin: 2px 0;
             }}
-            QListWidget::item:selected {{
+            QTableWidget::item:selected {{
                 background-color: {THEME['danger']};
                 color: white;
             }}
-            QListWidget::item:hover {{
-                background-color: rgba(255, 107, 107, 0.2);
-            }}
         """)
+        self.blocked_ip_table.horizontalHeader().setStretchLastSection(True)
+        self.blocked_ip_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.blocked_ip_table.setColumnWidth(0, 160)  # IP column - wider
+        self.blocked_ip_table.verticalHeader().setVisible(False)
+        self.blocked_ip_table.horizontalHeader().setVisible(False)  # Hide table header, use custom row
+        self.blocked_ip_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.blocked_ip_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
-        # Add some sample blocked IPs
-        sample_blocked_ips = [
-            "192.168.1.100 - Suspicious port scanning",
-            "10.0.0.50 - Multiple failed login attempts", 
-            "203.0.113.1 - Known malicious IP",
-            "198.51.100.0 - Brute force attack detected"
+        # Sample data
+        sample_blocked_data = [
+            ("192.168.100.1", "Suspicious port scanning"),
+            ("10.0.0.50", "Multiple failed login attempts"),
+            ("203.0.113.1", "Known Malicious IP")
         ]
+        self.blocked_ip_table.setRowCount(len(sample_blocked_data))
+        for i, (ip, desc) in enumerate(sample_blocked_data):
+            self.blocked_ip_table.setItem(i, 0, QTableWidgetItem(ip))
+            self.blocked_ip_table.setItem(i, 1, QTableWidgetItem(desc))
         
-        for ip_info in sample_blocked_ips:
-            self.blocked_list_widget.addItem(ip_info)
+        blocked_table_layout.addWidget(self.blocked_ip_table)
+        left_layout.addWidget(blocked_container, stretch=1)
+        left_layout.addStretch()
         
-        left_layout.addWidget(self.blocked_list_widget)
-        
-        # Unblock button
-        unblock_btn = QPushButton("UNBLOCK SELECTED")
-        unblock_btn.setFixedHeight(40)
-        unblock_btn.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        unblock_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: linear-gradient(135deg, {THEME['danger']}, #FF5252);
-                border: 2px solid {THEME['danger']};
-                border-radius: 10px;
-                color: white;
-                font-weight: bold;
-                padding: 5px 15px;
-            }}
-            QPushButton:hover {{
-                background: linear-gradient(135deg, #FF5252, #FF3838);
-                border: 2px solid #FF5252;
-            }}
-        """)
-        unblock_btn.clicked.connect(self.unblock_selected_ip)
-        left_layout.addWidget(unblock_btn)
-        
-        # Right section - Confidence Threshold
+        # RIGHT SECTION
         right_section = QWidget()
-        right_section.setFixedWidth(400)
+        right_section.setFixedWidth(350)
         right_layout = QVBoxLayout(right_section)
-        right_layout.setSpacing(20)
+        right_layout.setSpacing(15)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
-        # Confidence threshold header
-        confidence_header = QLabel("AI CONFIDENCE THRESHOLD")
-        confidence_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        confidence_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 10px;")
-        right_layout.addWidget(confidence_header)
+        # AI Confidence Threshold
+        confidence_title = QLabel("AI Confidence Threshold")
+        confidence_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        confidence_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        confidence_title.setStyleSheet(f"color: {THEME['primary']};")
+        right_layout.addWidget(confidence_title)
         
-        # Confidence slider container
+        # Confidence container
         confidence_container = QWidget()
         confidence_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
                 border: 1px solid {THEME['border']};
                 border-radius: 10px;
-                padding: 20px;
+                padding: 15px;
             }}
         """)
         confidence_layout = QVBoxLayout(confidence_container)
-        confidence_layout.setSpacing(15)
+        confidence_layout.setSpacing(10)
         
-        # Current threshold display
-        self.confidence_label = QLabel("Current Threshold: 75%")
-        self.confidence_label.setFont(QFont(THEME['font_mono'].strip("'"), 14))
-        self.confidence_label.setStyleSheet(f"color: {THEME['primary']}; margin: 0;")
-        self.confidence_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        confidence_layout.addWidget(self.confidence_label)
+        # Current threshold label
+        threshold_label_layout = QHBoxLayout()
+        threshold_label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        threshold_text = QLabel("Current Threshold :")
+        threshold_text.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']};")
+        self.confidence_label = QLabel("75%")
+        self.confidence_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-weight: bold;")
+        threshold_label_layout.addWidget(threshold_text)
+        threshold_label_layout.addWidget(self.confidence_label)
+        confidence_layout.addLayout(threshold_label_layout)
         
-        # Confidence slider with theme colors
+        # Colored slider
         self.confidence_slider = QSlider(Qt.Orientation.Horizontal)
         self.confidence_slider.setRange(0, 100)
         self.confidence_slider.setValue(75)
-        self.confidence_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {THEME['border']};
+        self.confidence_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
                 height: 8px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 {THEME['danger']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['success']});
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #6BCF7F, stop:0.5 #FFD93D, stop:1 #FF6B6B);
                 border-radius: 4px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {THEME['primary']};
-                border: 2px solid {THEME['border']};
-                width: 20px;
-                margin: -6px 0;
-                border-radius: 10px;
-            }}
+            }
+            QSlider::handle:horizontal {
+                background: white;
+                border: 2px solid #00D4FF;
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                margin: -4px 0;
+            }
         """)
         self.confidence_slider.valueChanged.connect(self.update_confidence_threshold)
         confidence_layout.addWidget(self.confidence_slider)
         
-        # Threshold labels
-        labels_layout = QHBoxLayout()
-        labels_layout.setSpacing(0)
+        # Mode buttons
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(10)
         
-        relaxed_label = QLabel("Relaxed")
-        relaxed_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        relaxed_label.setStyleSheet(f"color: {THEME['danger']};")
+        self.relaxed_btn = QPushButton("Relaxed")
+        self.relaxed_btn.setCheckable(True)
+        self.balanced_btn = QPushButton("Balanced")
+        self.balanced_btn.setCheckable(True)
+        self.aggressive_btn = QPushButton("Aggressive")
+        self.aggressive_btn.setCheckable(True)
         
-        balanced_label = QLabel("Balanced")
-        balanced_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        balanced_label.setStyleSheet(f"color: {THEME['warning']};")
-        balanced_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        for btn, color in [(self.relaxed_btn, "#6BCF7F"), (self.balanced_btn, "#FFD93D"), (self.aggressive_btn, "#FF6B6B")]:
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: transparent;
+                    color: {color};
+                    border: 1px solid {color};
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+                QPushButton:checked {{
+                    background-color: {color};
+                    color: {THEME['bg_dark']};
+                }}
+            """)
         
-        aggressive_label = QLabel("Aggressive")
-        aggressive_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        aggressive_label.setStyleSheet(f"color: {THEME['success']};")
-        aggressive_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.relaxed_btn.setChecked(True)
+        buttons_layout.addWidget(self.relaxed_btn)
+        buttons_layout.addWidget(self.balanced_btn)
+        buttons_layout.addWidget(self.aggressive_btn)
+        confidence_layout.addLayout(buttons_layout)
         
-        labels_layout.addWidget(relaxed_label)
-        labels_layout.addStretch()
-        labels_layout.addWidget(balanced_label)
-        labels_layout.addStretch()
-        labels_layout.addWidget(aggressive_label)
-        confidence_layout.addLayout(labels_layout)
+        # Connect button clicks to set slider values
+        self.relaxed_btn.clicked.connect(lambda: self.confidence_slider.setValue(25))
+        self.balanced_btn.clicked.connect(lambda: self.confidence_slider.setValue(50))
+        self.aggressive_btn.clicked.connect(lambda: self.confidence_slider.setValue(75))
         
-        # Mode description
-        mode_desc = QLabel("Lower values = More blocks (Aggressive)\nHigher values = Fewer false positives (Relaxed)")
-        mode_desc.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        mode_desc.setStyleSheet(f"color: {THEME['text_secondary']}; margin: 10px 0;")
-        mode_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mode_desc.setWordWrap(True)
-        confidence_layout.addWidget(mode_desc)
+        # Description box
+        desc_box = QWidget()
+        desc_box.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(0, 0, 0, 0.3);
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+        desc_layout = QVBoxLayout(desc_box)
+        desc_layout.setContentsMargins(10, 8, 10, 8)
+        desc_layout.setSpacing(2)
+        
+        desc1 = QLabel("Lower value = More block (Aggressive)")
+        desc1.setStyleSheet(f"color: {THEME['text_secondary']}; font-size: 10px; font-family: {THEME['font_mono']};")
+        desc2 = QLabel("Higher value = Fewer false positives (Relaxed)")
+        desc2.setStyleSheet(f"color: {THEME['text_secondary']}; font-size: 10px; font-family: {THEME['font_mono']};")
+        desc_layout.addWidget(desc1)
+        desc_layout.addWidget(desc2)
+        confidence_layout.addWidget(desc_box)
         
         right_layout.addWidget(confidence_container)
         
-        # Statistics
+        # Blocking Statistics
+        stats_title = QLabel("Blocking Statistics")
+        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        stats_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        stats_title.setStyleSheet(f"color: #FFD93D;")
+        right_layout.addWidget(stats_title)
+        
+        # Stats table
         stats_container = QWidget()
         stats_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
                 border: 1px solid {THEME['border']};
                 border-radius: 10px;
-                padding: 20px;
             }}
         """)
         stats_layout = QVBoxLayout(stats_container)
-        stats_layout.setSpacing(10)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
+        stats_layout.setSpacing(0)
         
-        stats_title = QLabel("BLOCKING STATISTICS")
-        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        stats_title.setStyleSheet(f"color: {THEME['warning']}; margin: 0;")
-        stats_layout.addWidget(stats_title)
+        stats_data = [
+            ("Total Blocked", "4", THEME['text_primary']),
+            ("Auto Blocked", "4", THEME['success']),
+            ("Manual Blocked", "0", THEME['primary'])
+        ]
         
-        self.total_blocked_label = QLabel(f"Total Blocked: 4")
-        self.total_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
-        self.total_blocked_label.setStyleSheet(f"color: {THEME['text_primary']}; margin: 5px 0;")
-        stats_layout.addWidget(self.total_blocked_label)
-        
-        self.auto_blocked_label = QLabel(f"Auto-Blocked: 4")
-        self.auto_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
-        self.auto_blocked_label.setStyleSheet(f"color: {THEME['success']}; margin: 5px 0;")
-        stats_layout.addWidget(self.auto_blocked_label)
-        
-        self.manual_blocked_label = QLabel("Manual: 0")
-        self.manual_blocked_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
-        self.manual_blocked_label.setStyleSheet(f"color: {THEME['primary']}; margin: 5px 0;")
-        stats_layout.addWidget(self.manual_blocked_label)
-        
-        # Initialize manual block counter
-        self.manual_block_count = 0
-        
-        right_layout.addWidget(stats_container)
-        
-        content_layout.addWidget(left_section, stretch=2)
-        content_layout.addWidget(right_section, stretch=1)
-        
-        main_layout.addWidget(content_area, stretch=1)
-        
-        self.page_container.addWidget(shield_page)
-        self.manual_block_count = 0
+        for i, (label, value, color) in enumerate(stats_data):
+            row = QWidget()
+            row.setStyleSheet(f"""
+                QWidget {{
+                    border-bottom: 1px solid {THEME['border']};
+                }}
+            """)
+            if i == len(stats_data) - 1:
+                row.setStyleSheet("")  # No border for last row
+            
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(15, 12, 15, 12)
+            
+            label_widget = QLabel(label)
+            label_widget.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-size: 13px;")
+            value_widget = QLabel(value)
+            value_widget.setStyleSheet(f"color: {color}; font-family: {THEME['font_mono']}; font-size: 13px; font-weight: bold;")
+            
+            row_layout.addWidget(label_widget)
+            row_layout.addStretch()
+            row_layout.addWidget(value_widget)
+            
+            stats_layout.addWidget(row)
         
         right_layout.addWidget(stats_container)
         right_layout.addStretch()
         
-        # Add sections to content
-        content_layout.addWidget(left_section)
-        content_layout.addWidget(right_section)
+        # Unblock button (at bottom)
+        unblock_btn = QPushButton("Unblock Selected")
+        unblock_btn.setFixedHeight(40)
+        unblock_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['danger']};
+                border: 2px solid {THEME['danger']};
+                border-radius: 8px;
+                font-family: {THEME['font_mono']};
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 107, 107, 0.2);
+            }}
+        """)
+        unblock_btn.clicked.connect(self.unblock_selected_ip)
+        right_layout.addWidget(unblock_btn)
         
-        main_layout.addWidget(content_area)
-        shield_page.setLayout(main_layout)
+        split_layout.addWidget(left_section, stretch=2)
+        split_layout.addWidget(right_section, stretch=1)
+        
+        content_layout.addLayout(split_layout)
+        main_layout.addWidget(content_container)
+        
         self.page_container.addWidget(shield_page)
         
-        # Initialize blocked IPs list
+        # Initialize
+        self.manual_block_count = 0
         self.blocked_ips = set()
 
     def update_shield_statistics(self):
         """Update the shield statistics display"""
-        if hasattr(self, 'total_blocked_label') and hasattr(self, 'blocked_list_widget'):
-            total_count = self.blocked_list_widget.count()
+        if hasattr(self, 'total_blocked_label') and hasattr(self, 'blocked_ip_table'):
+            total_count = self.blocked_ip_table.rowCount()
             auto_count = 4  # Initial sample blocked IPs
             manual_count = self.manual_block_count if hasattr(self, 'manual_block_count') else 0
             
@@ -2941,11 +3015,11 @@ class WatchdogDashboard(QMainWindow):
             self.manual_blocked_label.setText(f"Manual: {manual_count}")
 
     def unblock_selected_ip(self):
-        """Unblock the selected IP from the list"""
-        selected_items = self.blocked_list_widget.selectedItems()
-        if selected_items:
-            item = selected_items[0]
-            ip_address = item.text().split(" - ")[0]  # Extract IP from "IP - description"
+        """Unblock the selected IP from the table"""
+        selected_row = self.blocked_ip_table.currentRow()
+        if selected_row >= 0:
+            ip_item = self.blocked_ip_table.item(selected_row, 0)
+            ip_address = ip_item.text() if ip_item else ""
             
             reply = QMessageBox.question(
                 self, 
@@ -2956,14 +3030,15 @@ class WatchdogDashboard(QMainWindow):
             )
             
             if reply == QMessageBox.StandardButton.Yes:
-                self.blocked_list_widget.takeItem(self.blocked_list_widget.row(item))
+                self.blocked_ip_table.removeRow(selected_row)
                 if ip_address in self.blocked_ips:
                     self.blocked_ips.remove(ip_address)
                 
                 # Update manual block count if it was a manual block
                 if hasattr(self, 'manual_block_count'):
-                    item_text = item.text()
-                    if "Blocked from Forensic Vault" in item_text or "Manual" in item_text:
+                    desc_item = self.blocked_ip_table.item(selected_row, 1)
+                    desc_text = desc_item.text() if desc_item else ""
+                    if "Blocked from Forensic Vault" in desc_text or "Manual" in desc_text:
                         self.manual_block_count = max(0, self.manual_block_count - 1)
                 
                 # Update statistics
@@ -2972,18 +3047,23 @@ class WatchdogDashboard(QMainWindow):
                 print(f"Unblocked IP: {ip_address}")
 
     def update_confidence_threshold(self, value):
-        """Update the confidence threshold display"""
-        self.confidence_label.setText(f"Current Threshold: {value}%")
+        """Update the confidence threshold display and color"""
+        self.confidence_label.setText(f"{value}%")
         
-        # Update label color based on threshold
+        # Update label color based on threshold value
         if value < 33:
-            color = "#6BCF7F"  # Green for aggressive
+            color = "#6BCF7F"  # Green for relaxed (low value)
         elif value < 66:
             color = "#FFD93D"  # Yellow for balanced
         else:
-            color = "#FF6B6B"  # Red for relaxed
+            color = "#FF6B6B"  # Red for aggressive (high value)
         
-        self.confidence_label.setStyleSheet(f"color: {color}; margin: 0;")
+        self.confidence_label.setStyleSheet(f"color: {color}; font-family: {THEME['font_mono']}; font-weight: bold;")
+        
+        # Update button states - slider left (low) = Relaxed (green), right (high) = Aggressive (red)
+        self.relaxed_btn.setChecked(value < 33)
+        self.balanced_btn.setChecked(33 <= value < 66)
+        self.aggressive_btn.setChecked(value >= 66)
 
     def create_ai_mentor_page(self):
         """Create AI Mentor page as a Forensic Analysis Hub with dark teal theme"""
