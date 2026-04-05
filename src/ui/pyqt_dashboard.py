@@ -35,6 +35,10 @@ from src.ui.widgets import (
     CircularGaugeWidget, LiveTrafficWidget, ToastNotification,
     NetworkTopologyWidget, ForensicAssistantPanel
 )
+from src.ui.pages import (
+    LiveSentinelPage, ForensicVaultPage, AutonomousShieldPage,
+    AIMentorPage, NetworkTopologyPage, SettingsPage, PlaceholderPage
+)
 
 def signal_handler(sig, frame):
     QApplication.quit()
@@ -496,23 +500,37 @@ class WatchdogDashboard(QMainWindow):
         )
 
     def create_pages(self):
+        """Create all pages using the page classes."""
         # Page 0: Live Sentinel (Dashboard)
-        self.create_live_sentinel_page()
-
+        live_sentinel = LiveSentinelPage(self)
+        self.page_container.addWidget(live_sentinel.create())
+        self.table = live_sentinel.table  # Keep reference for update_ui
+        self.forensic_panel = live_sentinel.forensic_panel
+        
         # Page 1: Forensic Vault
-        self.create_forensic_vault_page()
-
-        # Page 2: Autonomous Shield (placeholder)
-        self.create_autonomous_shield_page()
-
-        # Page 3: AI Mentor (placeholder)
-        self.create_ai_mentor_page()
-
+        forensic_vault = ForensicVaultPage(self)
+        self.page_container.addWidget(forensic_vault.create())
+        self.vault_table = forensic_vault.vault_table
+        self.vault_search = forensic_vault.vault_search
+        
+        # Page 2: Autonomous Shield
+        shield_page = AutonomousShieldPage(self)
+        self.page_container.addWidget(shield_page.create())
+        self.blocked_ip_table = shield_page.blocked_ip_table
+        
+        # Page 3: AI Mentor
+        ai_mentor = AIMentorPage(self)
+        self.page_container.addWidget(ai_mentor.create())
+        
         # Page 4: Network Topology
-        self.create_network_topology_page()
-
-        # Page 5: Settings & Privacy (full implementation)
-        self.create_settings_page()
+        network_topology = NetworkTopologyPage(self)
+        self.page_container.addWidget(network_topology.create())
+        
+        # Page 5: Settings & Privacy
+        settings_page = SettingsPage(self)
+        self.page_container.addWidget(settings_page.create())
+        self.settings_nav = settings_page.settings_nav
+        self.settings_content = settings_page.settings_content
 
     def _on_sidebar_enter(self, event):
         """Expand sidebar when mouse enters"""
