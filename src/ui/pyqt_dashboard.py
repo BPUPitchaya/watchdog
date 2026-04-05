@@ -50,7 +50,7 @@ THEME = {
     'text_secondary': '#94A3B8',
     'border': '#1E3A5F',       # Teal border
     'border_highlight': '#00B4D8',
-    'font_mono': "'Courier New', monospace",
+    'font_mono': "'Consolas', 'Source Code Pro', 'Courier New', monospace",
     'gauge_bg': '#1A3A4A',     # Gauge background ring
     'gauge_active': '#00B4D8', # Gauge active color
     'risk_low': '#00B4D8',     # Low risk cyan
@@ -1745,7 +1745,7 @@ class WatchdogDashboard(QMainWindow):
         self.vault_table.setStyleSheet(f"""
             QTableWidget {{
                 background-color: #0A1628;
-                border: 2px solid {THEME['primary']};
+                border: none;
                 border-radius: 15px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
@@ -1763,14 +1763,13 @@ class WatchdogDashboard(QMainWindow):
             QTableCornerButton::section {{
                 background-color: #0A1628;
                 border: none;
+                border-top-left-radius: 13px;
             }}
             QHeaderView::section {{
                 background-color: #0A1628;
                 color: {THEME['primary']};
                 border: none;
-                border-bottom: 2px solid {THEME['primary']};
                 padding: 12px;
-                font-weight: bold;
                 font-family: {THEME['font_mono']};
             }}
             QHeaderView::section:first {{
@@ -2372,13 +2371,88 @@ class WatchdogDashboard(QMainWindow):
                 'dst_port': 22,
                 'flags': 'SA',
                 'count': 10001
+            },
+            {
+                'timestamp': 1773629880.0,
+                'src_ip': '192.168.1.105',
+                'dst_ip': '10.0.0.5',
+                'protocol': 'TCP',
+                'length': 1200,
+                'src_port': 3389,
+                'dst_port': 443,
+                'flags': 'PA',
+                'count': 10002
+            },
+            {
+                'timestamp': 1773629885.0,
+                'src_ip': '172.16.40.50',
+                'dst_ip': '192.168.1.1',
+                'protocol': 'ICMP',
+                'length': 64,
+                'src_port': 0,
+                'dst_port': 0,
+                'flags': '',
+                'count': 10003
+            },
+            {
+                'timestamp': 1773629890.0,
+                'src_ip': '198.51.100.22',
+                'dst_ip': '172.16.40.172',
+                'protocol': 'TCP',
+                'length': 800,
+                'src_port': 443,
+                'dst_port': 8080,
+                'flags': 'F',
+                'count': 10004
+            },
+            {
+                'timestamp': 1773629895.0,
+                'src_ip': '192.168.1.200',
+                'dst_ip': '10.0.0.50',
+                'protocol': 'UDP',
+                'length': 256,
+                'src_port': 123,
+                'dst_port': 123,
+                'flags': '',
+                'count': 10005
+            },
+            {
+                'timestamp': 1773629900.0,
+                'src_ip': '203.0.113.50',
+                'dst_ip': '192.168.1.100',
+                'protocol': 'TCP',
+                'length': 1800,
+                'src_port': 445,
+                'dst_port': 139,
+                'flags': 'S',
+                'count': 10006
+            },
+            {
+                'timestamp': 1773629905.0,
+                'src_ip': '10.20.30.40',
+                'dst_ip': '172.16.40.172',
+                'protocol': 'TCP',
+                'length': 500,
+                'src_port': 25,
+                'dst_port': 587,
+                'flags': 'R',
+                'count': 10007
+            },
+            {
+                'timestamp': 1773629910.0,
+                'src_ip': '198.51.100.100',
+                'dst_ip': '10.0.0.100',
+                'protocol': 'UDP',
+                'length': 1024,
+                'src_port': 161,
+                'dst_port': 162,
+                'flags': '',
+                'count': 10008
             }
         ]
         
-        # Add samples to ensure vault has content
-        for sample in sample_packets:
-            if len(flagged_packets) < 3:
-                flagged_packets.append(sample)
+        # Add all samples to ensure vault has content
+        flagged_packets.extend(sample_packets[:10])
 
         self.vault_table.setRowCount(len(flagged_packets))
         for i, packet in enumerate(flagged_packets):
@@ -2419,8 +2493,16 @@ class WatchdogDashboard(QMainWindow):
             ai_summary = "Click to view AI analysis" if not self.layout_only else "Sample flagged packet"
 
             self.vault_table.setItem(i, 0, QTableWidgetItem(timestamp))
-            self.vault_table.setItem(i, 1, QTableWidgetItem(src_ip))
-            self.vault_table.setItem(i, 2, QTableWidgetItem(dst_ip))
+            # Make IP columns stand out with cyan color
+            src_ip_item = QTableWidgetItem(src_ip)
+            src_ip_item.setForeground(QColor(THEME['primary']))
+            src_ip_item.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+            self.vault_table.setItem(i, 1, src_ip_item)
+            
+            dst_ip_item = QTableWidgetItem(dst_ip)
+            dst_ip_item.setForeground(QColor(THEME['primary']))
+            dst_ip_item.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+            self.vault_table.setItem(i, 2, dst_ip_item)
             self.vault_table.setItem(i, 3, QTableWidgetItem(protocol))
             self.vault_table.setItem(i, 4, QTableWidgetItem(confidence))
             self.vault_table.setItem(i, 5, QTableWidgetItem(threat_level))
