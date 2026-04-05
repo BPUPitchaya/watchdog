@@ -750,6 +750,118 @@ class NetworkTopologyWidget(QWidget):
             self.device_clicked.emit(device_data['device'])
             self.update()
 
+class ToastNotification(QWidget):
+    """Frameless translucent toast notification that slides up from bottom-right"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Frameless, translucent, stay on top
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowDoesNotAcceptFocus
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Size and position
+        self.setFixedSize(320, 100)
+        
+        # Layout
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(16, 12, 16, 12)
+        self.layout.setSpacing(4)
+        
+        # Title label
+        self.title_label = QLabel()
+        self.title_label.setFont(QFont(THEME['font_mono'].strip("'"), 12, QFont.Weight.Bold))
+        self.title_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        self.layout.addWidget(self.title_label)
+        
+        # Message label
+        self.message_label = QLabel()
+        self.message_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+        self.message_label.setStyleSheet(f"color: {THEME['text_secondary']};")
+        self.message_label.setWordWrap(True)
+        self.layout.addWidget(self.message_label)
+        
+        # Animation objects
+        self.slide_animation = QPropertyAnimation(self, b"geometry")
+        self.slide_animation.setDuration(400)
+        self.slide_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(500)
+        
+        # Timer for auto-hide
+        self.hide_timer = QTimer(self)
+        self.hide_timer.setSingleShot(True)
+        self.hide_timer.timeout.connect(self.hide_toast)
+        
+        self.current_border_color = THEME['primary']
+    
+    def show_message(self, title, message, type='info'):
+        """Display a toast notification
+        
+        Args:
+            title: Notification title
+            message: Notification message
+            type: 'info' (electric blue) or 'block' (red)
+        """
+        # Set border color based on type
+        if type == 'block':
+            self.current_border_color = THEME['danger']  # Red
+        else:
+            self.current_border_color = THEME['primary']  # Electric Blue
+        
+        # Update content
+        self.title_label.setText(title)
+        self.message_label.setText(message)
+        
+        # Apply styling with border
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: rgba(13, 31, 53, 0.95);
+                border: 2px solid {self.current_border_color};
+                border-radius: 12px;
+            }}
+        """)
+        
+        # Position at bottom-right of screen
+        screen = QApplication.primaryScreen().geometry()
+        end_x = screen.width() - self.width() - 20
+        end_y = screen.height() - self.height() - 20
+        start_x = end_x
+        start_y = screen.height() + 50  # Start below screen
+        
+        # Set starting position (hidden)
+        self.setGeometry(start_x, start_y, self.width(), self.height())
+        self.setWindowOpacity(1.0)
+        
+        # Show the toast
+        self.show()
+        
+        # Slide up animation
+        self.slide_animation.setStartValue(self.geometry())
+        self.slide_animation.setEndValue(self.geometry().adjusted(0, end_y - start_y, 0, end_y - start_y))
+        self.slide_animation.start()
+        
+        # Start auto-hide timer (3 seconds)
+        self.hide_timer.start(3000)
+    
+    def hide_toast(self):
+        """Fade out and hide the toast"""
+        self.fade_animation.setStartValue(1.0)
+        self.fade_animation.setEndValue(0.0)
+        self.fade_animation.finished.connect(self.close)
+        self.fade_animation.start()
+    
+    def mousePressEvent(self, event):
+        """Allow clicking to dismiss"""
+        self.hide_toast()
+
+
 class WatchdogDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -992,6 +1104,7 @@ class WatchdogDashboard(QMainWindow):
         self.extractor = None
         self.ai_client = None
         self.previous_packets = 0
+        self.toast = None  # Toast notification instance
 
         # Load ML (skip if layout-only)
         if not self.layout_only:
@@ -1558,28 +1671,30 @@ class WatchdogDashboard(QMainWindow):
         return container
 
     def create_forensic_vault_page(self):
-        """Create Forensic Vault page with dark teal theme"""
+        """Create Forensic Vault page with dark teal theme - Fully Responsive"""
         vault_page = QWidget()
         vault_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
-        vault_layout = QVBoxLayout(vault_page)
-        vault_layout.setContentsMargins(40, 40, 40, 40)
-        vault_layout.setSpacing(20)
+        
+        # Main layout that fills the entire page
+        main_layout = QVBoxLayout(vault_page)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
 
         # Header
         vault_header = QLabel("FORENSIC VAULT")
         vault_header.setFont(QFont(THEME['font_mono'].strip("'"), 28))
         vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
-        vault_layout.addWidget(vault_header)
+        vault_header.setStyleSheet(f"color: {THEME['primary']};")
+        main_layout.addWidget(vault_header)
 
         # Subtitle
         vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
         vault_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
         vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin-bottom: 30px;")
-        vault_layout.addWidget(vault_subtitle)
+        vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
+        main_layout.addWidget(vault_subtitle)
 
-        # Search bar
+        # Search bar layout (responsive)
         search_layout = QHBoxLayout()
         search_label = QLabel("Search Flagged Incidents:")
         search_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']};")
@@ -1600,9 +1715,26 @@ class WatchdogDashboard(QMainWindow):
         """)
         self.vault_search.textChanged.connect(self.filter_vault_table)
         search_layout.addWidget(search_label)
-        search_layout.addWidget(self.vault_search)
-        vault_layout.addLayout(search_layout)
+        search_layout.addWidget(self.vault_search, stretch=1)
+        main_layout.addLayout(search_layout)
 
+        # Scroll area for the table (responsive)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: transparent;
+                border: none;
+            }}
+        """)
+        
+        # Table container widget
+        table_container = QWidget()
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setSpacing(0)
+        
         # Flagged incidents table
         self.vault_table = QTableWidget()
         self.vault_table.setColumnCount(8)
@@ -1612,59 +1744,55 @@ class WatchdogDashboard(QMainWindow):
         ])
         self.vault_table.setStyleSheet(f"""
             QTableWidget {{
-                background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
+                background-color: #0A1628;
+                border: 2px solid {THEME['primary']};
                 border-radius: 15px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
-                gridline-color: {THEME['border']};
+                gridline-color: #1E3A5F;
             }}
             QTableWidget::item {{
-                padding: 10px;
-                border-bottom: 1px solid {THEME['border']};
+                padding: 12px;
+                border-bottom: 1px solid #1E3A5F;
+                background-color: #0F2642;
             }}
             QTableWidget::item:selected {{
                 background-color: {THEME['primary']};
                 color: {THEME['bg_dark']};
             }}
-            QHeaderView::section {{
-                background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
+            QTableCornerButton::section {{
+                background-color: #0A1628;
                 border: none;
+            }}
+            QHeaderView::section {{
+                background-color: #0A1628;
+                color: {THEME['primary']};
+                border: none;
+                border-bottom: 2px solid {THEME['primary']};
                 padding: 12px;
                 font-weight: bold;
                 font-family: {THEME['font_mono']};
             }}
             QHeaderView::section:first {{
-                border-top-left-radius: 15px;
+                border-top-left-radius: 13px;
             }}
             QHeaderView::section:last {{
-                border-top-right-radius: 15px;
+                border-top-right-radius: 13px;
             }}
         """)
-        # Set column widths - remove fixed widths to allow stretching
-        # self.vault_table.setColumnWidth(0, 170)  # Timestamp
-        # self.vault_table.setColumnWidth(1, 120)  # Source IP
-        # self.vault_table.setColumnWidth(2, 120)  # Destination IP
-        # self.vault_table.setColumnWidth(3, 80)   # Protocol
-        # self.vault_table.setColumnWidth(4, 100)  # Confidence
-        # self.vault_table.setColumnWidth(5, 100)  # Threat Level
-        # self.vault_table.setColumnWidth(6, 180)  # AI Summary
         
-        # Enable stretching to fill entire page width
-        self.vault_table.horizontalHeader().setStretchLastSection(True)
-        self.vault_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Timestamp - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Source IP - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Dest IP - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Protocol - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Confidence - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Threat Level - auto-resize
-        self.vault_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # AI Summary - auto-resize
-        # Last column (Action) will stretch to fill remaining space
+        # Make columns stretch to fill width
+        header = self.vault_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setStretchLastSection(True)
+        
         self.vault_table.verticalHeader().setDefaultSectionSize(55)
         self.vault_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.vault_table.itemDoubleClicked.connect(self.show_forensic_analysis)
-        vault_layout.addWidget(self.vault_table)
+        
+        table_layout.addWidget(self.vault_table, stretch=1)
+        scroll_area.setWidget(table_container)
+        main_layout.addWidget(scroll_area, stretch=1)
 
         # Refresh button
         vault_refresh_btn = QPushButton("Load Flagged Incidents")
@@ -1683,7 +1811,7 @@ class WatchdogDashboard(QMainWindow):
                 background-color: rgba(0, 180, 216, 0.2);
             }}
         """)
-        vault_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.page_container.addWidget(vault_page)
 
@@ -2036,7 +2164,7 @@ class WatchdogDashboard(QMainWindow):
                 border: 1px solid {THEME['border']};
                 height: 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {THEME['success']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['danger']});
+                    stop:0 {THEME['danger']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['success']});
                 border-radius: 4px;
             }}
             QSlider::sub-page:horizontal {{
@@ -2057,13 +2185,13 @@ class WatchdogDashboard(QMainWindow):
         # Sensitivity labels
         sens_labels = QHBoxLayout()
         relaxed_lbl = QLabel("Relaxed")
-        relaxed_lbl.setStyleSheet(f"color: {THEME['success']}; font-family: {THEME['font_mono']};")
+        relaxed_lbl.setStyleSheet(f"color: {THEME['danger']}; font-family: {THEME['font_mono']};")
         balanced_lbl = QLabel("Balanced")
         balanced_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         balanced_lbl.setStyleSheet(f"color: {THEME['warning']}; font-family: {THEME['font_mono']};")
         aggressive_lbl = QLabel("Aggressive")
         aggressive_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
-        aggressive_lbl.setStyleSheet(f"color: {THEME['danger']}; font-family: {THEME['font_mono']};")
+        aggressive_lbl.setStyleSheet(f"color: {THEME['success']}; font-family: {THEME['font_mono']};")
         sens_labels.addWidget(relaxed_lbl)
         sens_labels.addWidget(balanced_lbl)
         sens_labels.addWidget(aggressive_lbl)
@@ -2298,49 +2426,55 @@ class WatchdogDashboard(QMainWindow):
             self.vault_table.setItem(i, 5, QTableWidgetItem(threat_level))
             self.vault_table.setItem(i, 6, QTableWidgetItem(ai_summary))
             
-            # Add Action buttons
+            # Add Action buttons - compact tool buttons
             action_widget = QWidget()
             action_widget.setStyleSheet("background-color: transparent;")
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(2, 2, 2, 2)
-            action_layout.setSpacing(8)
+            action_layout.setContentsMargins(3, 2, 3, 2)
+            action_layout.setSpacing(4)
             action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
+            from PyQt6.QtWidgets import QToolButton
+            
             # Block Source IP button
-            block_src_btn = QPushButton("Block Source")
-            block_src_btn.setFixedSize(95, 32)
+            block_src_btn = QToolButton()
+            block_src_btn.setText("SRC")
+            block_src_btn.setFixedSize(55, 28)
             block_src_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #B91C1C;
+                QToolButton {
+                    background-color: #DC2626;
                     color: white;
                     border: none;
-                    border-radius: 6px;
-                    font-size: 11px;
+                    border-radius: 4px;
+                    font-size: 10px;
                     font-weight: bold;
                 }
-                QPushButton:hover {
-                    background-color: #DC2626;
+                QToolButton:hover {
+                    background-color: #EF4444;
                 }
             """)
+            block_src_btn.setToolTip(f"Block Source: {src_ip}")
             block_src_btn.clicked.connect(lambda checked, ip=src_ip: self.block_ip_from_vault(ip))
             action_layout.addWidget(block_src_btn)
             
             # Block Destination IP button
-            block_dst_btn = QPushButton("Block Destination")
-            block_dst_btn.setFixedSize(105, 32)
+            block_dst_btn = QToolButton()
+            block_dst_btn.setText("DST")
+            block_dst_btn.setFixedSize(55, 28)
             block_dst_btn.setStyleSheet("""
-                QPushButton {
+                QToolButton {
                     background-color: #06B6D4;
                     color: white;
                     border: none;
-                    border-radius: 6px;
-                    font-size: 11px;
+                    border-radius: 4px;
+                    font-size: 10px;
                     font-weight: bold;
                 }
-                QPushButton:hover {
+                QToolButton:hover {
                     background-color: #0891B2;
                 }
             """)
+            block_dst_btn.setToolTip(f"Block Destination: {dst_ip}")
             block_dst_btn.clicked.connect(lambda checked, ip=dst_ip: self.block_ip_from_vault(ip))
             action_layout.addWidget(block_dst_btn)
             
@@ -2661,13 +2795,13 @@ class WatchdogDashboard(QMainWindow):
             return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
 
     def create_autonomous_shield_page(self):
-        """Create Autonomous Shield page matching hi-fi mockup design"""
+        """Create Autonomous Shield page matching hi-fi mockup design - Fully Responsive"""
         shield_page = QWidget()
         shield_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
         main_layout = QVBoxLayout(shield_page)
-        main_layout.setContentsMargins(30, 20, 30, 30)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
         
         # Page title at top left (gray)
         page_title = QLabel("Security Control")
@@ -2675,37 +2809,25 @@ class WatchdogDashboard(QMainWindow):
         page_title.setStyleSheet(f"color: {THEME['text_secondary']};")
         main_layout.addWidget(page_title)
         
-        # Main content container
-        content_container = QWidget()
-        content_container.setStyleSheet(f"""
-            QWidget {{
-                background-color: {THEME['bg_dark']};
-                border-radius: 15px;
-            }}
-        """)
-        content_layout = QVBoxLayout(content_container)
-        content_layout.setContentsMargins(20, 20, 20, 20)
-        content_layout.setSpacing(20)
-        
         # Header - Autonomous Shield (cyan)
         shield_header = QLabel("Autonomous Shield (Security Control)")
         shield_header.setFont(QFont(THEME['font_mono'].strip("'"), 24))
         shield_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         shield_header.setStyleSheet(f"color: {THEME['primary']};")
-        content_layout.addWidget(shield_header)
+        main_layout.addWidget(shield_header)
         
         # Subtitle
         shield_subtitle = QLabel("Firewall Management and AI Confidence Control")
         shield_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 12))
         shield_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         shield_subtitle.setStyleSheet(f"color: {THEME['text_primary']};")
-        content_layout.addWidget(shield_subtitle)
+        main_layout.addWidget(shield_subtitle)
         
-        # Split layout for left/right sections
+        # Split layout for left/right sections - RESPONSIVE
         split_layout = QHBoxLayout()
         split_layout.setSpacing(20)
         
-        # LEFT SECTION - Blocked IP Addresses
+        # LEFT SECTION - Blocked IP Addresses (expands)
         left_section = QWidget()
         left_layout = QVBoxLayout(left_section)
         left_layout.setSpacing(10)
@@ -2716,7 +2838,13 @@ class WatchdogDashboard(QMainWindow):
         blocked_title.setStyleSheet(f"color: {THEME['danger']};")
         left_layout.addWidget(blocked_title)
         
-        # Blocked IPs table container
+        # Scroll area for blocked IPs table
+        blocked_scroll = QScrollArea()
+        blocked_scroll.setWidgetResizable(True)
+        blocked_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        blocked_scroll.setStyleSheet("background-color: transparent; border: none;")
+        
+        # Blocked IPs container
         blocked_container = QWidget()
         blocked_container.setStyleSheet(f"""
             QWidget {{
@@ -2733,8 +2861,10 @@ class WatchdogDashboard(QMainWindow):
         header_row = QWidget()
         header_row.setStyleSheet(f"""
             QWidget {{
-                background-color: transparent;
+                background-color: {THEME['bg_card']};
                 border: none;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
             }}
         """)
         header_row_layout = QHBoxLayout(header_row)
@@ -2750,8 +2880,7 @@ class WatchdogDashboard(QMainWindow):
         header_row_layout.addWidget(desc_header, stretch=1)
         blocked_table_layout.addWidget(header_row)
         
-        # IP table widget (2 columns: IP Address, Description)
-        from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
+        # IP table widget
         self.blocked_ip_table = QTableWidget()
         self.blocked_ip_table.setColumnCount(2)
         self.blocked_ip_table.setHorizontalHeaderLabels(["IP Address", "Description"])
@@ -2772,11 +2901,14 @@ class WatchdogDashboard(QMainWindow):
                 color: white;
             }}
         """)
-        self.blocked_ip_table.horizontalHeader().setStretchLastSection(True)
-        self.blocked_ip_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.blocked_ip_table.setColumnWidth(0, 160)  # IP column - wider
+        
+        # Make table stretch
+        header = self.blocked_ip_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setStretchLastSection(True)
+        
         self.blocked_ip_table.verticalHeader().setVisible(False)
-        self.blocked_ip_table.horizontalHeader().setVisible(False)  # Hide table header, use custom row
+        self.blocked_ip_table.horizontalHeader().setVisible(False)
         self.blocked_ip_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.blocked_ip_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
@@ -2791,13 +2923,34 @@ class WatchdogDashboard(QMainWindow):
             self.blocked_ip_table.setItem(i, 0, QTableWidgetItem(ip))
             self.blocked_ip_table.setItem(i, 1, QTableWidgetItem(desc))
         
-        blocked_table_layout.addWidget(self.blocked_ip_table)
-        left_layout.addWidget(blocked_container, stretch=1)
-        left_layout.addStretch()
+        blocked_table_layout.addWidget(self.blocked_ip_table, stretch=1)
+        blocked_scroll.setWidget(blocked_container)
+        left_layout.addWidget(blocked_scroll, stretch=1)
         
-        # RIGHT SECTION
+        # Unblock button
+        unblock_btn = QPushButton("Unblock Selected")
+        unblock_btn.setFixedHeight(40)
+        unblock_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['danger']};
+                border: 2px solid {THEME['danger']};
+                border-radius: 8px;
+                font-family: {THEME['font_mono']};
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 107, 107, 0.2);
+            }}
+        """)
+        unblock_btn.clicked.connect(self.unblock_selected_ip)
+        left_layout.addWidget(unblock_btn)
+        
+        # RIGHT SECTION - Controls (fixed width)
         right_section = QWidget()
-        right_section.setFixedWidth(350)
+        right_section.setMinimumWidth(300)
+        right_section.setMaximumWidth(400)
         right_layout = QVBoxLayout(right_section)
         right_layout.setSpacing(15)
         right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -2841,7 +2994,7 @@ class WatchdogDashboard(QMainWindow):
             QSlider::groove:horizontal {
                 height: 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #6BCF7F, stop:0.5 #FFD93D, stop:1 #FF6B6B);
+                    stop:0 #FF6B6B, stop:0.5 #FFD93D, stop:1 #6BCF7F);
                 border-radius: 4px;
             }
             QSlider::handle:horizontal {
@@ -2867,7 +3020,7 @@ class WatchdogDashboard(QMainWindow):
         self.aggressive_btn = QPushButton("Aggressive")
         self.aggressive_btn.setCheckable(True)
         
-        for btn, color in [(self.relaxed_btn, "#6BCF7F"), (self.balanced_btn, "#FFD93D"), (self.aggressive_btn, "#FF6B6B")]:
+        for btn, color in [(self.relaxed_btn, "#FF6B6B"), (self.balanced_btn, "#FFD93D"), (self.aggressive_btn, "#6BCF7F")]:
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: transparent;
@@ -2890,7 +3043,7 @@ class WatchdogDashboard(QMainWindow):
         buttons_layout.addWidget(self.aggressive_btn)
         confidence_layout.addLayout(buttons_layout)
         
-        # Connect button clicks to set slider values
+        # Connect button clicks
         self.relaxed_btn.clicked.connect(lambda: self.confidence_slider.setValue(25))
         self.balanced_btn.clicked.connect(lambda: self.confidence_slider.setValue(50))
         self.aggressive_btn.clicked.connect(lambda: self.confidence_slider.setValue(75))
@@ -2952,7 +3105,7 @@ class WatchdogDashboard(QMainWindow):
                 }}
             """)
             if i == len(stats_data) - 1:
-                row.setStyleSheet("")  # No border for last row
+                row.setStyleSheet("")
             
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(15, 12, 15, 12)
@@ -2971,31 +3124,11 @@ class WatchdogDashboard(QMainWindow):
         right_layout.addWidget(stats_container)
         right_layout.addStretch()
         
-        # Unblock button (at bottom)
-        unblock_btn = QPushButton("Unblock Selected")
-        unblock_btn.setFixedHeight(40)
-        unblock_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {THEME['danger']};
-                border: 2px solid {THEME['danger']};
-                border-radius: 8px;
-                font-family: {THEME['font_mono']};
-                font-size: 14px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: rgba(255, 107, 107, 0.2);
-            }}
-        """)
-        unblock_btn.clicked.connect(self.unblock_selected_ip)
-        right_layout.addWidget(unblock_btn)
-        
+        # Add sections to split layout with stretch factors
         split_layout.addWidget(left_section, stretch=2)
         split_layout.addWidget(right_section, stretch=1)
         
-        content_layout.addLayout(split_layout)
-        main_layout.addWidget(content_container)
+        main_layout.addLayout(split_layout, stretch=1)
         
         self.page_container.addWidget(shield_page)
         
@@ -3052,11 +3185,11 @@ class WatchdogDashboard(QMainWindow):
         
         # Update label color based on threshold value
         if value < 33:
-            color = "#6BCF7F"  # Green for relaxed (low value)
+            color = "#FF6B6B"  # Red for relaxed (low value)
         elif value < 66:
             color = "#FFD93D"  # Yellow for balanced
         else:
-            color = "#FF6B6B"  # Red for aggressive (high value)
+            color = "#6BCF7F"  # Green for aggressive (high value)
         
         self.confidence_label.setStyleSheet(f"color: {color}; font-family: {THEME['font_mono']}; font-weight: bold;")
         
@@ -3273,7 +3406,8 @@ class WatchdogDashboard(QMainWindow):
 
         # RIGHT SIDE - Live Diagnostics (30%)
         diagnostics_container = QFrame()
-        diagnostics_container.setFixedWidth(400)
+        diagnostics_container.setMinimumWidth(250)
+        diagnostics_container.setMaximumWidth(350)
         diagnostics_container.setStyleSheet(f"""
             QFrame {{
                 background: {THEME['bg_card']};
@@ -4350,6 +4484,133 @@ Need specific firewall configuration guidance for your environment?"""
         # Quit the application
         QApplication.quit()
         event.accept()
+
+    def create_settings_page(self):
+        """Create Settings & Privacy page with toast notification testing"""
+        settings_page = QWidget()
+        settings_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+        
+        main_layout = QVBoxLayout(settings_page)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(30)
+        
+        # Header
+        header = QLabel("SETTINGS & PRIVACY")
+        header.setFont(QFont(THEME['font_mono'].strip("'"), 28))
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        main_layout.addWidget(header)
+        
+        # Subtitle
+        subtitle = QLabel("Configure Ollama and ensure alignment with NZ Privacy Act 2020 principles")
+        subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; margin-bottom: 30px;")
+        main_layout.addWidget(subtitle)
+        
+        # Toast Notification Testing Section
+        toast_section = QWidget()
+        toast_section.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 12px;
+                padding: 20px;
+            }}
+        """)
+        toast_layout = QVBoxLayout(toast_section)
+        
+        toast_title = QLabel("🍞 Toast Notification Testing")
+        toast_title.setFont(QFont(THEME['font_mono'].strip("'"), 18))
+        toast_title.setStyleSheet(f"color: {THEME['text_primary']}; margin-bottom: 15px;")
+        toast_layout.addWidget(toast_title)
+        
+        toast_desc = QLabel("Test the toast notification system with different message types:")
+        toast_desc.setStyleSheet(f"color: {THEME['text_secondary']}; font-size: 12px; margin-bottom: 15px;")
+        toast_layout.addWidget(toast_desc)
+        
+        # Test buttons
+        btn_layout = QHBoxLayout()
+        
+        # Info toast button (Electric Blue)
+        info_btn = QPushButton("Test Info Toast")
+        info_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['primary']};
+                border: 2px solid {THEME['primary']};
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(0, 180, 216, 0.2);
+            }}
+        """)
+        info_btn.clicked.connect(lambda: self.show_toast("System Update", "Dashboard refreshed successfully", "info"))
+        btn_layout.addWidget(info_btn)
+        
+        # Block toast button (Red)
+        block_btn = QPushButton("Test Block Toast")
+        block_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['danger']};
+                border: 2px solid {THEME['danger']};
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 107, 107, 0.2);
+            }}
+        """)
+        block_btn.clicked.connect(lambda: self.show_toast("IP Blocked", "192.168.1.100 has been added to block list", "block"))
+        btn_layout.addWidget(block_btn)
+        
+        # Multiple toasts button
+        multi_btn = QPushButton("Test Multiple Toasts")
+        multi_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['warning']};
+                border: 2px solid {THEME['warning']};
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 159, 67, 0.2);
+            }}
+        """)
+        multi_btn.clicked.connect(self.test_multiple_toasts)
+        btn_layout.addWidget(multi_btn)
+        
+        toast_layout.addLayout(btn_layout)
+        main_layout.addWidget(toast_section)
+        
+        # Add some spacing
+        main_layout.addStretch()
+        
+        self.page_container.addWidget(settings_page)
+
+    def show_toast(self, title, message, type='info'):
+        """Show a toast notification"""
+        if not self.toast:
+            self.toast = ToastNotification(self)
+        self.toast.show_message(title, message, type)
+
+    def test_multiple_toasts(self):
+        """Test showing multiple toast notifications"""
+        self.show_toast("First Notification", "This is the first toast message", "info")
+        QTimer.singleShot(500, lambda: self.show_toast("Second Notification", "This is the second toast message", "block"))
+        QTimer.singleShot(1000, lambda: self.show_toast("Third Notification", "This is the third toast message", "info"))
 
 
 if __name__ == "__main__":
