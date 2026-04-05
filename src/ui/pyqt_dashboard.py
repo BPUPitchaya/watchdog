@@ -297,8 +297,8 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(ai_mentor.create())
         
         # Page 4: Network Topology
-        network_topology = NetworkTopologyPage(self)
-        self.page_container.addWidget(network_topology.create())
+        self.network_topology = NetworkTopologyPage(self)
+        self.page_container.addWidget(self.network_topology.create())
         
         # Page 5: Settings & Privacy
         settings_page = SettingsPage(self)
