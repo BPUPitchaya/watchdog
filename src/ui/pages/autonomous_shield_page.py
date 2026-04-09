@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
     QTableWidgetItem, QPushButton, QScrollArea, QFrame, QHeaderView,
-    QSlider, QMessageBox
+    QSlider, QMessageBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -254,6 +254,83 @@ class AutonomousShieldPage:
         self.aggressive_btn.clicked.connect(lambda: self.confidence_slider.setValue(75))
         
         right_layout.addWidget(confidence_container)
+        
+        # Blocking Statistics Table
+        stats_title = QLabel("Blocking Statistics")
+        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        stats_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        stats_title.setStyleSheet(f"color: {THEME['warning']};")
+        right_layout.addWidget(stats_title)
+        
+        # Stats container
+        stats_container = QWidget()
+        stats_container.setMinimumHeight(250)
+        stats_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        stats_layout = QVBoxLayout(stats_container)
+        stats_layout.setSpacing(10)
+        stats_layout.setContentsMargins(15, 15, 15, 15)
+        
+        # Statistics table
+        self.stats_table = QTableWidget()
+        self.stats_table.setColumnCount(2)
+        self.stats_table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: transparent;
+                border: none;
+                font-family: {THEME['font_mono']};
+                font-size: 13px;
+                color: {THEME['text_primary']};
+            }}
+            QTableWidget::item {{
+                padding: 8px 12px;
+                border-bottom: 1px solid {THEME['border']};
+            }}
+        """)
+        
+        # Make columns stretch
+        stats_header = self.stats_table.horizontalHeader()
+        stats_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        stats_header.setStretchLastSection(True)
+        
+        self.stats_table.verticalHeader().setVisible(False)
+        self.stats_table.horizontalHeader().setVisible(False)
+        self.stats_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.stats_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        
+        # Statistics data - matching hi-fi
+        stats_data = [
+            ("Total Blocked", "4"),
+            ("Auto Blocked", "4"),
+            ("Manual Blocked", "0"),
+        ]
+        self.stats_table.setRowCount(len(stats_data))
+        for i, (metric, count) in enumerate(stats_data):
+            metric_item = QTableWidgetItem(metric)
+            count_item = QTableWidgetItem(count)
+            count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.stats_table.setItem(i, 0, metric_item)
+            self.stats_table.setItem(i, 1, count_item)
+        
+        # Set row heights - fill the container completely
+        for i in range(len(stats_data)):
+            self.stats_table.setRowHeight(i, 60)
+        
+        # Disable scrollbars completely
+        self.stats_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.stats_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Make table expand to fill container
+        self.stats_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        stats_layout.addWidget(self.stats_table, stretch=1)
+        right_layout.addWidget(stats_container)
         right_layout.addStretch()
         
         # Add sections to split layout with stretch factors
@@ -267,6 +344,22 @@ class AutonomousShieldPage:
         self.dashboard.manual_block_count = 0
         
         return shield_page
+        
+    def update_shield_statistics(self):
+        """Update the statistics table with current values."""
+        # This can be called from the main dashboard to refresh stats
+        stats_data = [
+            ("Total Blocked", str(len(self.dashboard.blocked_ips))),
+            ("Auto Blocked", str(len(self.dashboard.blocked_ips) - self.dashboard.manual_block_count)),
+            ("Manual Blocked", str(self.dashboard.manual_block_count)),
+        ]
+        self.stats_table.setRowCount(len(stats_data))
+        for i, (metric, count) in enumerate(stats_data):
+            metric_item = QTableWidgetItem(metric)
+            count_item = QTableWidgetItem(count)
+            count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.stats_table.setItem(i, 0, metric_item)
+            self.stats_table.setItem(i, 1, count_item)
         
     def _unblock_selected_ip(self):
         """Unblock the selected IP from the table."""

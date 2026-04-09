@@ -288,9 +288,9 @@ class WatchdogDashboard(QMainWindow):
         self.vault_search = forensic_vault.vault_search
         
         # Page 2: Autonomous Shield
-        shield_page = AutonomousShieldPage(self)
-        self.page_container.addWidget(shield_page.create())
-        self.blocked_ip_table = shield_page.blocked_ip_table
+        self.shield_page = AutonomousShieldPage(self)
+        self.page_container.addWidget(self.shield_page.create())
+        self.blocked_ip_table = self.shield_page.blocked_ip_table
         
         # Page 3: AI Mentor
         ai_mentor = AIMentorPage(self)
@@ -783,7 +783,7 @@ class WatchdogDashboard(QMainWindow):
                     self.blocked_list_widget.addItem(f"{ip_address} - {description}")
             
             # Update statistics
-            self.update_shield_statistics()
+            self.shield_page.update_shield_statistics()
             
             # Show confirmation
             QMessageBox.information(self, "IP Blocked", 
