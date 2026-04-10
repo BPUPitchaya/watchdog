@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 
 from src.ui.theme import THEME
 
 
 class ForensicAssistantPanel(QWidget):
     """AI chat panel for forensic analysis"""
-    def __init__(self, parent=None):
+    def __init__(self, dashboard=None, parent=None):
         super().__init__(parent)
+        self.dashboard = dashboard
         self.setMinimumSize(300, 400)
         self.setup_ui()
         
@@ -99,7 +100,23 @@ class ForensicAssistantPanel(QWidget):
         
     def send_message(self):
         text = self.input_field.text().strip()
-        if text:
+        if not text:
+            return
+        self.input_field.clear()
+        
+        # Use shared conversation if dashboard available
+        if self.dashboard:
+            self.dashboard.add_chat_message("user", text)
+            # Simulate AI response
+            QTimer.singleShot(1000, lambda: self._send_ai_response(text))
+        else:
+            # Fallback: just update local chat
             self.chat_area.append(f"<b>You:</b> {text}")
             self.chat_area.append(f"<b><span style='color: {THEME['primary']}'>AI:</span></b> I'm analyzing the packet data...")
-            self.input_field.clear()
+    
+    def _send_ai_response(self, user_text):
+        """Send AI response through shared conversation using process_command."""
+        if self.dashboard:
+            # Use process_command to get proper response based on keywords
+            response = self.dashboard.process_command(user_text)
+            self.dashboard.add_chat_message("ai", response)

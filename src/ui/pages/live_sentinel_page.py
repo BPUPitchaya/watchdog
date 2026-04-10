@@ -74,7 +74,8 @@ class LiveSentinelPage:
         cards_layout.addWidget(traffic_card)
         
         # Risk Analysis Card
-        risk_card = self._create_metric_card("Risk Analysis", RiskAnalysisGauge())
+        self.right_gauge = RiskAnalysisGauge()
+        risk_card = self._create_metric_card("Risk Analysis", self.right_gauge)
         cards_layout.addWidget(risk_card)
         
         main_layout.addLayout(cards_layout)
@@ -88,7 +89,7 @@ class LiveSentinelPage:
         bottom_layout.addWidget(table_container, stretch=2)
         
         # Right side: Forensic Assistant Panel
-        self.forensic_panel = ForensicAssistantPanel()
+        self.forensic_panel = ForensicAssistantPanel(dashboard=self.dashboard)
         bottom_layout.addWidget(self.forensic_panel, stretch=1)
         
         main_layout.addLayout(bottom_layout, stretch=1)

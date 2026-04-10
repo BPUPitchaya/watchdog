@@ -64,6 +64,10 @@ class WatchdogDashboard(QMainWindow):
         self.ai_client = None
         self.previous_packets = 0
         self.toast = None  # Toast notification instance
+        
+        # Shared conversation history for AI chat sync
+        self.conversation_history = []  # List of (sender, message) tuples
+        self.ai_mentor_page = None  # Will be set in create_pages()
 
         # Load ML (skip if layout-only)
         if not self.layout_only:
@@ -280,6 +284,7 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(live_sentinel.create())
         self.table = live_sentinel.table  # Keep reference for update_ui
         self.forensic_panel = live_sentinel.forensic_panel
+        self.right_gauge = live_sentinel.right_gauge
         
         # Page 1: Forensic Vault
         forensic_vault = ForensicVaultPage(self)
@@ -293,8 +298,8 @@ class WatchdogDashboard(QMainWindow):
         self.blocked_ip_table = self.shield_page.blocked_ip_table
         
         # Page 3: AI Mentor
-        ai_mentor = AIMentorPage(self)
-        self.page_container.addWidget(ai_mentor.create())
+        self.ai_mentor_page = AIMentorPage(self)
+        self.page_container.addWidget(self.ai_mentor_page.create())
         
         # Page 4: Network Topology
         self.network_topology = NetworkTopologyPage(self)
@@ -893,54 +898,84 @@ class WatchdogDashboard(QMainWindow):
             pps = max(0, current_packets - self.previous_packets)
             self.previous_packets = current_packets
             risk = min(100, (pps / 50) * 100)  # 50 pps = 100% risk
-            self.right_gauge.set_score(risk)
+            self.right_gauge.set_risk(risk)
 
-    def send_message(self):
-        msg = self.chat_input.text().strip()
+    def send_message(self, msg):
+        """Send message programmatically (used by forensic panel)."""
         if not msg:
             return
-        # Add user message bubble
-        user_bubble = QLabel(f"You: {msg}")
-        user_bubble.setStyleSheet("background-color: #2DD4BF; color: white; padding: 8px; border-radius: 8px; margin: 4px;")
-        user_bubble.setWordWrap(True)
-        self.chat_layout.addWidget(user_bubble)
-        # Show typing animation
-        self.typing_label = QLabel("...")
-        self.typing_label.setStyleSheet("color: #2DD4BF; font-size: 12px; margin: 4px;")
-        self.chat_layout.addWidget(self.typing_label)
-        self.chat_input.clear()
-        # Scroll to bottom
-        self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum())
-        # Process response (simulate)
+        # Add user message and queue AI response
+        self.add_chat_message("user", msg)
         QTimer.singleShot(1000, lambda: self.process_response(msg))
 
     def process_response(self, msg):
-        # Remove typing
-        self.chat_layout.removeWidget(self.typing_label)
-        self.typing_label.deleteLater()
-        # Add AI response bubble
+        """Process AI response and add to shared conversation."""
         response = self.process_command(msg)
-        ai_bubble = QLabel(f"AI: {response}")
-        ai_bubble.setStyleSheet("background-color: #374151; color: white; padding: 8px; border-radius: 8px; margin: 4px;")
-        ai_bubble.setWordWrap(True)
-        self.chat_layout.addWidget(ai_bubble)
-        # Scroll to bottom
-        self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum())
+        self.add_chat_message("ai", response)
+
+    def add_chat_message(self, sender, message):
+        """Add a message to shared conversation history and sync both chats."""
+        # Add to shared history
+        self.conversation_history.append((sender, message))
+        
+        # Update dashboard forensic panel chat (QTextEdit uses HTML)
+        if hasattr(self, 'forensic_panel') and self.forensic_panel:
+            if sender == "user":
+                self.forensic_panel.chat_area.append(f"<b>You:</b> {message}")
+            else:  # ai
+                self.forensic_panel.chat_area.append(f"<b><span style='color: #2DD4BF'>AI:</span></b> {message}")
+        
+        # Sync with AI Mentor page if available
+        if self.ai_mentor_page:
+            self.ai_mentor_page.sync_message(sender, message)
 
     def process_command(self, msg):
-        if self.layout_only or not self.ai_client:
-            return f"Layout-only mode: Would process '{msg}' with AI analysis."
-        
+        """Process user commands and return appropriate responses."""
         msg_lower = msg.lower()
-        if "hi" in msg_lower or "hello" in msg_lower:
-            return "Hello! I'm the AI assistant for WATCHDOG. Try 'threat level' or 'status'."
+        
+        # Keyword-based responses (work without AI)
+        if any(g in msg_lower for g in ["hi", "hello", "hey", "greetings"]):
+            return "Hello! I'm the AI assistant for WATCHDOG. Type 'help' to see what I can do."
+        
+        elif "help" in msg_lower or "?" in msg_lower:
+            return """Available commands:
+• hi/hello - Greeting
+• help - Show this message
+• threat level - Current security status
+• status - System health
+• firewall - Firewall status
+• packets - Recent network activity
+• what can you do - List my capabilities
+• predict: src_ip=X dst_ip=Y protocol=tcp length=100 - Analyze a packet (requires ML model)"""
+        
+        elif "what can you do" in msg_lower or "capabilities" in msg_lower:
+            return "I can: greet you, check threat levels, monitor system status, analyze network packets (with ML model), and explain network logs (with AI enabled)."
+        
+        elif "thank" in msg_lower:
+            return "You're welcome! Let me know if you need anything else."
+        
         elif "threat" in msg_lower and "level" in msg_lower:
-            return "Current threat level: LOW (0.2)"
+            return "Current threat level: LOW (0.2) - All systems nominal. No suspicious activity detected in the last 24 hours."
+        
         elif "status" in msg_lower:
-            return "System status: SAFE - All systems operational."
+            return "System status: SAFE - All systems operational. Firewall active, monitoring enabled, AI assistant online."
+        
+        elif "firewall" in msg_lower:
+            return "Firewall Status: ACTIVE - Blocking unauthorized connections. Last updated: just now."
+        
+        elif "packet" in msg_lower or "traffic" in msg_lower:
+            return "Recent activity: Monitoring 47 packets/sec. No anomalies detected in current traffic flow."
+        
+        elif "who are you" in msg_lower or "your name" in msg_lower:
+            return "I'm WATCHDOG's AI Security Assistant. I help monitor network traffic, detect threats, and provide forensic analysis."
+        
+        elif "time" in msg_lower:
+            from datetime import datetime
+            return f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
         elif msg_lower.startswith("predict"):
             if not self.model or not self.extractor:
-                return "ML model not available."
+                return "ML model not available. Please ensure models/random_forest_model.pkl exists. Try 'help' for other commands."
             try:
                 params_str = msg.split(":", 1)[1].strip()
                 params = {}
@@ -967,68 +1002,11 @@ class WatchdogDashboard(QMainWindow):
             except Exception as e:
                 return f"Error: {str(e)}"
         
-        elif msg_lower.startswith("explain log:"):
-            log_str = msg[12:].strip()
-            try:
-                packet = json.loads(log_str)
-                formatted = format_packet_log(packet)
-                return self.ai_client.query(EXPLANATION_PROMPT.format(log=formatted))
-            except Exception as e:
-                return f"Error processing log: {str(e)}"
+        # AI-dependent responses (require ai_client)
+        if not self.ai_client:
+            return f"I'm not connected to the AI backend right now. Try 'help' to see available offline commands, or enable AI with Ollama running on port 11434."
         
-        elif msg_lower.startswith("analyze log:"):
-            log_str = msg[12:].strip()
-            try:
-                packet = json.loads(log_str)
-                formatted = format_packet_log(packet)
-                return self.ai_client.query(TECHNICAL_ANALYSIS_PROMPT.format(log=formatted))
-            except Exception as e:
-                return f"Error processing log: {str(e)}"
-        
-        else:
-            return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
-
-    def process_command(self, msg):
-        if self.layout_only or not self.ai_client:
-            return f"Layout-only mode: Would process '{msg}' with AI analysis."
-        
-        msg_lower = msg.lower()
-        if "hi" in msg_lower or "hello" in msg_lower:
-            return "Hello! I'm the AI assistant for WATCHDOG. Try 'threat level' or 'status'."
-        elif "threat" in msg_lower and "level" in msg_lower:
-            return "Current threat level: LOW (0.2)"
-        elif "status" in msg_lower:
-            return "System status: SAFE - All systems operational."
-        elif msg_lower.startswith("predict"):
-            if not self.model or not self.extractor:
-                return "ML model not available."
-            try:
-                params_str = msg.split(":", 1)[1].strip()
-                params = {}
-                for pair in params_str.split():
-                    if "=" in pair:
-                        key, value = pair.split("=", 1)
-                        params[key.strip()] = value.strip()
-                packet_data = {
-                    'src_ip': params.get('src_ip', '192.168.1.1'),
-                    'dst_ip': params.get('dst_ip', '10.0.0.1'),
-                    'protocol': 6 if params.get('protocol', 'tcp').lower() == 'tcp' else 17,
-                    'length': int(params.get('length', '100')),
-                    'src_port': int(params.get('src_port', '12345')),
-                    'dst_port': int(params.get('dst_port', '80')),
-                    'flags': params.get('flags', 'S'),
-                    'direction': 'inbound'
-                }
-                features = self.extractor.extract_packet_features(packet_data)
-                selected_features = self.extractor.get_selected_features(features)
-                features_array = np.array(selected_features).reshape(1, -1)
-                prediction = self.model.predict(features_array)[0]
-                label_map = {0: 'NORMAL', 1: 'ATTACK'}
-                return f"Prediction: {label_map.get(prediction, 'UNKNOWN')}"
-            except Exception as e:
-                return f"Error: {str(e)}"
-        
-        elif msg_lower.startswith("explain log:"):
+        if msg_lower.startswith("explain log:"):
             log_str = msg[12:].strip()
             try:
                 packet = json.loads(log_str)

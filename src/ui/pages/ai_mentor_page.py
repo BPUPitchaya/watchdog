@@ -221,25 +221,18 @@ Analyzed: 1,247 packets""")
         msg = self.mentor_input.text().strip()
         if not msg:
             return
-            
-        # Add user message bubble
-        user_bubble = QLabel(f"You: {msg}")
-        user_bubble.setStyleSheet(f"""
-            background-color: {THEME['primary']};
-            color: {THEME['bg_dark']};
-            padding: 10px;
-            border-radius: 8px;
-            margin: 4px;
-            font-family: {THEME['font_mono']};
-        """)
-        user_bubble.setWordWrap(True)
-        self.mentor_chat_layout.addWidget(user_bubble)
         
-        # Clear input
+        # Clear input first
         self.mentor_input.clear()
         
-        # Simulate AI response
-        self._add_ai_response(f"AI Mentor: I understand you're asking about '{msg}'. In a full implementation, Llama 4 Scout would provide detailed security analysis and guidance based on your query.")
+        # Add to shared conversation history (this syncs both chats)
+        self.dashboard.add_chat_message("user", msg)
+        
+        # Use process_command to get proper response
+        ai_response = self.dashboard.process_command(msg)
+        
+        # Add AI response to shared history
+        self.dashboard.add_chat_message("ai", ai_response)
         
         # Scroll to bottom
         self.mentor_chat_area.verticalScrollBar().setValue(
@@ -259,3 +252,37 @@ Analyzed: 1,247 packets""")
         """)
         ai_bubble.setWordWrap(True)
         self.mentor_chat_layout.addWidget(ai_bubble)
+        
+    def sync_message(self, sender, message):
+        """Sync a message from the shared conversation history to this chat."""
+        if sender == "user":
+            # Add user message bubble with "You" prefix
+            user_bubble = QLabel(f"You: {message}")
+            user_bubble.setStyleSheet(f"""
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+                padding: 10px;
+                border-radius: 8px;
+                margin: 4px;
+                font-family: {THEME['font_mono']};
+            """)
+            user_bubble.setWordWrap(True)
+            self.mentor_chat_layout.addWidget(user_bubble)
+        else:  # ai
+            # Add AI response bubble
+            ai_bubble = QLabel(f"AI Mentor: {message}")
+            ai_bubble.setStyleSheet(f"""
+                background-color: {THEME['bg_card']};
+                color: {THEME['text_primary']};
+                padding: 10px;
+                border-radius: 8px;
+                margin: 4px;
+                font-family: {THEME['font_mono']};
+            """)
+            ai_bubble.setWordWrap(True)
+            self.mentor_chat_layout.addWidget(ai_bubble)
+        
+        # Scroll to bottom
+        self.mentor_chat_area.verticalScrollBar().setValue(
+            self.mentor_chat_area.verticalScrollBar().maximum()
+        )
