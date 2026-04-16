@@ -21,25 +21,19 @@ class ToastNotification(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Size and position
-        self.setFixedSize(320, 100)
+        self.setFixedSize(300, 75)
         
-        # Layout
+        # Layout - compact merged design
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(16, 12, 16, 12)
-        self.layout.setSpacing(4)
-        
-        # Title label
-        self.title_label = QLabel()
-        self.title_label.setFont(QFont(THEME['font_mono'].strip("'"), 12, QFont.Weight.Bold))
-        self.title_label.setStyleSheet(f"color: {THEME['text_primary']};")
-        self.layout.addWidget(self.title_label)
-        
-        # Message label
-        self.message_label = QLabel()
-        self.message_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        self.message_label.setStyleSheet(f"color: {THEME['text_secondary']};")
-        self.message_label.setWordWrap(True)
-        self.layout.addWidget(self.message_label)
+        self.layout.setContentsMargins(14, 10, 14, 10)
+        self.layout.setSpacing(0)
+
+        # Single merged content label with HTML formatting
+        self.content_label = QLabel()
+        self.content_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        self.content_label.setWordWrap(True)
+        self.content_label.setOpenExternalLinks(False)
+        self.layout.addWidget(self.content_label)
         
         # Animation objects
         self.slide_animation = QPropertyAnimation(self, b"geometry")
@@ -70,28 +64,45 @@ class ToastNotification(QWidget):
         else:
             self.current_border_color = THEME['primary']  # Electric Blue
         
-        # Update content
-        self.title_label.setText(title)
-        self.message_label.setText(message)
-        
-        # Apply styling with border
-        self.setStyleSheet(f"""
-            QWidget {{
-                background-color: rgba(13, 31, 53, 0.95);
-                border: 2px solid {self.current_border_color};
-                border-radius: 12px;
-            }}
+        # Update content with merged HTML styling
+        color = self.current_border_color
+        self.content_label.setText(f"""
+            <p style="margin: 0; line-height: 1.4;">
+                <span style="color: {color}; font-weight: bold;">{title}</span><br>
+                <span style="color: {THEME['text_secondary']}; font-size: 10px;">{message}</span>
+            </p>
         """)
         
-        # Position at bottom-right of screen
-        screen = QApplication.primaryScreen().geometry()
-        end_x = screen.width() - self.width() - 20
-        end_y = screen.height() - self.height() - 20
-        start_x = end_x
-        start_y = screen.height() + 50  # Start below screen
+        # Apply styling
+        if type == 'block':
+            bg_color = "rgba(139, 0, 0, 0.95)"
+        else:
+            bg_color = "rgba(13, 31, 53, 0.98)"
+
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {bg_color};
+                border: 2px solid {self.current_border_color};
+                border-radius: 8px;
+            }}
+            QLabel {{
+                background: transparent;
+            }}
+        """)
+       
+        
+        # Get screen dimensions
+        screen = QApplication.screens()[0]
+        screen_width = screen.availableGeometry().width()
+        screen_height = screen.availableGeometry().height()
+        
+        # Calculate positions
+        end_x = screen_width - self.width() - 20
+        end_y = screen_height - self.height() - 20
+        start_y = screen_height + 50  # Start below screen
         
         # Set starting position (hidden)
-        self.setGeometry(start_x, start_y, self.width(), self.height())
+        self.setGeometry(end_x, start_y, self.width(), self.height())
         self.setWindowOpacity(1.0)
         
         # Show the toast
@@ -103,7 +114,7 @@ class ToastNotification(QWidget):
         self.slide_animation.start()
         
         # Start auto-hide timer (3 seconds)
-        self.hide_timer.start(3000)
+        self.hide_timer.start(5000)
     
     def hide_toast(self):
         """Fade out and hide the toast"""

@@ -887,6 +887,14 @@ class WatchdogDashboard(QMainWindow):
                     probabilities = self.model.predict_proba(features_array)[0]
                     confidence = max(probabilities) * 100
                     action = "NORMAL" if prediction == 0 else "ATTACK"
+                    if action == "ATTACK" and confidence > 0:
+                        src_ip = packet.get('src_ip', 'unknown')
+                        dst_ip = packet.get('dst_ip', 'unknown')
+                        self.show_toast (
+                            "THREAT DETECTED",
+                            f"Attack from {src_ip} to {dst_ip}\nConfidence: {confidence:.1f}%",
+                            "block"
+                        )
                     self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
                 else:
