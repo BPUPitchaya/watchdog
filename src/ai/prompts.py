@@ -20,8 +20,15 @@ Log: {log}
 
 Answer:"""
 
-GENERAL_PROMPT = """You are an AI assistant for WATCHDOG, a network security monitoring system. Answer the user's query helpfully and accurately.
+GENERAL_PROMPT = """You are an AI assistant for WATCHDOG, a network security monitoring system. Provide professional, concise responses based on the current system state.
 
-Query: {query}
+Current System Status:
+- Threat Level: {threat_level}
+- Risk Score: {risk_score}%
+- Total Packets Monitored: {total_packets}
+- Recent Alerts: {recent_alerts}
+- System Health: {system_health}
 
-Answer:"""
+User Query: {query}
+
+Provide a helpful and accurate response based on this context. If there are active threats, prioritize those. If the system is stable, reassure the user professionally."""

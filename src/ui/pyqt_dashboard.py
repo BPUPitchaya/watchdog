@@ -47,6 +47,29 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 
+class AIWorker(QThread):
+    """Worker thread for non-blocking AI queries with streaming."""
+    chunk = pyqtSignal(str, str)  # (chunk, full_response_so_far)
+    finished = pyqtSignal(str)     # Emits final AI response
+    error = pyqtSignal(str)      # Emits error message
+    
+    def __init__(self, ai_client, prompt):
+        super().__init__()
+        self.ai_client = ai_client
+        self.prompt = prompt
+    
+    def run(self):
+        try:
+            # Use streaming for real-time updates
+            def on_chunk(chunk, full):
+                self.chunk.emit(chunk, full)
+            
+            response = self.ai_client.query_stream(self.prompt, on_chunk)
+            self.finished.emit(response)
+        except Exception as e:
+            self.error.emit(f"AI Error: {str(e)}")
+
+
 class WatchdogDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -887,7 +910,7 @@ class WatchdogDashboard(QMainWindow):
                     probabilities = self.model.predict_proba(features_array)[0]
                     confidence = max(probabilities) * 100
                     action = "NORMAL" if prediction == 0 else "ATTACK"
-                    if action == "ATTACK" and confidence > 0:
+                    if action == "ATTACK" and confidence > 70:
                         src_ip = packet.get('src_ip', 'unknown')
                         dst_ip = packet.get('dst_ip', 'unknown')
                         self.show_toast (
@@ -942,31 +965,65 @@ class WatchdogDashboard(QMainWindow):
         msg_lower = msg.lower()
         
         # Keyword-based responses (work without AI)
-        if any(g in msg_lower for g in ["hi", "hello", "hey", "greetings"]):
+        import re
+        greeting_pattern = r'\b(hi|hello|hey|greetings)\b'
+        if re.search(greeting_pattern, msg_lower):
             return "Hello! I'm the AI assistant for WATCHDOG. Type 'help' to see what I can do."
         
         elif "help" in msg_lower or "?" in msg_lower:
-            return """Available commands:
+            return """Available Commands (AI-free mode):
+
+Basic:
 • hi/hello - Greeting
 • help - Show this message
-• threat level - Current security status
-• status - System health
+• time - Current time
+
+Security Status:
+• threat level - Current risk with live data
+• status - Full system health
+• dangerous/risk/warning - Quick safety check
+
+Information:
+• packets/traffic - Network activity summary
+• logs/history - Activity log overview
+• monitor - Monitoring capabilities
 • firewall - Firewall status
-• packets - Recent network activity
-• what can you do - List my capabilities
-• predict: src_ip=X dst_ip=Y protocol=tcp length=100 - Analyze a packet (requires ML model)"""
+• attack types - Common threats detected
+
+Advice (No AI needed):
+• prevent threats - Security best practices
+• tips/advice - Security recommendations
+• improve security - Quick wins for protection
+• secure my network - Actionable steps
+
+Analysis:
+• predict: src_ip=X dst_ip=Y protocol=tcp length=100 - ML packet analysis
+• what can you do - List capabilities
+
+Enable AI with Ollama on port 11434 for detailed analysis."""
         
         elif "what can you do" in msg_lower or "capabilities" in msg_lower:
-            return "I can: greet you, check threat levels, monitor system status, analyze network packets (with ML model), and explain network logs (with AI enabled)."
+            offline_features = [
+                "Real-time threat monitoring (Live Sentinel)",
+                "ML-based packet analysis",
+                "Security best practices and tips",
+                "Network traffic insights",
+                "System health reports",
+                "Attack type explanations"
+            ]
+            ai_features = "Detailed log analysis and natural language security explanations (with AI enabled)"
+            return f"Offline Features (no AI required):\n• " + "\n• ".join(offline_features) + f"\n\n{ai_features}\n\nType 'help' for all available commands."
         
         elif "thank" in msg_lower:
             return "You're welcome! Let me know if you need anything else."
         
         elif "threat" in msg_lower and "level" in msg_lower:
-            return "Current threat level: LOW (0.2) - All systems nominal. No suspicious activity detected in the last 24 hours."
+            context = self._get_system_context()
+            return f"Current threat level: {context['threat_level']} ({context['risk_score']:.1f}% risk)\n{context['system_health']}\nTotal packets monitored: {context['total_packets']:,}\n{context['recent_alerts']}"
         
         elif "status" in msg_lower:
-            return "System status: SAFE - All systems operational. Firewall active, monitoring enabled, AI assistant online."
+            context = self._get_system_context()
+            return f"System Status: {context['system_health']}\nThreat Level: {context['threat_level']}\nPackets Monitored: {context['total_packets']:,}\nAI Assistant: {'Online (with real-time context)' if self.ai_client else 'Offline'}"
         
         elif "firewall" in msg_lower:
             return "Firewall Status: ACTIVE - Blocking unauthorized connections. Last updated: just now."
@@ -980,6 +1037,94 @@ class WatchdogDashboard(QMainWindow):
         elif "time" in msg_lower:
             from datetime import datetime
             return f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # Comprehensive security advice responses (work without AI)
+        elif "prevent" in msg_lower and any(w in msg_lower for w in ["threat", "attack", "security", "protect"]):
+            context = self._get_system_context()
+            return f"""Security Best Practices:
+
+Current Status: {context['system_health']}
+
+Prevention Tips:
+1. Keep firewall ACTIVE (currently enabled)
+2. Monitor unusual traffic patterns ({context['recent_alerts']})
+3. Regular security audits ({context['total_packets']:,} packets analyzed)
+4. Block suspicious IPs (ML model: {'Active' if self.model else 'Offline'})
+
+Risk Level: {context['threat_level']} ({context['risk_score']:.1f}%)
+
+For detailed analysis, enable AI with Ollama running on port 11434."""
+        
+        elif any(w in msg_lower for w in ["tip", "advice", "recommend", "improve", "secure"]):
+            return """Network Security Recommendations:
+
+Quick Wins:
+• Use strong, unique passwords for all network devices
+• Enable WPA3 encryption on WiFi
+• Disable unused ports and services
+• Keep firmware/software updated
+• Enable automatic security patches
+
+Monitoring:
+• Review firewall logs weekly
+• Set up alerts for suspicious traffic
+• Check for unauthorized devices
+• Audit user access permissions
+
+Currently: ML threat detection {'active' if self.model else 'offline'}, monitoring enabled."""
+        
+        elif "dangerous" in msg_lower or "risk" in msg_lower or "warning" in msg_lower:
+            context = self._get_system_context()
+            if context['threat_level'] in ['HIGH', 'ELEVATED']:
+                return f"⚠️ ALERT: {context['recent_alerts']}\n\nRisk Score: {context['risk_score']:.1f}%\nStatus: {context['system_health']}\n\nRecommend immediate review of recent traffic. Check Settings > Flagged Incidents for details."
+            else:
+                return f"✅ System is currently safe. Risk Level: {context['threat_level']} ({context['risk_score']:.1f}%)\n\n{context['system_health']}\n\nContinue monitoring - no immediate threats detected."
+        
+        elif "attack" in msg_lower and "type" in msg_lower:
+            return """Common Attack Types Detected by WATCHDOG:
+
+1. Port Scanning - Systematic scanning of ports for vulnerabilities
+2. DDoS - Distributed Denial of Service traffic floods
+3. Malware C2 - Command & control communication attempts
+4. Brute Force - Repeated login/password attempts
+5. Suspicious Payloads - Unusual packet sizes or content
+6. IP Spoofing - Fake source addresses
+
+Current Detection: ML model {'active' if self.model else 'offline'}
+Check Live Sentinel > Flagged Incidents for detected threats."""
+        
+        elif "log" in msg_lower or "history" in msg_lower or "record" in msg_lower:
+            context = self._get_system_context()
+            return f"""Network Activity Log Summary:
+
+• Total Packets Monitored: {context['total_packets']:,}
+• Recent Alerts: {context['recent_alerts']}
+• Current Threat Level: {context['threat_level']}
+• System Status: {context['system_health']}
+
+View detailed logs:
+- Live Sentinel page: Real-time packet table
+- Forensic Vault: Flagged incidents and analysis
+- Settings: Export packet data
+
+For AI-powered log analysis, enable Ollama integration."""
+        
+        elif "monitor" in msg_lower or "watch" in msg_lower:
+            return """WATCHDOG Monitoring Capabilities:
+
+Active Monitoring:
+✓ Real-time packet capture and analysis
+✓ ML-based threat detection ({'enabled' if self.model else 'disabled'})
+✓ Risk score calculation (0-100%)
+✓ Automated toast alerts for threats
+✓ Network traffic visualization
+
+Dashboard Views:
+- Live Sentinel: Current traffic + threat gauge
+- Forensic Vault: Historical incidents
+- Network Topology: Device monitoring
+
+Auto-refresh: Every 2 seconds"""
         
         elif msg_lower.startswith("predict"):
             if not self.model or not self.extractor:
@@ -1014,12 +1159,17 @@ class WatchdogDashboard(QMainWindow):
         if not self.ai_client:
             return f"I'm not connected to the AI backend right now. Try 'help' to see available offline commands, or enable AI with Ollama running on port 11434."
         
+        # Check if there's already an AI query running
+        if hasattr(self, '_ai_worker') and self._ai_worker and self._ai_worker.isRunning():
+            return "⏳ I'm still processing your previous question. Please wait..."
+        
         if msg_lower.startswith("explain log:"):
             log_str = msg[12:].strip()
             try:
                 packet = json.loads(log_str)
                 formatted = format_packet_log(packet)
-                return self.ai_client.query(EXPLANATION_PROMPT.format(log=formatted))
+                self._start_ai_query(EXPLANATION_PROMPT.format(log=formatted))
+                return "__AI_PROCESSING__"  # Signal that we're handling this async
             except Exception as e:
                 return f"Error processing log: {str(e)}"
         
@@ -1028,12 +1178,148 @@ class WatchdogDashboard(QMainWindow):
             try:
                 packet = json.loads(log_str)
                 formatted = format_packet_log(packet)
-                return self.ai_client.query(TECHNICAL_ANALYSIS_PROMPT.format(log=formatted))
+                self._start_ai_query(TECHNICAL_ANALYSIS_PROMPT.format(log=formatted))
+                return "__AI_PROCESSING__"
             except Exception as e:
                 return f"Error processing log: {str(e)}"
         
         else:
-            return self.ai_client.query(GENERAL_PROMPT.format(query=msg))
+            # Gather real-time system context for AI
+            context = self._get_system_context()
+            prompt = GENERAL_PROMPT.format(
+                query=msg,
+                threat_level=context['threat_level'],
+                risk_score=context['risk_score'],
+                total_packets=context['total_packets'],
+                recent_alerts=context['recent_alerts'],
+                system_health=context['system_health']
+            )
+            self._start_ai_query(prompt)
+            return "__AI_PROCESSING__"
+    
+    def _get_system_context(self):
+        """Gather current system state for AI context (fast, no ML predictions)."""
+        context = {
+            'threat_level': 'LOW',
+            'risk_score': 0,
+            'total_packets': 0,
+            'recent_alerts': 'None',
+            'system_health': 'Operational'
+        }
+        
+        # Get packet count from file (fast)
+        try:
+            with open('packet_data.json', 'r') as f:
+                data = json.load(f)
+            context['total_packets'] = data.get('packet_count', 0)
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        
+        # Count attacks from table widget (fast, already calculated)
+        attack_count = 0
+        if hasattr(self, 'table'):
+            row_count = min(self.table.rowCount(), 20)  # Check last 20 visible rows
+            for i in range(row_count):
+                action_item = self.table.item(i, 5)  # Action column
+                if action_item and action_item.text() == "ATTACK":
+                    attack_count += 1
+        
+        if attack_count > 0:
+            context['threat_level'] = 'ELEVATED' if attack_count < 3 else 'HIGH'
+            context['recent_alerts'] = f"{attack_count} threats in recent traffic"
+        
+        # Get risk score from gauge (fast)
+        if hasattr(self, 'right_gauge') and hasattr(self.right_gauge, 'current_value'):
+            context['risk_score'] = round(self.right_gauge.current_value, 1)
+        
+        # Determine system health
+        if context['risk_score'] > 70:
+            context['system_health'] = 'CRITICAL - Immediate attention required'
+        elif context['risk_score'] > 40:
+            context['system_health'] = 'WARNING - Elevated risk detected'
+        elif context['risk_score'] > 0:
+            context['system_health'] = 'CAUTION - Minor anomalies'
+        else:
+            context['system_health'] = 'NOMINAL - All systems operational'
+        
+        return context
+
+    def _start_ai_query(self, prompt):
+        """Start async AI query with streaming."""
+        # Initialize streaming state
+        self._streaming_buffer = ""
+        self._streaming_msg_cursor = None  # QTextCursor for efficient updates
+        
+        # Add placeholder message and store cursor position
+        if hasattr(self, 'forensic_panel') and self.forensic_panel:
+            chat = self.forensic_panel.chat_area
+            chat.append("<b><span style='color: #2DD4BF'>AI:</span></b> ")
+            # Store cursor at current position (start of streaming response)
+            self._streaming_msg_cursor = chat.textCursor()
+            self._streaming_msg_cursor.movePosition(self._streaming_msg_cursor.MoveOperation.End)
+            chat.setTextCursor(self._streaming_msg_cursor)
+        
+        # Setup timer for batched UI updates (every 100ms)
+        self._stream_timer = QTimer(self)
+        self._stream_timer.timeout.connect(self._flush_stream_buffer)
+        self._stream_timer.start(100)
+        
+        # Create and start worker thread
+        self._ai_worker = AIWorker(self.ai_client, prompt)
+        self._ai_worker.chunk.connect(self._on_ai_chunk_buffered)
+        self._ai_worker.finished.connect(self._on_ai_finished)
+        self._ai_worker.error.connect(self._on_ai_error)
+        self._ai_worker.start()
+    
+    def _on_ai_chunk_buffered(self, chunk, full_response):
+        """Buffer chunks - actual UI update happens in timer."""
+        self._streaming_buffer = full_response
+    
+    def _flush_stream_buffer(self):
+        """Batch update UI with accumulated chunks."""
+        if not self._streaming_buffer or not self._streaming_msg_cursor:
+            return
+        
+        # Efficiently replace text at cursor position
+        cursor = self._streaming_msg_cursor
+        cursor.beginEditBlock()
+        
+        # Select from cursor to end and delete
+        end_cursor = self.forensic_panel.chat_area.textCursor()
+        end_cursor.movePosition(end_cursor.MoveOperation.End)
+        
+        # Set selection and replace
+        cursor.setPosition(cursor.position())
+        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.KeepAnchor)
+        cursor.removeSelectedText()
+        cursor.insertText(self._streaming_buffer)
+        
+        cursor.endEditBlock()
+        
+        # Auto-scroll
+        scrollbar = self.forensic_panel.chat_area.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+    
+    def _on_ai_finished(self, response):
+        """Handle AI response when streaming finishes."""
+        # Stop the batch timer
+        if hasattr(self, '_stream_timer') and self._stream_timer:
+            self._stream_timer.stop()
+        
+        # Final flush to ensure all text is shown
+        self._flush_stream_buffer()
+        self._streaming_buffer = ""
+        self._streaming_msg_cursor = None
+        
+        # Sync to AI Mentor page
+        if self.ai_mentor_page:
+            self.ai_mentor_page.sync_message("ai", response)
+    
+    def _on_ai_error(self, error_msg):
+        """Handle AI query error."""
+        if hasattr(self, '_stream_timer') and self._stream_timer:
+            self._stream_timer.stop()
+        self.add_chat_message("ai", f"❌ {error_msg}")
 
     def closeEvent(self, event):
         # Stop all timers
@@ -1043,6 +1329,12 @@ class WatchdogDashboard(QMainWindow):
             self.right_gauge.smooth_timer.stop()
         if hasattr(self, 'live_traffic') and hasattr(self.live_traffic, 'timer'):
             self.live_traffic.timer.stop()
+        if hasattr(self, '_stream_timer') and self._stream_timer:
+            self._stream_timer.stop()
+        # Stop AI worker if running
+        if hasattr(self, '_ai_worker') and self._ai_worker and self._ai_worker.isRunning():
+            self._ai_worker.terminate()
+            self._ai_worker.wait(1000)
         # Quit the application
         QApplication.quit()
         event.accept()

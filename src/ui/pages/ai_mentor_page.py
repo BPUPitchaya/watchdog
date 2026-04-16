@@ -231,8 +231,9 @@ Analyzed: 1,247 packets""")
         # Use process_command to get proper response
         ai_response = self.dashboard.process_command(msg)
         
-        # Add AI response to shared history
-        self.dashboard.add_chat_message("ai", ai_response)
+        # Add AI response to shared history (skip if async processing)
+        if ai_response != "__AI_PROCESSING__":
+            self.dashboard.add_chat_message("ai", ai_response)
         
         # Scroll to bottom
         self.mentor_chat_area.verticalScrollBar().setValue(

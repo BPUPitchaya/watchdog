@@ -119,4 +119,6 @@ class ForensicAssistantPanel(QWidget):
         if self.dashboard:
             # Use process_command to get proper response based on keywords
             response = self.dashboard.process_command(user_text)
-            self.dashboard.add_chat_message("ai", response)
+            # Skip adding message if async AI is processing (handler will add it)
+            if response != "__AI_PROCESSING__":
+                self.dashboard.add_chat_message("ai", response)
