@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton, QComboBox, QFrame)
 from PyQt6.QtCore import Qt, QTimer
 
 from src.ui.theme import THEME
@@ -31,6 +31,70 @@ class ForensicAssistantPanel(QWidget):
         """)
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(header)
+        
+        # AI Model Selector
+        settings_widget = QWidget()
+        settings_layout = QHBoxLayout(settings_widget)
+        settings_layout.setContentsMargins(10, 8, 10, 8)
+        settings_layout.setSpacing(10)
+        settings_widget.setStyleSheet(f"""
+            background-color: {THEME['bg_card']};
+            border: 1px solid {THEME['border']};
+            border-top: none;
+        """)
+        
+        model_label = QLabel("AI Model:")
+        model_label.setStyleSheet(f"color: {THEME['text_secondary']}; font-size: 11px;")
+        settings_layout.addWidget(model_label)
+        
+        self.model_selector = QComboBox()
+        self.model_selector.addItems([
+            "llama3.2:1b (~1GB RAM)",
+            "llama3.2:3b (~2GB RAM)",
+            "llama3:8b (~4-5GB RAM)",
+            "phi4 (~6GB RAM - Best Quality)"
+        ])
+        self.model_selector.setCurrentIndex(1)  # Default to 3b
+        self.model_selector.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 4px;
+                color: {THEME['text_primary']};
+                padding: 4px;
+                font-size: 11px;
+            }}
+        """)
+        self.model_selector.currentIndexChanged.connect(self._on_model_changed)
+        settings_layout.addWidget(self.model_selector)
+        
+        # RAM indicator
+        self.ram_label = QLabel("⚡ 8GB+")
+        self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
+        settings_layout.addWidget(self.ram_label)
+        
+        # Help link
+        help_btn = QPushButton("?")
+        help_btn.setFixedSize(20, 20)
+        help_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 10px;
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        help_btn.setToolTip("How to find the best AI model")
+        help_btn.clicked.connect(self._show_model_help)
+        settings_layout.addWidget(help_btn)
+        
+        settings_layout.addStretch()
+        layout.addWidget(settings_widget)
         
         # Chat area
         self.chat_area = QTextEdit()
@@ -122,3 +186,105 @@ class ForensicAssistantPanel(QWidget):
             # Skip adding message if async AI is processing (handler will add it)
             if response != "__AI_PROCESSING__":
                 self.dashboard.add_chat_message("ai", response)
+
+        
+    def _on_model_changed(self, index):
+        """Handle AI model selection change."""
+        models = ["llama3.2:1b", "llama3.2:3b", "llama3:8b", "phi4"]
+        selected_model = models[index]
+        
+        # Update RAM indicator
+        ram_labels = ["⚡ 8GB", "⚡ 8GB+", "⚡ 16GB+", "⚡ 16GB++"]
+        colors = [THEME['success'], THEME['success'], THEME['warning'], THEME['danger']]
+        self.ram_label.setText(ram_labels[index])
+        self.ram_label.setStyleSheet(f"color: {colors[index]}; font-size: 10px;")
+        
+        # Notify dashboard to update model and sync other pages
+        if self.dashboard and hasattr(self.dashboard, 'update_ai_model'):
+            self.dashboard.update_ai_model(selected_model)
+            self.chat_area.append(f"<b><span style='color: {THEME['primary']}'>System:</span></b> AI model switched to {selected_model}")
+            # Sync AI Mentor page if available
+            if hasattr(self.dashboard, 'ai_mentor_page') and self.dashboard.ai_mentor_page:
+                self.dashboard.ai_mentor_page.set_model(index)
+
+    def set_model(self, index):
+        """Set model from external source (sync from AI Mentor page)."""
+        self.model_selector.setCurrentIndex(index)
+
+    def _show_model_help(self):
+        """Show help dialog for selecting the best AI model based on RAM."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("AI Model Selection Guide")
+        dialog.setFixedSize(450, 500)
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {THEME['bg_dark']};
+            }}
+        """)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(15, 15, 15, 15)
+        
+        help_text = QTextEdit()
+        help_text.setReadOnly(True)
+        help_text.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 8px;
+                color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+                padding: 10px;
+            }}
+        """)
+        
+        help_content = """<h2 style='color: #2DD4BF;'>🤖 AI Model Selection Guide</h2>
+
+<h3 style='color: #F97316;'>💻 How to Check Your RAM</h3>
+<p><b>Mac:</b> Click Apple menu → About This Mac → look for "Memory"</p>
+<p><b>Windows:</b> Press Win+Pause/Break or Settings → System → About</p>
+
+<h3 style='color: #2DD4BF;'>📊 Choose Your Model</h3>
+<table border='0' cellpadding='5'>
+<tr style='color: #22C55E;'><td><b>⚡ 8GB</b></td><td>llama3.2:1b (~1GB)</td><td>Fast, basic answers</td></tr>
+<tr style='color: #22C55E;'><td><b>⚡ 8GB+</b></td><td>llama3.2:3b (~2GB)</td><td>Balanced speed/quality</td></tr>
+<tr style='color: #F97316;'><td><b>⚡ 16GB+</b></td><td>llama3:8b (~4-5GB)</td><td>Good quality, slower</td></tr>
+<tr style='color: #EF4444;'><td><b>⚡ 16GB++</b></td><td>phi4 (~6GB)</td><td>Best quality, very slow on 8GB</td></tr>
+</table>
+
+<h3 style='color: #F97316;'>🎯 Recommendations</h3>
+<p><b>8GB Mac/PC:</b> Use <b>1b</b> for speed or <b>3b</b> if you close other apps</p>
+<p><b>16GB Mac/PC:</b> Use <b>3b</b> or <b>8b</b> for better answers</p>
+<p><b>32GB+ Mac/PC:</b> Use <b>phi4</b> for professional-grade analysis</p>
+
+<h3 style='color: #EF4444;'>⚠️ Warning Signs</h3>
+<p>• Rainbow wheel / spinning cursor = RAM full, switch to smaller model</p>
+<p>• Long delays (>30 sec) = model too big for your system</p>
+<p>• App freezes = immediately switch to 1b or use --no-ai mode</p>
+
+<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>💡 Tip: Start with 3b and only go higher if responses are fast enough.</i></p>"""
+        
+        help_text.setHtml(help_content)
+        layout.addWidget(help_text)
+        
+        close_btn = QPushButton("Got it!")
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 6px;
+                color: white;
+                padding: 10px 20px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec()

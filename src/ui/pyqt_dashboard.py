@@ -288,26 +288,12 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_collapse_timer.setSingleShot(True)
         self.sidebar_collapse_timer.timeout.connect(self._contract_sidebar)
 
-    def _on_overlay_resize(self, event):
-        """Update page container and sidebar when overlay container is resized"""
-        # Update page container with left margin for sidebar
-        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
-        # Update sidebar height
-        self.nav_sidebar.setGeometry(
-            self.nav_sidebar.x(), 
-            0, 
-            self.nav_sidebar.width(), 
-            self.overlay_container.height()
-        )
-
     def create_pages(self):
-        """Create all pages using the page classes."""
-        # Page 0: Live Sentinel (Dashboard)
+        """Create all dashboard pages."""
+        # Page 0: Live Sentinel (main dashboard)
         live_sentinel = LiveSentinelPage(self)
         self.page_container.addWidget(live_sentinel.create())
-        self.table = live_sentinel.table  # Keep reference for update_ui
-        self.forensic_panel = live_sentinel.forensic_panel
-        self.right_gauge = live_sentinel.right_gauge
+        self.table = live_sentinel.table
         
         # Page 1: Forensic Vault
         forensic_vault = ForensicVaultPage(self)
@@ -333,6 +319,18 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(settings_page.create())
         self.settings_nav = settings_page.settings_nav
         self.settings_content = settings_page.settings_content
+    
+    def _on_overlay_resize(self, event):
+        """Update page container and sidebar when overlay container is resized"""
+        # Update page container with left margin for sidebar
+        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
+        # Update sidebar height
+        self.nav_sidebar.setGeometry(
+            self.nav_sidebar.x(), 
+            0, 
+            self.nav_sidebar.width(), 
+            self.overlay_container.height()
+        )
 
     def _on_sidebar_enter(self, event):
         """Expand sidebar when mouse enters"""
@@ -970,7 +968,7 @@ class WatchdogDashboard(QMainWindow):
         if re.search(greeting_pattern, msg_lower):
             return "Hello! I'm the AI assistant for WATCHDOG. Type 'help' to see what I can do."
         
-        elif "help" in msg_lower or "?" in msg_lower:
+        elif msg_lower.strip() in ["help", "?", "help me", "commands"] or msg_lower.startswith("help "):
             return """Available Commands (AI-free mode):
 
 Basic:
@@ -1248,21 +1246,19 @@ Auto-refresh: Every 2 seconds"""
         """Start async AI query with streaming."""
         # Initialize streaming state
         self._streaming_buffer = ""
-        self._streaming_msg_cursor = None  # QTextCursor for efficient updates
+        self._streaming_anchor_pos = None  # Integer position anchor
         
-        # Add placeholder message and store cursor position
+        # Add placeholder message and store position
         if hasattr(self, 'forensic_panel') and self.forensic_panel:
             chat = self.forensic_panel.chat_area
             chat.append("<b><span style='color: #2DD4BF'>AI:</span></b> ")
-            # Store cursor at current position (start of streaming response)
-            self._streaming_msg_cursor = chat.textCursor()
-            self._streaming_msg_cursor.movePosition(self._streaming_msg_cursor.MoveOperation.End)
-            chat.setTextCursor(self._streaming_msg_cursor)
+            # Store the text length as anchor position
+            self._streaming_anchor_pos = len(chat.toPlainText())
         
-        # Setup timer for batched UI updates (every 100ms)
+        # Setup timer for batched UI updates (every 150ms)
         self._stream_timer = QTimer(self)
         self._stream_timer.timeout.connect(self._flush_stream_buffer)
-        self._stream_timer.start(100)
+        self._stream_timer.start(150)
         
         # Create and start worker thread
         self._ai_worker = AIWorker(self.ai_client, prompt)
@@ -1277,27 +1273,22 @@ Auto-refresh: Every 2 seconds"""
     
     def _flush_stream_buffer(self):
         """Batch update UI with accumulated chunks."""
-        if not self._streaming_buffer or not self._streaming_msg_cursor:
+        if not self._streaming_buffer or self._streaming_anchor_pos is None:
             return
         
-        # Efficiently replace text at cursor position
-        cursor = self._streaming_msg_cursor
+        chat = self.forensic_panel.chat_area
+        cursor = chat.textCursor()
+        
+        # Select from anchor position to end
         cursor.beginEditBlock()
-        
-        # Select from cursor to end and delete
-        end_cursor = self.forensic_panel.chat_area.textCursor()
-        end_cursor.movePosition(end_cursor.MoveOperation.End)
-        
-        # Set selection and replace
-        cursor.setPosition(cursor.position())
+        cursor.setPosition(self._streaming_anchor_pos)
         cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.KeepAnchor)
         cursor.removeSelectedText()
         cursor.insertText(self._streaming_buffer)
-        
         cursor.endEditBlock()
         
         # Auto-scroll
-        scrollbar = self.forensic_panel.chat_area.verticalScrollBar()
+        scrollbar = chat.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
     
     def _on_ai_finished(self, response):
@@ -1309,7 +1300,7 @@ Auto-refresh: Every 2 seconds"""
         # Final flush to ensure all text is shown
         self._flush_stream_buffer()
         self._streaming_buffer = ""
-        self._streaming_msg_cursor = None
+        self._streaming_anchor_pos = None
         
         # Sync to AI Mentor page
         if self.ai_mentor_page:
@@ -1320,6 +1311,14 @@ Auto-refresh: Every 2 seconds"""
         if hasattr(self, '_stream_timer') and self._stream_timer:
             self._stream_timer.stop()
         self.add_chat_message("ai", f"❌ {error_msg}")
+
+    def update_ai_model(self, model_name):
+        """Update the AI model used by OllamaClient."""
+        if self.ai_client:
+            self.ai_client.model = model_name
+            print(f"AI model updated to: {model_name}")
+        else:
+            print("AI client not initialized - model switch will apply on next AI query")
 
     def closeEvent(self, event):
         # Stop all timers
@@ -1466,6 +1465,81 @@ Auto-refresh: Every 2 seconds"""
         QTimer.singleShot(500, lambda: self.show_toast("Second Notification", "This is the second toast message", "block"))
         QTimer.singleShot(1000, lambda: self.show_toast("Third Notification", "This is the third toast message", "info"))
 
+    def apply_theme(self):
+        """Re-apply current theme to all UI components."""
+        from src.ui.theme import THEME
+        
+        # Update main window background
+        self.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+        
+        # Update sidebar header
+        if hasattr(self, 'sidebar_header'):
+            self.sidebar_header.setStyleSheet(f"""
+                background-color: {THEME['bg_header']};
+            """)
+        
+        # Update nav_sidebar
+        if hasattr(self, 'nav_sidebar'):
+            self.nav_sidebar.setStyleSheet(f"""
+                QWidget {{
+                    background-color: {THEME['bg_header']};
+                }}
+                QPushButton {{
+                    background-color: transparent;
+                    border: none;
+                    color: {THEME['text_secondary']};
+                    font-family: {THEME['font_mono']};
+                    font-size: 12px;
+                    padding: 12px;
+                    text-align: left;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['bg_card']};
+                    color: {THEME['text_primary']};
+                }}
+                QPushButton:checked {{
+                    background-color: {THEME['primary']};
+                    color: {THEME['bg_dark']};
+                }}
+            """)
+        
+        # Update sidebar title
+        if hasattr(self, 'sidebar_title'):
+            self.sidebar_title.setStyleSheet(f"""
+                color: {THEME['primary']};
+                font-family: {THEME['font_mono']};
+                font-size: 14px;
+                font-weight: bold;
+            """)
+        
+        # Re-create all pages with new theme
+        old_index = self.page_container.currentIndex()
+        
+        # Remove old widgets
+        while self.page_container.count() > 0:
+            widget = self.page_container.widget(0)
+            self.page_container.removeWidget(widget)
+            widget.deleteLater()
+        
+        # Update page container background
+        self.page_container.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+        
+        # Re-create pages
+        self.create_pages()
+        
+        # Restore current page
+        self.page_container.setCurrentIndex(min(old_index, self.page_container.count() - 1))
+        
+        # Update status bar if exists
+        if hasattr(self, 'status_bar'):
+            self.status_bar.setStyleSheet(f"""
+                background-color: {THEME['bg_header']};
+                border-top: 2px solid {THEME['border']};
+                color: {THEME['text_secondary']};
+                font-family: {THEME['font_mono']};
+                font-size: 11px;
+                padding: 5px 15px;
+            """)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

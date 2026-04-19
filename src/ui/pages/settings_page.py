@@ -1,7 +1,8 @@
 """Settings & Privacy page implementation."""
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
-    QStackedWidget, QLineEdit, QComboBox, QSlider, QCheckBox
+    QStackedWidget, QLineEdit, QComboBox, QSlider, QCheckBox,
+    QPushButton, QMessageBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -76,6 +77,7 @@ class SettingsPage:
         self.settings_nav.addItem("AI Brain")
         self.settings_nav.addItem("Security")
         self.settings_nav.addItem("Privacy")
+        self.settings_nav.addItem("Appearance")
         nav_layout.addWidget(self.settings_nav)
         nav_layout.addStretch()
         
@@ -96,6 +98,7 @@ class SettingsPage:
         self.settings_content.addWidget(self._create_ai_tab())
         self.settings_content.addWidget(self._create_security_tab())
         self.settings_content.addWidget(self._create_privacy_tab())
+        self.settings_content.addWidget(self._create_appearance_tab())
         
         # Connect navigation to content
         self.settings_nav.currentRowChanged.connect(self.settings_content.setCurrentIndex)
@@ -386,3 +389,231 @@ class SettingsPage:
         privacy_layout.addStretch()
         
         return privacy_tab
+
+    def _create_appearance_tab(self):
+        """Create the Appearance settings tab."""
+        appearance_tab = QWidget()
+        appearance_layout = QVBoxLayout(appearance_tab)
+        appearance_layout.setContentsMargins(30, 30, 30, 30)
+        appearance_layout.setSpacing(20)
+        
+        appearance_header = QLabel("Appearance Settings")
+        appearance_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
+        appearance_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        appearance_layout.addWidget(appearance_header)
+        
+        # Theme selector
+        theme_container = QWidget()
+        theme_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        theme_layout = QVBoxLayout(theme_container)
+        
+        theme_label = QLabel("Theme")
+        theme_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        theme_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        theme_layout.addWidget(theme_label)
+        
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["Default (Dark Teal)", "Light", "Dark"])
+        self.theme_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                color: {THEME['text_primary']};
+                padding: 8px;
+                font-family: {THEME['font_mono']};
+                min-width: 200px;
+            }}
+        """)
+        theme_layout.addWidget(self.theme_combo)
+        
+        # Apply button
+        apply_btn = QPushButton("Apply")
+        apply_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 6px;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        apply_btn.clicked.connect(lambda: self._on_theme_changed(self.theme_combo.currentIndex()))
+        theme_layout.addWidget(apply_btn)
+        appearance_layout.addWidget(theme_container)
+        
+        # Font size slider
+        font_container = QWidget()
+        font_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        font_layout = QVBoxLayout(font_container)
+        
+        font_label = QLabel("Interface Scale")
+        font_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        font_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        font_layout.addWidget(font_label)
+        
+        font_slider = QSlider(Qt.Orientation.Horizontal)
+        font_slider.setRange(80, 150)
+        font_slider.setValue(100)
+        font_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {THEME['border']};
+                height: 8px;
+                background: {THEME['bg_card']};
+                border-radius: 4px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {THEME['primary']};
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: white;
+                border: 2px solid {THEME['primary']};
+                width: 18px;
+                border-radius: 9px;
+                margin: -5px 0;
+            }}
+        """)
+        font_layout.addWidget(font_slider)
+        appearance_layout.addWidget(font_container)
+        
+        # Animations toggle
+        anim_container = QWidget()
+        anim_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: 1px solid {THEME['border']};
+                border-radius: 10px;
+                padding: 15px;
+            }}
+        """)
+        anim_layout = QHBoxLayout(anim_container)
+        
+        anim_label = QLabel("Enable Animations")
+        anim_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        anim_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        anim_layout.addWidget(anim_label)
+        anim_layout.addStretch()
+        
+        anim_toggle = QCheckBox()
+        anim_toggle.setChecked(True)
+        anim_toggle.setStyleSheet(f"""
+            QCheckBox::indicator {{
+                width: 40px;
+                height: 20px;
+                border-radius: 10px;
+                background: {THEME['bg_card']};
+                border: 2px solid {THEME['border']};
+            }}
+            QCheckBox::indicator:checked {{
+                background: {THEME['primary']};
+                border: 2px solid {THEME['primary']};
+            }}
+        """)
+        anim_layout.addWidget(anim_toggle)
+        appearance_layout.addWidget(anim_container)
+        
+        appearance_layout.addStretch()
+        
+        return appearance_tab
+
+    def _on_theme_changed(self, index):
+        """Handle theme selection change with confirmation."""
+        try:
+            themes = ['default', 'light', 'dark']
+            theme_names = ['Default (Dark Teal)', 'Light', 'Dark']
+            selected = themes[index]
+            selected_name = theme_names[index]
+            
+            # Show confirmation dialog with theme styling
+            from src.ui.theme import THEME
+            confirm = QMessageBox(self.dashboard)
+            confirm.setWindowTitle("Confirm Theme Change")
+            confirm.setText(f"Apply '{selected_name}' theme?")
+            confirm.setInformativeText("The application will need to restart to fully apply the new theme.")
+            confirm.setIcon(QMessageBox.Icon.Question)
+            confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            confirm.setDefaultButton(QMessageBox.StandardButton.No)
+            confirm.setStyleSheet(f"""
+                QMessageBox {{
+                    background-color: {THEME['bg_dark']};
+                }}
+                QLabel {{
+                    color: {THEME['text_primary']};
+                    font-size: 13px;
+                }}
+                QPushButton {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['secondary']};
+                }}
+            """)
+            
+            reply = confirm.exec()
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # User confirmed - apply theme
+                from src.ui.theme import set_theme
+                if set_theme(selected):
+                    # Refresh UI with new theme
+                    if hasattr(self.dashboard, 'apply_theme'):
+                        self.dashboard.apply_theme()
+                    # Show success message with theme styling
+                    msg = QMessageBox(self.dashboard)
+                    msg.setWindowTitle("Theme Applied")
+                    msg.setText(f"'{selected_name}' theme selected!")
+                    msg.setInformativeText("Theme will be fully applied on next restart.")
+                    msg.setIcon(QMessageBox.Icon.Information)
+                    msg.setStyleSheet(f"""
+                        QMessageBox {{
+                            background-color: {THEME['bg_dark']};
+                        }}
+                        QLabel {{
+                            color: {THEME['text_primary']};
+                            font-size: 13px;
+                        }}
+                        QPushButton {{
+                            background-color: {THEME['primary']};
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            padding: 8px 16px;
+                            font-weight: bold;
+                        }}
+                        QPushButton:hover {{
+                            background-color: {THEME['secondary']};
+                        }}
+                    """)
+                    msg.exec()
+            else:
+                # User cancelled - revert to previous selection
+                from src.ui.theme import get_current_theme_name
+                current_theme = get_current_theme_name()
+                old_index = themes.index(current_theme)
+                self.theme_combo.setCurrentIndex(old_index)
+        except Exception as e:
+            pass       
