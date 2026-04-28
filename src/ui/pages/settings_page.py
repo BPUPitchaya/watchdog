@@ -548,7 +548,7 @@ class SettingsPage:
             confirm = QMessageBox(self.dashboard)
             confirm.setWindowTitle("Confirm Theme Change")
             confirm.setText(f"Apply '{selected_name}' theme?")
-            confirm.setInformativeText("The application will need to restart to fully apply the new theme.")
+            confirm.setInformativeText("The application will fully apply the new theme.")
             confirm.setIcon(QMessageBox.Icon.Question)
             confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             confirm.setDefaultButton(QMessageBox.StandardButton.No)

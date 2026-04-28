@@ -11,6 +11,7 @@ from .charts import LiveTrafficWidget
 from .toast import ToastNotification
 from .network_topology import NetworkTopologyWidget
 from .forensic_panel import ForensicAssistantPanel
+from .help_dialog import HelpDialog, HelpHotspot
 
 __all__ = [
     'ThreatGauge',
@@ -22,4 +23,6 @@ __all__ = [
     'ToastNotification',
     'NetworkTopologyWidget',
     'ForensicAssistantPanel',
+    'HelpDialog',
+    'HelpHotspot',
 ]

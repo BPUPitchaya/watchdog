@@ -33,12 +33,13 @@ from src.ui.theme import THEME
 from src.ui.widgets import (
     ThreatGauge, StatusCore, SystemHealthGauge, RiskAnalysisGauge,
     CircularGaugeWidget, LiveTrafficWidget, ToastNotification,
-    NetworkTopologyWidget, ForensicAssistantPanel
+    NetworkTopologyWidget, ForensicAssistantPanel, HelpDialog, HelpHotspot
 )
 from src.ui.pages import (
     LiveSentinelPage, ForensicVaultPage, AutonomousShieldPage,
     AIMentorPage, NetworkTopologyPage, SettingsPage, PlaceholderPage
 )
+from src.ui.help_content import PAGE_HELP_CONTENT
 
 def signal_handler(sig, frame):
     QApplication.quit()
@@ -288,35 +289,91 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_collapse_timer.setSingleShot(True)
         self.sidebar_collapse_timer.timeout.connect(self._contract_sidebar)
 
+    def _add_help_button(self, page_widget, page_name):
+        """Add floating help button to a page widget."""
+        # Create wrapper widget
+        wrapper = QWidget()
+        wrapper.setLayout(QVBoxLayout())
+        wrapper.layout().setContentsMargins(0, 0, 0, 0)
+        wrapper.layout().setSpacing(0)
+        
+        # Add the page widget
+        wrapper.layout().addWidget(page_widget)
+        
+        # Create help button
+        help_btn = QPushButton("?")
+        help_btn.setFixedSize(36, 36)
+        help_btn.setToolTip(f"Learn about {page_name}")
+        help_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 18px;
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+                border: 2px solid white;
+            }}
+        """)
+        
+        # Position button in top-right corner
+        help_btn.setParent(wrapper)
+        help_btn.move(wrapper.width() - 50, 10)
+        
+        # Update position on resize
+        def update_position():
+            help_btn.move(wrapper.width() - 50, 10)
+        wrapper.resizeEvent = lambda e: update_position()
+        
+        # Connect click to show help
+        def show_help():
+            hotspots = PAGE_HELP_CONTENT.get(page_name, [])
+            if hotspots:
+                dialog = HelpDialog(wrapper, page_name, hotspots)
+                dialog.exec()
+        
+        help_btn.clicked.connect(show_help)
+        
+        return wrapper
+
     def create_pages(self):
-        """Create all dashboard pages."""
+        """Create all dashboard pages with help buttons."""
         # Page 0: Live Sentinel (main dashboard)
         live_sentinel = LiveSentinelPage(self)
-        self.page_container.addWidget(live_sentinel.create())
+        sentinel_widget = self._add_help_button(live_sentinel.create(), "Live Sentinel")
+        self.page_container.addWidget(sentinel_widget)
         self.table = live_sentinel.table
         
         # Page 1: Forensic Vault
         forensic_vault = ForensicVaultPage(self)
-        self.page_container.addWidget(forensic_vault.create())
+        vault_widget = self._add_help_button(forensic_vault.create(), "Forensic Vault")
+        self.page_container.addWidget(vault_widget)
         self.vault_table = forensic_vault.vault_table
         self.vault_search = forensic_vault.vault_search
         
         # Page 2: Autonomous Shield
         self.shield_page = AutonomousShieldPage(self)
-        self.page_container.addWidget(self.shield_page.create())
+        shield_widget = self._add_help_button(self.shield_page.create(), "Autonomous Shield")
+        self.page_container.addWidget(shield_widget)
         self.blocked_ip_table = self.shield_page.blocked_ip_table
         
         # Page 3: AI Mentor
         self.ai_mentor_page = AIMentorPage(self)
-        self.page_container.addWidget(self.ai_mentor_page.create())
+        mentor_widget = self._add_help_button(self.ai_mentor_page.create(), "AI Mentor")
+        self.page_container.addWidget(mentor_widget)
         
         # Page 4: Network Topology
         self.network_topology = NetworkTopologyPage(self)
-        self.page_container.addWidget(self.network_topology.create())
+        topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
+        self.page_container.addWidget(topology_widget)
         
         # Page 5: Settings & Privacy
         settings_page = SettingsPage(self)
-        self.page_container.addWidget(settings_page.create())
+        settings_widget = self._add_help_button(settings_page.create(), "Settings")
+        self.page_container.addWidget(settings_widget)
         self.settings_nav = settings_page.settings_nav
         self.settings_content = settings_page.settings_content
     
