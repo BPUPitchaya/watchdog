@@ -1,5 +1,6 @@
 """Live Sentinel (Dashboard) page implementation."""
 import os
+import psutil
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
     QTableWidgetItem, QHeaderView, QSizePolicy, QPushButton
@@ -9,6 +10,15 @@ from PyQt6.QtGui import QFont, QPixmap
 
 from src.ui.theme import THEME
 from src.ui.widgets import SystemHealthGauge, LiveTrafficWidget, RiskAnalysisGauge, ForensicAssistantPanel
+
+
+def get_system_ram():
+    """Get total system RAM in GB."""
+    try:
+        ram_gb = round(psutil.virtual_memory().total / (1024**3))
+        return ram_gb
+    except Exception:
+        return None
 
 
 class LiveSentinelPage:
@@ -65,8 +75,8 @@ class LiveSentinelPage:
         cards_layout = QHBoxLayout()
         cards_layout.setSpacing(20)
         
-        # System Health Card
-        health_card = self._create_metric_card("System Health", SystemHealthGauge())
+        # System Health Card with RAM info
+        health_card, self.ram_label = self._create_health_card_with_ram()
         cards_layout.addWidget(health_card)
         
         # Live Traffic Card
@@ -118,6 +128,7 @@ class LiveSentinelPage:
             font-family: {THEME['font_mono']};
             font-size: 14px;
             font-weight: bold;
+            border: none;
         """)
         layout.addWidget(title_label)
         
@@ -126,6 +137,59 @@ class LiveSentinelPage:
         layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
         
         return card
+        
+    def _create_health_card_with_ram(self):
+        """Create System Health card with RAM info label."""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 12px;
+            }}
+        """)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(8)
+        
+        # Title
+        title_label = QLabel("System Health")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet(f"""
+            color: {THEME['text_primary']};
+            font-family: {THEME['font_mono']};
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+        """)
+        layout.addWidget(title_label)
+        
+        # Gauge
+        gauge = SystemHealthGauge()
+        gauge.setMinimumHeight(160)
+        layout.addWidget(gauge, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # RAM info label
+        ram_gb = get_system_ram()
+        if ram_gb:
+            ram_label = QLabel(f"💾 {ram_gb}GB RAM detected")
+            ram_text = f"💾 {ram_gb}GB RAM detected"
+        else:
+            ram_label = QLabel("💾 RAM: Unknown")
+            ram_text = "💾 RAM: Unknown"
+        
+        ram_label = QLabel(ram_text)
+        ram_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ram_label.setStyleSheet(f"""
+            color: {THEME['text_secondary']};
+            font-family: {THEME['font_mono']};
+            font-size: 11px;
+            padding-top: 5px;
+            border: none;
+        """)
+        layout.addWidget(ram_label)
+        
+        return card, ram_label
         
     def _create_traffic_table_section(self):
         """Create traffic table with teal header and Refresh button."""
@@ -200,13 +264,13 @@ class LiveSentinelPage:
         btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         refresh_btn = QPushButton("Refresh")
-        refresh_btn.setFixedSize(100, 35)
+        refresh_btn.setMinimumHeight(35)
         refresh_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
                 color: {THEME['bg_dark']};
                 border: none;
-                border-radius: 8px;
+                border-radius: 10px;
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
                 font-weight: bold;
@@ -216,7 +280,7 @@ class LiveSentinelPage:
             }}
         """)
         refresh_btn.clicked.connect(self.dashboard.update_ui)
-        btn_layout.addWidget(refresh_btn)
+        btn_layout.addWidget(refresh_btn, stretch=1)
         
         layout.addWidget(btn_container)
         

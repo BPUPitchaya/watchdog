@@ -23,8 +23,30 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 import joblib
 import pandas as pd
 import numpy as np
+import psutil
 
 from src.ml.feature_extractor import FeatureExtractor
+
+
+def get_system_ram():
+    """Get total system RAM in GB."""
+    try:
+        ram_gb = round(psutil.virtual_memory().total / (1024**3))
+        return ram_gb
+    except Exception:
+        return None
+
+
+def get_recommended_ai_model(ram_gb):
+    """Recommend AI model based on available RAM."""
+    if ram_gb is None:
+        return "3b", "RAM detection failed - using 3b model"
+    elif ram_gb < 8:
+        return "1b", f"Low RAM ({ram_gb}GB) - Use 1b model for best performance"
+    elif ram_gb < 16:
+        return "3b", f"Good RAM ({ram_gb}GB) - 3b model recommended"
+    else:
+        return "phi4", f"High RAM ({ram_gb}GB) - Can use phi4 for best quality"
 
 from src.ai.ollama_client import OllamaClient
 from src.ai.prompts import GENERAL_PROMPT, EXPLANATION_PROMPT, TECHNICAL_ANALYSIS_PROMPT
