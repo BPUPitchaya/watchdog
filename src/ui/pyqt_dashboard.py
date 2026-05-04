@@ -59,7 +59,8 @@ from src.ui.widgets import (
 )
 from src.ui.pages import (
     LiveSentinelPage, ForensicVaultPage, AutonomousShieldPage,
-    AIMentorPage, NetworkTopologyPage, SettingsPage, PlaceholderPage
+    AIMentorPage, NetworkTopologyPage, SettingsPage, PlaceholderPage,
+    ThreatEncyclopediaPage
 )
 from src.ui.help_content import PAGE_HELP_CONTENT
 
@@ -219,13 +220,14 @@ class WatchdogDashboard(QMainWindow):
         
         nav_layout.addWidget(self.sidebar_header)
 
-        # Navigation buttons with icons
+        # Navigation buttons with icons (Settings at bottom)
         nav_buttons = [
             ("DASHBOARD", "Real-time visibility and high-frequency packet monitoring", "dashboard icon.png"),
             ("FORENSIC LOG VAULT", "Translating complex metadata into human-readable advice", "log vault icon.png"),
             ("SECURITY CONTROL", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
             ("FORENSIC AI ASSISTANT", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
             ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap", "network topology icon.png"),
+            ("THREAT ENCYCLOPEDIA", "Educational resource for understanding cyber threats and attack types", "encyclopedia icon.png"),
             ("SETTINGS AND PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
         ]
 
@@ -392,7 +394,12 @@ class WatchdogDashboard(QMainWindow):
         topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
         self.page_container.addWidget(topology_widget)
         
-        # Page 5: Settings & Privacy
+        # Page 5: Threat Encyclopedia
+        threat_encyclopedia = ThreatEncyclopediaPage(self)
+        encyclopedia_widget = self._add_help_button(threat_encyclopedia.create(), "Threat Encyclopedia")
+        self.page_container.addWidget(encyclopedia_widget)
+        
+        # Page 6: Settings & Privacy (at bottom of sidebar)
         settings_page = SettingsPage(self)
         settings_widget = self._add_help_button(settings_page.create(), "Settings")
         self.page_container.addWidget(settings_widget)
@@ -990,10 +997,16 @@ class WatchdogDashboard(QMainWindow):
                     if action == "ATTACK" and confidence > 70:
                         src_ip = packet.get('src_ip', 'unknown')
                         dst_ip = packet.get('dst_ip', 'unknown')
-                        self.show_toast (
-                            "THREAT DETECTED",
+                        
+                        # Check if this is a simulated attack
+                        is_simulation = packet.get('simulated', False)
+                        toast_type = "simulation" if is_simulation else "block"
+                        title = "🧪 SIMULATED THREAT" if is_simulation else "🚨 THREAT DETECTED"
+                        
+                        self.show_toast(
+                            title,
                             f"Attack from {src_ip} to {dst_ip}\nConfidence: {confidence:.1f}%",
-                            "block"
+                            toast_type
                         )
                     self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
@@ -1006,7 +1019,8 @@ class WatchdogDashboard(QMainWindow):
             pps = max(0, current_packets - self.previous_packets)
             self.previous_packets = current_packets
             risk = min(100, (pps / 50) * 100)  # 50 pps = 100% risk
-            self.right_gauge.set_risk(risk)
+            if hasattr(self, 'right_gauge') and self.right_gauge:
+                self.right_gauge.set_risk(risk)
 
     def send_message(self, msg):
         """Send message programmatically (used by forensic panel)."""

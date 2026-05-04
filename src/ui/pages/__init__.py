@@ -11,13 +11,15 @@ from .ai_mentor_page import AIMentorPage
 from .network_topology_page import NetworkTopologyPage
 from .settings_page import SettingsPage
 from .placeholder_page import PlaceholderPage
+from .threat_encyclopedia_page import ThreatEncyclopediaPage
 
 __all__ = [
     'LiveSentinelPage',
-    'ForensicVaultPage', 
+    'ForensicVaultPage',
     'AutonomousShieldPage',
     'AIMentorPage',
     'NetworkTopologyPage',
     'SettingsPage',
     'PlaceholderPage',
+    'ThreatEncyclopediaPage',
 ]

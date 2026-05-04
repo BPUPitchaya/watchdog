@@ -281,4 +281,26 @@ PAGE_HELP_CONTENT = {
             "💡 INTERFACE SCALE\n"
             "Adjust text and button sizes if you have vision needs or prefer larger/smaller UI elements.", "🎨"),
     ],
+    "Threat Encyclopedia": [
+        HelpHotspot(400, 150, "Search Bar",
+            "Quickly find specific threats by typing keywords.\n\n"
+            "HOW TO USE:\n"
+            "• Type any threat name (e.g., 'phishing', 'malware')\n"
+            "• Type attack characteristics (e.g., 'email', 'password')\n"
+            "• Results filter automatically as you type\n\n"
+            "💡 TIP: Search for 'password' to find all password-related threats!", "🔍"),
+        HelpHotspot(400, 400, "Threat Cards",
+            "Each card explains a different cyber threat in simple terms.\n\n"
+            "CARD SECTIONS:\n"
+            "• Icon & Name = Quick visual identification\n"
+            "• Risk Level = Critical/High/Medium severity\n"
+            "• Description = What the attack does\n"
+            "• Warning Signs = How to spot it happening\n"
+            "• Prevention = How to protect yourself\n\n"
+            "🎯 USE THIS TO:\n"
+            "• Learn about new attack types\n"
+            "• Identify threats you've encountered\n"
+            "• Share knowledge with your team\n"
+            "• Prepare security training materials", "📚"),
+    ],
 }

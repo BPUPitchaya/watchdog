@@ -56,15 +56,17 @@ class ToastNotification(QWidget):
         Args:
             title: Notification title
             message: Notification message
-            type: 'info' (electric blue) or 'block' (red)
+            type: 'info' (electric blue), 'block' (red), or 'simulation' (purple)
         """
         # Set border color based on type
         if type == 'block':
-            self.current_border_color = THEME['danger']  # Red
+            self.current_border_color = THEME['danger']  # Red for real threats
+        elif type == 'simulation':
+            self.current_border_color = "#9B59B6"  # Purple for simulations
         else:
-            self.current_border_color = THEME['primary']  # Electric Blue
+            self.current_border_color = THEME['primary']  # Electric Blue for info
         
-        # Update content with merged HTML styling
+        # Update content with HTML formatting
         color = self.current_border_color
         self.content_label.setText(f"""
             <p style="margin: 0; line-height: 1.4;">
@@ -75,9 +77,11 @@ class ToastNotification(QWidget):
         
         # Apply styling
         if type == 'block':
-            bg_color = "rgba(139, 0, 0, 0.95)"
+            bg_color = "rgba(139, 0, 0, 0.95)"  # Dark red for threats
+        elif type == 'simulation':
+            bg_color = "rgba(75, 0, 130, 0.95)"  # Deep purple for simulations
         else:
-            bg_color = "rgba(13, 31, 53, 0.98)"
+            bg_color = "rgba(13, 31, 53, 0.98)"  # Dark blue for info
 
         self.setStyleSheet(f"""
             QWidget {{
