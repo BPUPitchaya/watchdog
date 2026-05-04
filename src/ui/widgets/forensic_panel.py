@@ -129,13 +129,17 @@ class ForensicAssistantPanel(QWidget):
         self.input_field.setPlaceholderText("Type here to ask AI...")
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
-                background-color: {THEME['bg_dark']};
+                background-color: {THEME['input_bg']};
                 border: 1px solid {THEME['border']};
                 border-radius: 6px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
-                padding: 8px 12px;
+                padding: 12px 14px;
+                min-height: 20px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
             }}
         """)
         input_layout.addWidget(self.input_field)

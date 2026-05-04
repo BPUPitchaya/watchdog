@@ -216,6 +216,18 @@ class LiveSentinelPage:
         # Make rows fill vertical space and stretch
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setDefaultSectionSize(40)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setStyleSheet(f"""
+            QHeaderView::section {{
+                border: 0px;
+                margin: 0px;
+                padding: 0px;
+            }}
+        """)
+        self.table.setRowCount(10)
+        for row in range(10):
+           for col in range(6):
+               self.table.setItem(row, col, QTableWidgetItem(""))
         
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -230,6 +242,14 @@ class LiveSentinelPage:
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
                 gridline-color: {THEME['border']};
+                border-left: none;
+            }}
+            /* Alternating row colors */
+            QTableWidget::item:nth-child(even) {{
+                background-color: {THEME['table_row_even']};
+            }}
+            QTableWidget::item:nth-child(odd) {{
+                background-color: {THEME['table_row_odd']};
             }}
             QTableWidget::item {{
                 padding: 10px;
@@ -240,19 +260,28 @@ class LiveSentinelPage:
                 color: {THEME['bg_dark']};
             }}
             QHeaderView::section {{
-                background-color: {THEME['primary']};
-                color: white;
+                background-color: {THEME['table_header_bg']};
+                color: {THEME['primary']};
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
                 font-weight: bold;
                 padding: 12px;
                 border: none;
+                border-bottom: 2px solid {THEME['primary']};
+                margin-left: 0px;
             }}
             QHeaderView::section:first {{
                 border-top-left-radius: 8px;
             }}
             QHeaderView::section:last {{
                 border-top-right-radius: 8px;
+            }}
+            QHeaderView::section:vertical {{
+                background-color: {THEME['table_header_bg']};
+                color: {THEME['text_secondary']};
+                font-family: {THEME['font_mono']};
+                font-size: 11px;
+                border: none;
             }}
         """)
         

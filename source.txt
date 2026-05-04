@@ -20,5 +20,3 @@ sudo nmap -sS localhost
 
 ./run_all.sh
 ./stop_all.sh
-
-

@@ -157,7 +157,19 @@ class WatchdogDashboard(QMainWindow):
         self.overlay_container = QWidget()
         self.overlay_container.setStyleSheet("background-color: transparent;")
         
-        # Use absolute positioning within the overlay container
+        from PyQt6.QtGui import QFontDatabase 
+
+        #Load custom font
+        font_path = os.path.join(os.path.dirname(__file__), "assets", "Orbitron-VariableFont_wght.ttf")
+        font_id = QFontDatabase.addApplicationFont(font_path) 
+        if font_id != -1:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            tech_font = font_families[0] if font_families else "Courier New"
+        else:
+            tech_font = "Courier New" 
+
+        #Store it for use in stylesheets
+        self.tech_font = tech_font
         # Page container fills the entire overlay but with left margin for sidebar
         self.page_container.setParent(self.overlay_container)
         self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
@@ -180,8 +192,8 @@ class WatchdogDashboard(QMainWindow):
 
         nav_layout = QVBoxLayout(self.nav_sidebar)
         nav_layout.setContentsMargins(0, 20, 0, 20)
-        nav_layout.setSpacing(20)
-        nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        nav_layout.setSpacing(30)
+        nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
         # Logo and title header container
         self.sidebar_header = QWidget()
@@ -210,9 +222,10 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_title = QLabel("WATCHDOG")
         self.sidebar_title.setStyleSheet(f"""
             color: {THEME['primary']};
-            font-family: {THEME['font_mono']};
-            font-size: 16px;
+            font-family: '{self.tech_font}', 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
+            font-size: 18px;
             font-weight: bold;
+            letter-spacing: 2px;
         """)
         self.sidebar_title.setVisible(False)
         header_layout.addWidget(self.sidebar_title, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -276,7 +289,7 @@ class WatchdogDashboard(QMainWindow):
                 QWidget {{
                     background-color: transparent;
                     border: none;
-                    border-radius: 8px;
+                    border-radius: 15px;
                 }}
                 QWidget:hover {{
                     background-color: {THEME['bg_card']};
@@ -286,7 +299,7 @@ class WatchdogDashboard(QMainWindow):
             # Make clickable
             container.mousePressEvent = lambda event, idx=i: self.switch_page(idx)
             
-            nav_layout.addWidget(container)
+            nav_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignHCenter)
             self.nav_button_group.append(container)
             self.nav_item_containers.append(container)
             self.nav_item_icon_labels.append(icon_label)
@@ -519,7 +532,8 @@ class WatchdogDashboard(QMainWindow):
                 container.setStyleSheet(f"""
                     QWidget {{
                         background-color: {THEME['bg_card']};
-                        border-radius: 8px;
+                        border: none;
+                        border-radius: 15px;
                     }}
                 """)
                 text_label.setStyleSheet(f"""
@@ -533,10 +547,11 @@ class WatchdogDashboard(QMainWindow):
                     QWidget {{
                         background-color: transparent;
                         border: none;
-                        border-radius: 8px;
+                        border-radius: 15px;
                     }}
                     QWidget:hover {{
                         background-color: {THEME['bg_card']};
+                        border: none;
                     }}
                 """)
                 text_label.setStyleSheet(f"""
@@ -1600,9 +1615,10 @@ Auto-refresh: Every 2 seconds"""
         if hasattr(self, 'sidebar_title'):
             self.sidebar_title.setStyleSheet(f"""
                 color: {THEME['primary']};
-                font-family: {THEME['font_mono']};
-                font-size: 14px;
+                font-family: '{self.tech_font}', 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
+                font-size: 18px;
                 font-weight: bold;
+                letter-spacing: 2px;
             """)
         
         # Re-create all pages with new theme
