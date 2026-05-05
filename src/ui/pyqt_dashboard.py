@@ -337,6 +337,7 @@ class WatchdogDashboard(QMainWindow):
         # Add the page widget
         wrapper.layout().addWidget(page_widget)
         
+        
         # Create help button
         help_btn = QPushButton("?")
         help_btn.setFixedSize(36, 36)
@@ -355,14 +356,16 @@ class WatchdogDashboard(QMainWindow):
                 border: 2px solid white;
             }}
         """)
-        
+
         # Position button in top-right corner
         help_btn.setParent(wrapper)
-        help_btn.move(wrapper.width() - 50, 10)
+        help_btn.move(wrapper.width() - 60, 30)
+        help_btn.raise_()
         
         # Update position on resize
-        def update_position():
-            help_btn.move(wrapper.width() - 50, 10)
+        def update_position(e=None):
+            help_btn.move(wrapper.width() - 60, 30)
+            help_btn.raise_()
         wrapper.resizeEvent = lambda e: update_position()
         
         # Connect click to show help

@@ -60,12 +60,18 @@ class LiveSentinelPage:
             logo_label.setText("🐺")
             logo_label.setStyleSheet("font-size: 32px;")
         logo_label.setFixedSize(48, 48)
+        logo_label.setStyleSheet("border: none; background-color: transparent;")
         header_layout.addWidget(logo_label)
         
         # Title
-        title_label = QLabel("WatchDog AI")
-        title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {THEME['primary']};")
+        title_label = QLabel("WATCHDOG AI")
+        title_label.setStyleSheet(f"""
+            color: {THEME['primary']};
+        font-family: 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        """)
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
