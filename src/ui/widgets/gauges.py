@@ -230,7 +230,7 @@ class CircularGaugeWidget(QWidget):
         layout.addWidget(self.svg_widget)
         self.smooth_timer = QTimer(self)
         self.smooth_timer.timeout.connect(self.update_smooth)
-        self.smooth_timer.start(50)  # 50ms for smooth animation
+        # self.smooth_timer.start(100)  # Disabled for performance
         self.update_svg()
 
     def update_smooth(self):

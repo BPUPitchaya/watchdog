@@ -548,10 +548,10 @@ class SettingsPage:
             confirm = QMessageBox(self.dashboard)
             confirm.setWindowTitle("Confirm Theme Change")
             confirm.setText(f"Apply '{selected_name}' theme?")
-            confirm.setInformativeText("The application will fully apply the new theme.")
+            confirm.setInformativeText("The application will apply the new theme immediately.")
             confirm.setIcon(QMessageBox.Icon.Question)
             confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            confirm.setDefaultButton(QMessageBox.StandardButton.No)
+            confirm.setDefaultButton(QMessageBox.StandardButton.Yes)
             confirm.setStyleSheet(f"""
                 QMessageBox {{
                     background-color: {THEME['bg_dark']};
@@ -582,38 +582,11 @@ class SettingsPage:
                     # Refresh UI with new theme
                     if hasattr(self.dashboard, 'apply_theme'):
                         self.dashboard.apply_theme()
-                    # Show success message with theme styling
-                    msg = QMessageBox(self.dashboard)
-                    msg.setWindowTitle("Theme Applied")
-                    msg.setText(f"'{selected_name}' theme selected!")
-                    msg.setInformativeText("Theme will be fully applied on next restart.")
-                    msg.setIcon(QMessageBox.Icon.Information)
-                    msg.setStyleSheet(f"""
-                        QMessageBox {{
-                            background-color: {THEME['bg_dark']};
-                        }}
-                        QLabel {{
-                            color: {THEME['text_primary']};
-                            font-size: 13px;
-                        }}
-                        QPushButton {{
-                            background-color: {THEME['primary']};
-                            color: white;
-                            border: none;
-                            border-radius: 6px;
-                            padding: 8px 16px;
-                            font-weight: bold;
-                        }}
-                        QPushButton:hover {{
-                            background-color: {THEME['secondary']};
-                        }}
-                    """)
-                    msg.exec()
             else:
                 # User cancelled - revert to previous selection
-                from src.ui.theme import get_current_theme_name
-                current_theme = get_current_theme_name()
-                old_index = themes.index(current_theme)
-                self.theme_combo.setCurrentIndex(old_index)
+                self.theme_combo.setCurrentIndex(self.theme_combo.findText(
+                    'Default (Dark Teal)' if selected == 'default' else 
+                    'Light' if selected == 'light' else 'Dark'
+                ))
         except Exception as e:
-            pass       
+            print(f"Error applying theme: {e}")       

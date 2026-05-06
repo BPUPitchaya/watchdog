@@ -40,31 +40,76 @@ class ForensicVaultPage:
         vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
         vault_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
         vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
+        vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; font-family: {THEME['font_mono']};")
         main_layout.addWidget(vault_subtitle)
 
         # Search bar layout (responsive)
         search_layout = QHBoxLayout()
+        # === NEW SEARCH BAR ===
         search_label = QLabel("Search Flagged Incidents:")
         search_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']};")
+        
+        # Search input with button
         self.vault_search = QLineEdit()
-        self.vault_search.setPlaceholderText("Enter IP address, protocol, or threat type...")
+        self.vault_search.setPlaceholderText("Enter IP, protocol, or threat type...")
         self.vault_search.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
+                border: 2px solid {THEME['border']};
                 border-radius: 8px;
                 color: {THEME['text_primary']};
-                padding: 8px;
+                min-height: 40px;
+                padding: 8px 12px;
                 font-family: {THEME['font_mono']};
             }}
             QLineEdit:focus {{
-                border: 1px solid {THEME['primary']};
+                border: 2px solid {THEME['primary']};
             }}
         """)
-        self.vault_search.textChanged.connect(self._filter_vault_table)
+        
+        # Search button
+        search_btn = QPushButton("Search")
+        search_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-weight: bold;
+                font-family: {THEME['font_mono']};
+            }}
+            
+            QPushButton:hover {{
+                background-color: #00A8C6;
+            }}
+        """)
+        
+        # Connect search triggers
+        search_btn.clicked.connect(self._do_search)
+        self.vault_search.returnPressed.connect(self._do_search)
+        
+        # Clear button
+        clear_btn = QPushButton("Clear")
+        clear_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['text_secondary']};
+                border: 1px solid {THEME['border']};
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-family: {THEME['font_mono']};
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255,255,255,0.1);
+            }}
+        """)
+        clear_btn.clicked.connect(self._clear_search)
+        
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.vault_search, stretch=1)
+        search_layout.addWidget(search_btn)
+        search_layout.addWidget(clear_btn)
         main_layout.addLayout(search_layout)
 
         # Scroll area for the table (responsive)
@@ -98,11 +143,10 @@ class ForensicVaultPage:
                 border-radius: 15px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
-                gridline-color: #1E3A5F;
             }}
             QTableWidget::item {{
                 padding: 12px;
-                border-bottom: 1px solid #1E3A5F;
+                border-bottom: 1px solid #1B2A38;
                 background-color: #0F2642;
             }}
             QTableWidget::item:selected {{
@@ -110,12 +154,12 @@ class ForensicVaultPage:
                 color: {THEME['bg_dark']};
             }}
             QTableCornerButton::section {{
-                background-color: #0A1628;
+                background-color: #0B1117;
                 border: none;
                 border-top-left-radius: 13px;
             }}
             QHeaderView::section {{
-                background-color: #0A1628;
+                background-color: #0B1117;
                 color: {THEME['primary']};
                 border: none;
                 padding: 12px;
@@ -129,11 +173,28 @@ class ForensicVaultPage:
             }}
         """)
         
-        # Make columns stretch to fill width
         header = self.vault_table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        header.setStretchLastSection(True)
         
+        # Set specific resize modes per column
+        # Only Timestamp stretches to fill remaining space
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)    # Timestamp - fills space
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)      # Source IP
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)      # Destination IP  
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)      # Protocol
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)      # Confidence
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)      # Threat Level
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)      # AI Summary
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)      # Action
+        
+        # Set exact column widths per specification
+        self.vault_table.setColumnWidth(1, 140)   # Source IP
+        self.vault_table.setColumnWidth(2, 140)   # Destination IP  
+        self.vault_table.setColumnWidth(3, 80)    # Protocol
+        self.vault_table.setColumnWidth(4, 90)    # Confidence
+        self.vault_table.setColumnWidth(5, 110)   # Threat Level
+        self.vault_table.setColumnWidth(6, 200)   # AI Summary
+        self.vault_table.setColumnWidth(7, 240)   # Action
+
         self.vault_table.verticalHeader().setDefaultSectionSize(55)
         self.vault_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.vault_table.itemDoubleClicked.connect(self._show_forensic_analysis)
@@ -145,34 +206,51 @@ class ForensicVaultPage:
         # Refresh button
         vault_refresh_btn = QPushButton("Load Flagged Incidents")
         vault_refresh_btn.clicked.connect(self.dashboard.load_flagged_incidents)
+        vault_refresh_btn.setMinimumHeight(40)
         vault_refresh_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: transparent;
-                color: {THEME['primary']};
-                border: 2px solid {THEME['primary']};
-                border-radius: 6px;
-                padding: 12px 24px;
-                font-weight: bold;
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 10px;
+                padding: 12px 30px;
                 font-family: {THEME['font_mono']};
+                font-size: 12px;
+                font-weight: bold;
+                margin: 5px
+                
             }}
             QPushButton:hover {{
-                background-color: rgba(0, 180, 216, 0.2);
+                background-color: {THEME['secondary']};
             }}
         """)
         main_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         return vault_page
         
-    def _filter_vault_table(self, text):
-        """Filter table rows based on search text."""
+    def _do_search(self):
+        """Search and filter table rows."""
+        search_text = self.vault_search.text().lower().strip()
+        
+        if not search_text:
+            self._clear_search()
+            return
+        
+        # Hide rows that don't match
         for row in range(self.vault_table.rowCount()):
-            show_row = False
-            for col in range(self.vault_table.columnCount()):
+            match_found = False
+            for col in range(7):  # Search first 7 columns
                 item = self.vault_table.item(row, col)
-                if item and text.lower() in item.text().lower():
-                    show_row = True
+                if item and search_text in item.text().lower():
+                    match_found = True
                     break
-            self.vault_table.setRowHidden(row, not show_row)
+            self.vault_table.setRowHidden(row, not match_found)
+    
+    def _clear_search(self):
+        """Clear search and show all rows."""
+        self.vault_search.clear()
+        for row in range(self.vault_table.rowCount()):
+            self.vault_table.setRowHidden(row, False)
             
     def _show_forensic_analysis(self, item):
         """Show forensic analysis dialog for clicked item."""

@@ -141,7 +141,7 @@ class WatchdogDashboard(QMainWindow):
         if not self.layout_only:
             self.timer = QTimer()
             self.timer.timeout.connect(self.update_ui)
-            self.timer.start(1000)  # 1 seconds
+            self.timer.start(2000)  # 2 seconds - reduced for performance
 
         # Initial update (skip in layout-only)
         if not self.layout_only:
@@ -176,7 +176,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Sidebar is a child of overlay container, positioned absolutely on the left
         self.nav_sidebar = QWidget(self.overlay_container)
-        self.nav_sidebar.setGeometry(0, 0, 70, self.overlay_container.height())
+        self.nav_sidebar.setGeometry(0, 0, 80, self.overlay_container.height())
         self.nav_sidebar.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_header']};
@@ -200,7 +200,7 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_header.setMinimumHeight(50)
         self.sidebar_header.setStyleSheet("background-color: transparent;")
         header_layout = QHBoxLayout(self.sidebar_header)
-        header_layout.setContentsMargins(5, 5, 5, 5)
+        header_layout.setContentsMargins(5, 0, 5, 0)
         header_layout.setSpacing(8)
         header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
@@ -210,12 +210,12 @@ class WatchdogDashboard(QMainWindow):
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
-            scaled_logo = logo_pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.sidebar_logo.setPixmap(scaled_logo)
         else:
             self.sidebar_logo.setText("🐺")
             self.sidebar_logo.setStyleSheet("font-size: 20px;")
-        self.sidebar_logo.setFixedSize(32, 32)
+        self.sidebar_logo.setFixedSize(48, 48)
         header_layout.addWidget(self.sidebar_logo)
         
         # Sidebar title (hidden when collapsed)
@@ -388,11 +388,11 @@ class WatchdogDashboard(QMainWindow):
         self.table = live_sentinel.table
         
         # Page 1: Forensic Vault
-        forensic_vault = ForensicVaultPage(self)
-        vault_widget = self._add_help_button(forensic_vault.create(), "Forensic Vault")
+        self.forensic_vault = ForensicVaultPage(self)
+        vault_widget = self._add_help_button(self.forensic_vault.create(), "Forensic Vault")
         self.page_container.addWidget(vault_widget)
-        self.vault_table = forensic_vault.vault_table
-        self.vault_search = forensic_vault.vault_search
+        self.vault_table = self.forensic_vault.vault_table
+        self.vault_search = self.forensic_vault.vault_search
         
         # Page 2: Autonomous Shield
         self.shield_page = AutonomousShieldPage(self)
@@ -474,7 +474,7 @@ class WatchdogDashboard(QMainWindow):
     def _contract_sidebar(self):
         """Contract sidebar with coordinated animation"""
         self.sidebar_expanded = False
-        target_width = 70
+        target_width = 80
         
         # Update buttons first (remove text, show icons)
         self._update_sidebar_buttons()
@@ -601,9 +601,7 @@ class WatchdogDashboard(QMainWindow):
         # Switch to the selected page
         self.page_container.setCurrentIndex(index)
         
-        # Load page-specific data
-        if index == 1:  # Forensic Vault
-            self.load_flagged_incidents()
+        # Removed automatic loading to prevent lag during page transitions
 
     def load_flagged_incidents(self):
         # Load flagged incidents from packet_data.json
@@ -815,22 +813,22 @@ class WatchdogDashboard(QMainWindow):
             action_widget = QWidget()
             action_widget.setStyleSheet("background-color: transparent;")
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(3, 2, 3, 2)
-            action_layout.setSpacing(4)
+            action_layout.setContentsMargins(5, 3, 5, 8)
+            action_layout.setSpacing(6)
             action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             from PyQt6.QtWidgets import QToolButton
             
             # Block Source IP button
             block_src_btn = QToolButton()
-            block_src_btn.setText("SRC")
-            block_src_btn.setFixedSize(55, 28)
+            block_src_btn.setText("Block Source")
+            block_src_btn.setFixedSize(90, 25)
             block_src_btn.setStyleSheet("""
                 QToolButton {
                     background-color: #DC2626;
                     color: white;
                     border: none;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     font-size: 10px;
                     font-weight: bold;
                 }
@@ -844,14 +842,14 @@ class WatchdogDashboard(QMainWindow):
             
             # Block Destination IP button
             block_dst_btn = QToolButton()
-            block_dst_btn.setText("DST")
-            block_dst_btn.setFixedSize(55, 28)
+            block_dst_btn.setText("Block Destination")
+            block_dst_btn.setFixedSize(100, 25)
             block_dst_btn.setStyleSheet("""
                 QToolButton {
                     background-color: #06B6D4;
                     color: white;
                     border: none;
-                    border-radius: 4px;
+                    border-radius: 6px;
                     font-size: 10px;
                     font-weight: bold;
                 }
@@ -1623,24 +1621,6 @@ Auto-refresh: Every 2 seconds"""
                 font-weight: bold;
                 letter-spacing: 2px;
             """)
-        
-        # Re-create all pages with new theme
-        old_index = self.page_container.currentIndex()
-        
-        # Remove old widgets
-        while self.page_container.count() > 0:
-            widget = self.page_container.widget(0)
-            self.page_container.removeWidget(widget)
-            widget.deleteLater()
-        
-        # Update page container background
-        self.page_container.setStyleSheet(f"background-color: {THEME['bg_dark']};")
-        
-        # Re-create pages
-        self.create_pages()
-        
-        # Restore current page
-        self.page_container.setCurrentIndex(min(old_index, self.page_container.count() - 1))
         
         # Update status bar if exists
         if hasattr(self, 'status_bar'):

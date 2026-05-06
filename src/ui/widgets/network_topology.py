@@ -21,7 +21,7 @@ class NetworkTopologyWidget(QWidget):
         
         self.anim_timer = QTimer(self)
         self.anim_timer.timeout.connect(self._update_animation)
-        self.anim_timer.start(50)
+        # self.anim_timer.start(100)  # Disabled for performance
         
     def set_devices(self, devices):
         self.devices = devices

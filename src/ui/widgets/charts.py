@@ -17,7 +17,7 @@ class LiveTrafficWidget(QWidget):
         self.scan_timer = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_data)
-        self.timer.start(500)  # 0.5s
+        # self.timer.start(1000)  # 1s  # Disabled for performance
 
     def update_data(self):
         current_packets = 0
