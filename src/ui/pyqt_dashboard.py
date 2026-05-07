@@ -111,6 +111,8 @@ class WatchdogDashboard(QMainWindow):
         self.ai_client = None
         self.previous_packets = 0
         self.toast = None  # Toast notification instance
+        self.manual_block_count = 0
+        self.manual_blocked_ips = set()  # Track which IPs were manually blocked
         
         # Shared conversation history for AI chat sync
         self.conversation_history = []  # List of (sender, message) tuples
@@ -888,13 +890,14 @@ class WatchdogDashboard(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
+            # Increment manual block counter and track manual IPs FIRST
+            if hasattr(self, 'manual_block_count'):
+                self.manual_block_count += 1
+                self.manual_blocked_ips.add(ip_address)
+            
             # Add to blocked IPs set
             if hasattr(self, 'blocked_ips'):
                 self.blocked_ips.add(ip_address)
-            
-            # Increment manual block counter
-            if hasattr(self, 'manual_block_count'):
-                self.manual_block_count += 1
             
             # Add to shield's blocked list widget if it exists
             if hasattr(self, 'blocked_list_widget'):
@@ -910,12 +913,13 @@ class WatchdogDashboard(QMainWindow):
                     description = "Blocked from Forensic Vault"
                     self.blocked_list_widget.addItem(f"{ip_address} - {description}")
             
-            # Update statistics
-            self.shield_page.update_shield_statistics()
-            
             # Show confirmation
             QMessageBox.information(self, "IP Blocked", 
                 f"Successfully blocked {ip_address}\nAdded to Autonomous Shield block list.")
+
+            # Sync blocked IPs and update statistics AFTER manual counter is updated
+            self.shield_page._sync_blocked_ips()
+            self.shield_page.update_shield_statistics()
             
             print(f"Blocked IP from vault: {ip_address}")
 
@@ -1632,6 +1636,16 @@ Auto-refresh: Every 2 seconds"""
                 font-size: 11px;
                 padding: 5px 15px;
             """)
+        
+        # Update all page backgrounds
+        if hasattr(self, 'page_container'):
+            for i in range(self.page_container.count()):
+                wrapper = self.page_container.widget(i)
+                if wrapper and wrapper.layout() and wrapper.layout().count() > 0:
+                    # Get the actual page widget (first child of wrapper)
+                    page_widget = wrapper.layout().itemAt(0).widget()
+                    if page_widget:
+                        page_widget.setStyleSheet(f"background-color: {THEME['bg_dark']};")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

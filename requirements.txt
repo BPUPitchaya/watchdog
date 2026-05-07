@@ -28,3 +28,5 @@ six==1.17.0
 threadpoolctl==3.6.0
 requests
 psutil>=5.9.0
+PyQt6>=6.4.0
+

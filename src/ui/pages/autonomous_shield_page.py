@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
 from src.ui.theme import THEME
 
@@ -21,7 +22,24 @@ class AutonomousShieldPage:
         self.relaxed_btn = None
         self.balanced_btn = None
         self.aggressive_btn = None
+    
+    def _add_shadow(self, widget, blur=20, x_offset=0, y_offset=4):
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(blur)
+        shadow.setXOffset(x_offset)
+        shadow.setYOffset(y_offset)
+        shadow.setColor(Qt.GlobalColor.black)
+        widget.setGraphicsEffect(shadow)
         
+    def _create_reason_tag(self, reason):
+        """Create styled text based on severity."""
+        styles = {
+            "Suspicious port scanning": '<span style="color: #FF6B6B; font-weight: bold; font-size: 11px;">%s</span>',
+            "Multiple failed login attempts": '<span style="color: #FFD93D; font-weight: 600; font-size: 11px;">%s</span>',
+            "Known Malicious IP": '<span style="color: #FF4444; font-weight: bold; font-size: 12px;">%s</span>'        }
+        style = styles.get(reason, '<span style="color: #6BCF7F; font-size: 11px;">%s</span>')
+        return style % reason
+    
     def create(self):
         """Create and return the autonomous shield page widget."""
         shield_page = QWidget()
@@ -71,7 +89,7 @@ class AutonomousShieldPage:
         blocked_scroll.setWidgetResizable(True)
         blocked_scroll.setFrameShape(QFrame.Shape.NoFrame)
         blocked_scroll.setStyleSheet("background-color: transparent; border: none;")
-        
+
         # Blocked IPs container
         blocked_container = QWidget()
         blocked_container.setStyleSheet(f"""
@@ -81,29 +99,38 @@ class AutonomousShieldPage:
                 border-radius: 10px;
             }}
         """)
+        self._add_shadow(blocked_container)
         blocked_table_layout = QVBoxLayout(blocked_container)
         blocked_table_layout.setContentsMargins(0, 0, 0, 0)
         blocked_table_layout.setSpacing(0)
         
         # IP table widget
         self.blocked_ip_table = QTableWidget()
-        self.blocked_ip_table.setColumnCount(2)
-        self.blocked_ip_table.setHorizontalHeaderLabels(["IP Address", "Description"])
+        self.blocked_ip_table.setColumnCount(4)
+        self.blocked_ip_table.setHorizontalHeaderLabels(["Source Ip", "Reason", "Blocked Time", "Status"])
         self.blocked_ip_table.setStyleSheet(f"""
             QTableWidget {{
                 background-color: transparent;
                 border: none;
-                font-family: {THEME['font_mono']};
-                font-size: 13px;
+                border-radius: 15px;
                 color: {THEME['text_primary']};
+                font-family: {THEME['font_mono']};
             }}
             QTableWidget::item {{
-                padding: 12px 15px;
-                border-bottom: 1px solid {THEME['border']};
+                padding: 12px;
+                border-bottom: 1px solid #1B2A38;
+                background-color: #0f2642;
             }}
             QTableWidget::item:selected {{
-                background-color: {THEME['danger']};
-                color: white;
+                background-color: {THEME['primary']};
+                color: {THEME['bg_dark']};
+            }}
+            QHeaderView::section {{
+                background-color: #0B1117;
+                color: {THEME['primary']};
+                border: none;
+                padding: 12px;
+                font-family: {THEME['font_mono']};
             }}
         """)
         
@@ -113,21 +140,17 @@ class AutonomousShieldPage:
         header.setStretchLastSection(True)
         
         self.blocked_ip_table.verticalHeader().setVisible(False)
-        self.blocked_ip_table.horizontalHeader().setVisible(False)
+        self.blocked_ip_table.horizontalHeader().setVisible(True)
         self.blocked_ip_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.blocked_ip_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
-        # Sample data
-        sample_blocked_data = [
-            ("192.168.100.1", "Suspicious port scanning"),
-            ("10.0.0.50", "Multiple failed login attempts"),
-            ("203.0.113.1", "Known Malicious IP")
-        ]
-        self.blocked_ip_table.setRowCount(len(sample_blocked_data))
-        for i, (ip, desc) in enumerate(sample_blocked_data):
-            self.blocked_ip_table.setItem(i, 0, QTableWidgetItem(ip))
-            self.blocked_ip_table.setItem(i, 1, QTableWidgetItem(desc))
-        
+        # Start with empty table
+        self.blocked_ip_table.setRowCount(0)
+
+            
+        for i in range(len([])):
+            self.blocked_ip_table.setRowHeight(i, 50)
+
         blocked_table_layout.addWidget(self.blocked_ip_table, stretch=1)
         blocked_scroll.setWidget(blocked_container)
         left_layout.addWidget(blocked_scroll, stretch=1)
@@ -166,7 +189,7 @@ class AutonomousShieldPage:
         confidence_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         confidence_title.setStyleSheet(f"color: {THEME['primary']};")
         right_layout.addWidget(confidence_title)
-        
+
         # Confidence container
         confidence_container = QWidget()
         confidence_container.setStyleSheet(f"""
@@ -177,6 +200,8 @@ class AutonomousShieldPage:
                 padding: 15px;
             }}
         """)
+        self._add_shadow(confidence_container)
+
         confidence_layout = QVBoxLayout(confidence_container)
         confidence_layout.setSpacing(10)
         
@@ -261,7 +286,7 @@ class AutonomousShieldPage:
         stats_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         stats_title.setStyleSheet(f"color: {THEME['warning']};")
         right_layout.addWidget(stats_title)
-        
+
         # Stats container
         stats_container = QWidget()
         stats_container.setMinimumHeight(250)
@@ -273,6 +298,8 @@ class AutonomousShieldPage:
                 padding: 15px;
             }}
         """)
+        self._add_shadow(stats_container)
+
         stats_layout = QVBoxLayout(stats_container)
         stats_layout.setSpacing(10)
         stats_layout.setContentsMargins(15, 15, 15, 15)
@@ -304,10 +331,10 @@ class AutonomousShieldPage:
         self.stats_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.stats_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         
-        # Statistics data - matching hi-fi
+        # Statistics data - start with empty values
         stats_data = [
-            ("Total Blocked", "4"),
-            ("Auto Blocked", "4"),
+            ("Total Blocked", "0"),
+            ("Auto Blocked", "0"), 
             ("Manual Blocked", "0"),
         ]
         self.stats_table.setRowCount(len(stats_data))
@@ -346,20 +373,22 @@ class AutonomousShieldPage:
         return shield_page
         
     def update_shield_statistics(self):
-        """Update the statistics table with current values."""
-        # This can be called from the main dashboard to refresh stats
-        stats_data = [
-            ("Total Blocked", str(len(self.dashboard.blocked_ips))),
-            ("Auto Blocked", str(len(self.dashboard.blocked_ips) - self.dashboard.manual_block_count)),
-            ("Manual Blocked", str(self.dashboard.manual_block_count)),
-        ]
-        self.stats_table.setRowCount(len(stats_data))
-        for i, (metric, count) in enumerate(stats_data):
-            metric_item = QTableWidgetItem(metric)
-            count_item = QTableWidgetItem(count)
-            count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.stats_table.setItem(i, 0, metric_item)
-            self.stats_table.setItem(i, 1, count_item)
+        """Update statistics table with current values."""
+        # This should be called from main dashboard to refresh stats
+        total_blocked = self.blocked_ip_table.rowCount()
+        
+        # Get manual block count from dashboard
+        manual_blocked = 0
+        if hasattr(self.dashboard, 'manual_block_count'):
+            manual_blocked = self.dashboard.manual_block_count
+        
+        # Calculate auto blocked (total - manual)
+        auto_blocked = total_blocked - manual_blocked
+        
+        # Update stats table with calculated values
+        self.stats_table.setItem(0, 1, QTableWidgetItem(str(total_blocked)))  # Total Blocked
+        self.stats_table.setItem(1, 1, QTableWidgetItem(str(auto_blocked)))  # Auto Blocked
+        self.stats_table.setItem(2, 1, QTableWidgetItem(str(manual_blocked)))  # Manual Blocked
         
     def _unblock_selected_ip(self):
         """Unblock the selected IP from the table."""
@@ -382,6 +411,94 @@ class AutonomousShieldPage:
                     self.dashboard.blocked_ips.remove(ip_address)
                 print(f"Unblocked IP: {ip_address}")
                 
+                # Check if this was a manually blocked IP and decrement counter
+                if hasattr(self.dashboard, 'manual_block_count'):
+                    # Check if IP is in manual_blocked_ips set (most reliable method)
+                    is_manual_block = hasattr(self.dashboard, 'manual_blocked_ips') and ip_address in self.dashboard.manual_blocked_ips
+                    print(f"Checking IP {ip_address} - Is manual block: {is_manual_block}")
+                    print(f"Manual blocked IPs set: {getattr(self.dashboard, 'manual_blocked_ips', 'Not found')}")
+                    
+                    if is_manual_block:
+                        self.dashboard.manual_block_count = max(0, self.dashboard.manual_block_count - 1)
+                        # Remove from manual_blocked_ips set
+                        self.dashboard.manual_blocked_ips.discard(ip_address)
+                        print(f"Decremented manual block count to {self.dashboard.manual_block_count}")
+                        print(f"Removed {ip_address} from manual_blocked_ips set")
+                
+                self._update_blocking_statistics()
+                
+    def _update_blocking_statistics(self):
+        """Update the blocking statistics table."""
+        total_blocked = self.blocked_ip_table.rowCount()
+
+        #Get manual block count from dashboard
+        manual_blocked = 0
+        if hasattr(self.dashboard, 'manual_block_count'):
+            manual_blocked = self.dashboard.manual_block_count
+
+        #Calculate auto blocked (total - manual)
+        auto_blocked = total_blocked - manual_blocked
+        
+        print(f"Statistics Update - Total: {total_blocked}, Manual: {manual_blocked}, Auto: {auto_blocked}")
+        
+        # Update the stats table
+        self.stats_table.setItem(0, 1, QTableWidgetItem(str(total_blocked)))
+        self.stats_table.setItem(1, 1, QTableWidgetItem(str(auto_blocked)))
+        self.stats_table.setItem(2, 1, QTableWidgetItem(str(manual_blocked)))
+    
+    def _update_shield_statistics(self):
+        """Update shield statistics from dashboard data."""
+        self._update_blocking_statistics()
+    def _sync_blocked_ips(self):
+        """Sync blocked IPs from dashboard to local table."""
+        import traceback
+        print(f"_sync_blocked_ips called from:")
+        traceback.print_stack(limit=3)
+        if hasattr(self.dashboard, 'blocked_ips'):
+            # Completely rebuild table to avoid caching issues
+            self.blocked_ip_table.clearContents()
+            self.blocked_ip_table.setRowCount(0)
+        
+            # Re-add all blocked IPs from dashboard
+            import datetime
+            for i, ip in enumerate(self.dashboard.blocked_ips):
+                # Create row with IP and default values
+                self.blocked_ip_table.insertRow(i)
+            
+                # IP Address
+                ip_item = QTableWidgetItem(ip)
+                ip_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.blocked_ip_table.setItem(i, 0, ip_item)
+            
+                # Reason - check if this is a manual block
+                reason_label = QLabel()
+                is_manual = hasattr(self.dashboard, 'manual_blocked_ips') and ip in self.dashboard.manual_blocked_ips
+                if is_manual:
+                    reason_label.setText(self._create_reason_tag("Blocked from Vault"))
+                else:
+                    reason_label.setText(self._create_reason_tag("Auto Blocked"))
+                reason_label.setStyleSheet("background-color: transparent; border: none;")
+                self.blocked_ip_table.setCellWidget(i, 1, reason_label)
+            
+                # Time
+                time_item = QTableWidgetItem(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.blocked_ip_table.setItem(i, 2, time_item)
+            
+                # Status
+                status_item = QTableWidgetItem("Active")
+                status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.blocked_ip_table.setItem(i, 3, status_item)
+            
+                # Set row height
+                self.blocked_ip_table.setRowHeight(i, 50)
+        
+        # Force complete UI repaint and update
+        self.blocked_ip_table.repaint()
+        self.blocked_ip_table.viewport().repaint()
+        self.blocked_ip_table.update()
+        self.blocked_ip_table.viewport().update()
+        
     def _update_confidence_threshold(self, value):
         """Update the confidence threshold display and color."""
         self.confidence_label.setText(f"{value}%")
