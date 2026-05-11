@@ -341,6 +341,7 @@ class WatchdogDashboard(QMainWindow):
 
     def _add_help_button(self, page_widget, page_name):
         """Add floating help button to a page widget."""
+        print(f"[DEBUG] _add_help_button called for {page_name}")
         # Create wrapper widget
         wrapper = QWidget()
         wrapper.setLayout(QVBoxLayout())
@@ -421,9 +422,23 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(mentor_widget)
         
         # Page 4: Network Topology
-        self.network_topology = NetworkTopologyPage(self)
-        topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
-        self.page_container.addWidget(topology_widget)
+        print("[DEBUG] Creating Network Topology page...")
+        try:
+            self.network_topology = NetworkTopologyPage(self)
+            print("[DEBUG] Network Topology page instance created")
+            topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
+            print("[DEBUG] Network Topology widget created and added")
+            self.page_container.addWidget(topology_widget)
+            print("[DEBUG] Network Topology page added to container")
+        except Exception as e:
+            print(f"[ERROR] Failed to create Network Topology page: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            # Create a placeholder page instead
+            from src.ui.pages import PlaceholderPage
+            placeholder = PlaceholderPage(self)
+            placeholder_widget = self._add_help_button(placeholder.create("Network Topology", "Network topology scanning is currently unavailable."), "Network Topology")
+            self.page_container.addWidget(placeholder_widget)
         
         # Page 5: Threat Encyclopedia
         threat_encyclopedia = ThreatEncyclopediaPage(self)

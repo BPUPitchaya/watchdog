@@ -3,6 +3,10 @@ Basic packet sniffer using Scapy for Watchdog.
 This module demonstrates basic packet capture functionality.
 """
 
+# Set scapy configuration before import to prevent route limit issues
+from scapy.config import conf
+conf.max_list_count = 10000  # Increase limit to prevent route overflow
+
 from scapy.all import sniff, IP, TCP, UDP
 import threading
 import time
