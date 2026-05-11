@@ -39,8 +39,6 @@ class AIMentorPage:
         status_bar.setStyleSheet(f"""
             QFrame {{
                 background: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 8px;
                 color: {THEME['primary']};
             }}
         """)
@@ -69,6 +67,27 @@ class AIMentorPage:
         status_layout.addWidget(status_text)
         status_layout.addStretch()
         
+        # AI Toggle Button
+        self.ai_toggle_btn = QPushButton("ON" if self.dashboard and self.dashboard.ai_client else "OFF")
+        self.ai_toggle_btn.setFixedSize(40, 22)
+        self.ai_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ai_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {'#22C55E' if self.dashboard and self.dashboard.ai_client else '#EF4444'};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-family: {THEME['font_mono']};
+                font-size: 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {'#16A34A' if self.dashboard and self.dashboard.ai_client else '#DC2626'};
+            }}
+        """)
+        self.ai_toggle_btn.clicked.connect(self._toggle_ai)
+        status_layout.addWidget(self.ai_toggle_btn)
+        
         chat_layout.addWidget(status_bar)
 
         # AI Model Selector
@@ -78,8 +97,6 @@ class AIMentorPage:
         model_layout.setSpacing(10)
         model_widget.setStyleSheet(f"""
             background-color: {THEME['bg_card']};
-            border: 1px solid {THEME['border']};
-            border-radius: 6px;
         """)
         
         model_label = QLabel("AI Model:")
@@ -109,7 +126,7 @@ class AIMentorPage:
         model_layout.addWidget(self.model_selector)
         
         # RAM indicator
-        self.ram_label = QLabel("⚡ 8GB+")
+        self.ram_label = QLabel(" 8GB+")
         self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
         model_layout.addWidget(self.ram_label)
         
@@ -130,7 +147,6 @@ class AIMentorPage:
         self.mentor_chat_area.setStyleSheet(f"""
             QScrollArea {{
                 background-color: transparent;
-                border: none;
             }}
         """)
         
@@ -147,8 +163,6 @@ class AIMentorPage:
         input_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 8px;
             }}
         """)
         input_layout = QHBoxLayout(input_container)
@@ -197,8 +211,6 @@ class AIMentorPage:
         diagnostics_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 12px;
             }}
         """)
         diagnostics_layout = QVBoxLayout(diagnostics_container)
@@ -216,8 +228,6 @@ class AIMentorPage:
         diag_content.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 6px;
                 color: {THEME['text_secondary']};
                 font-family: {THEME['font_mono']};
                 font-size: 11px;
@@ -248,8 +258,8 @@ Analyzed: 1,247 packets""")
                 QPushButton {{
                     background-color: transparent;
                     color: {THEME['text_secondary']};
-                    border: 1px solid {THEME['border']};
-                    border-radius: 6px;
+                    border: 2px solid {THEME['border_highlight']};
+                    border-radius: 4px;
                     padding: 8px;
                     font-family: {THEME['font_mono']};
                     font-size: 11px;
@@ -346,7 +356,7 @@ Analyzed: 1,247 packets""")
         selected_model = models[index]
         
         # Update RAM indicator
-        ram_labels = ["⚡ 8GB", "⚡ 8GB+", "⚡ 16GB+", "⚡ 16GB++"]
+        ram_labels = ["8GB", "8GB+", "16GB+", "16GB++"]
         colors = [THEME['success'], THEME['success'], THEME['warning'], THEME['danger']]
         self.ram_label.setText(ram_labels[index])
         self.ram_label.setStyleSheet(f"color: {colors[index]}; font-size: 10px;")
@@ -404,31 +414,32 @@ Analyzed: 1,247 packets""")
             }}
         """)
         
-        help_content = """<h2 style='color: #2DD4BF;'>🤖 AI Model Selection Guide</h2>
+        help_content = """<h2 style='color: #2DD4BF;'> AI Model Selection Guide</h2>
 
-<h3 style='color: #F97316;'>💻 How to Check Your RAM</h3>
+<h3 style='color: #F97316;'> How to Check Your RAM</h3>
 <p><b>Mac:</b> Click Apple menu → About This Mac → look for "Memory"</p>
 <p><b>Windows:</b> Press Win+Pause/Break or Settings → System → About</p>
 
-<h3 style='color: #2DD4BF;'>📊 Choose Your Model</h3>
+<h3 style='color: #2DD4BF;'> Choose Your Model</h3>
 <table border='0' cellpadding='5'>
-<tr style='color: #22C55E;'><td><b>⚡ 8GB</b></td><td>llama3.2:1b (~1GB)</td><td>Fast, basic answers</td></tr>
-<tr style='color: #22C55E;'><td><b>⚡ 8GB+</b></td><td>llama3.2:3b (~2GB)</td><td>Balanced speed/quality</td></tr>
-<tr style='color: #F97316;'><td><b>⚡ 16GB+</b></td><td>llama3:8b (~4-5GB)</td><td>Good quality, slower</td></tr>
-<tr style='color: #EF4444;'><td><b>⚡ 16GB++</b></td><td>phi4 (~6GB)</td><td>Best quality, very slow on 8GB</td></tr>
+<tr style='color: #22C55E;'><td><b>8GB</b></td><td>llama3.2:1b (~1GB)</td><td>Fast, basic answers</td></tr>
+<tr style='color: #22C55E;'><td><b>8GB+</b></td><td>llama3.2:3b (~2GB)</td><td>Balanced speed/quality</td></tr>
+<tr style='color: #F97316;'><td><b>16GB+</b></td><td>llama3:8b (~4-5GB)</td><td>Good quality, slower</td></tr>
+<tr style='color: #EF4444;'><td><b>16GB++</b></td><td>phi4 (~6GB)</td><td>Best quality, very slow on 8GB</td></tr>
 </table>
 
-<h3 style='color: #F97316;'>🎯 Recommendations</h3>
+<h3 style='color: #F97316;'> Recommendations</h3>
 <p><b>8GB Mac/PC:</b> Use <b>1b</b> for speed or <b>3b</b> if you close other apps</p>
 <p><b>16GB Mac/PC:</b> Use <b>3b</b> or <b>8b</b> for better answers</p>
 <p><b>32GB+ Mac/PC:</b> Use <b>phi4</b> for professional-grade analysis</p>
 
-<h3 style='color: #EF4444;'>⚠️ Warning Signs</h3>
+<h3 style='color: #EF4444;'> Warning Signs</h3>
 <p>• Rainbow wheel / spinning cursor = RAM full, switch to smaller model</p>
 <p>• Long delays (>30 sec) = model too big for your system</p>
 <p>• App freezes = immediately switch to 1b or use --no-ai mode</p>
 
-<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>💡 Tip: Start with 3b and only go higher if responses are fast enough.</i></p>"""
+<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>Tip: Start with 3b and only go higher if responses are fast enough.</i></p>
+<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>Tip: If you are using a 8GB Mac/PC, use 1b for speed or 3b if you close other apps.</i></p>"""
         
         help_text.setHtml(help_content)
         layout.addWidget(help_text)
@@ -451,3 +462,69 @@ Analyzed: 1,247 packets""")
         layout.addWidget(close_btn)
         
         dialog.exec()
+
+    def _toggle_ai(self):
+        """Toggle AI on/off."""
+        if not self.dashboard:
+            return
+        
+        if self.dashboard.ai_client:
+            # Disable AI
+            self.dashboard.ai_client = None
+            self.ai_toggle_btn.setText("OFF")
+            self.ai_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #EF4444;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 10px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+            """)
+            # Add system message to chat
+            self._add_system_message("AI disabled")
+        else:
+            # Enable AI
+            try:
+                from src.ai.ollama_client import OllamaClient
+                self.dashboard.ai_client = OllamaClient()
+                self.ai_toggle_btn.setText("ON")
+                self.ai_toggle_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #22C55E;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        font-family: {THEME['font_mono']};
+                        font-size: 10px;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #16A34A;
+                    }}
+                """)
+                self._add_system_message("AI enabled - connected to Ollama")
+            except Exception as e:
+                self._add_system_message(f"Failed to enable AI: {str(e)}")
+
+    def _add_system_message(self, message):
+        """Add a system message to the mentor chat."""
+        from PyQt6.QtWidgets import QLabel
+        sys_label = QLabel(f"System: {message}")
+        sys_label.setStyleSheet(f"""
+            color: {THEME['text_secondary']};
+            font-family: {THEME['font_mono']};
+            font-size: 11px;
+            font-style: italic;
+            padding: 5px;
+        """)
+        self.mentor_chat_layout.addWidget(sys_label)
+        # Scroll to bottom
+        self.mentor_chat_area.verticalScrollBar().setValue(
+            self.mentor_chat_area.verticalScrollBar().maximum()
+        )

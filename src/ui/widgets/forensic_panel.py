@@ -17,20 +17,51 @@ class ForensicAssistantPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Header
-        header = QLabel("Forensic Assistant AI")
-        header.setStyleSheet(f"""
+        # Header with AI toggle
+        header_widget = QWidget()
+        header_widget.setStyleSheet(f"""
             background-color: {THEME['primary']};
-            color: white;
-            padding: 12px;
-            font-family: {THEME['font_mono']};
-            font-size: 14px;
-            font-weight: bold;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
         """)
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(12, 8, 12, 8)
+        header_layout.setSpacing(10)
+        
+        # Title
+        header_title = QLabel("Forensic Assistant AI")
+        header_title.setStyleSheet("""
+            color: white;
+            font-family: {THEME['font_mono']};
+            font-size: 14px;
+            font-weight: bold;
+            background-color: transparent;
+        """.replace("{THEME['font_mono']}", THEME['font_mono']))
+        header_layout.addWidget(header_title)
+        header_layout.addStretch()
+        
+        # AI Toggle Button
+        self.ai_toggle_btn = QPushButton("ON" if self.dashboard and self.dashboard.ai_client else "OFF")
+        self.ai_toggle_btn.setFixedSize(40, 22)
+        self.ai_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ai_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {'#22C55E' if self.dashboard and self.dashboard.ai_client else '#EF4444'};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-family: {THEME['font_mono']};
+                font-size: 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {'#16A34A' if self.dashboard and self.dashboard.ai_client else '#DC2626'};
+            }}
+        """)
+        self.ai_toggle_btn.clicked.connect(self._toggle_ai)
+        header_layout.addWidget(self.ai_toggle_btn)
+        
+        layout.addWidget(header_widget)
         
         # AI Model Selector
         settings_widget = QWidget()
@@ -69,7 +100,7 @@ class ForensicAssistantPanel(QWidget):
         settings_layout.addWidget(self.model_selector)
         
         # RAM indicator
-        self.ram_label = QLabel("⚡ 8GB+")
+        self.ram_label = QLabel("8GB+")
         self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
         settings_layout.addWidget(self.ram_label)
         
@@ -292,3 +323,51 @@ class ForensicAssistantPanel(QWidget):
         layout.addWidget(close_btn)
         
         dialog.exec()
+
+    def _toggle_ai(self):
+        """Toggle AI on/off."""
+        if not self.dashboard:
+            return
+        
+        if self.dashboard.ai_client:
+            # Disable AI
+            self.dashboard.ai_client = None
+            self.ai_toggle_btn.setText("OFF")
+            self.ai_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #EF4444;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 10px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+            """)
+            self.chat_area.append("<b><span style='color: #EF4444'>System:</span></b> AI disabled")
+        else:
+            # Enable AI
+            try:
+                from src.ai.ollama_client import OllamaClient
+                self.dashboard.ai_client = OllamaClient()
+                self.ai_toggle_btn.setText("ON")
+                self.ai_toggle_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #22C55E;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        font-family: {THEME['font_mono']};
+                        font-size: 10px;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #16A34A;
+                    }}
+                """)
+                self.chat_area.append("<b><span style='color: #22C55E'>System:</span></b> AI enabled - connected to Ollama")
+            except Exception as e:
+                self.chat_area.append(f"<b><span style='color: #EF4444'>System:</span></b> Failed to enable AI: {str(e)}")

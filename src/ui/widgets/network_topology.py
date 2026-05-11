@@ -45,7 +45,7 @@ class NetworkTopologyWidget(QWidget):
         center = QPointF(center_x, center_y)
         
         gateway_radius = 35
-        orbit_radius = min(rect.width(), rect.height()) / 2 - 70
+        orbit_radius = min(rect.width(), rect.height()) / 2 - 275
         
         self._draw_connections(painter, center, orbit_radius, gateway_radius)
         self._draw_gateway(painter, center, gateway_radius)

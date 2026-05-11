@@ -58,31 +58,31 @@ class NetworkTopologyPage:
         scan_controls = QHBoxLayout()
         scan_controls.setSpacing(15)
         
-        self.scan_btn = QPushButton("🔍 SCAN NETWORK")
-        self.scan_btn.setFont(QFont(THEME['font_mono'].strip("'"), 14))
+        self.scan_btn = QPushButton("▶ SCAN NETWORK")
+        self.scan_btn.setFont(QFont(THEME['font_mono'].strip("'"), 13))
         self.scan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.scan_btn.setEnabled(True)
         self.scan_btn.setToolTip("Click to scan network for devices")
+        self.scan_btn.setFixedSize(180, 45)
         self.scan_btn.setStyleSheet(f"""
             QPushButton {{
-                background: {THEME['primary']};
-                border: 2px solid {THEME['primary']};
-                border-radius: 10px;
-                color: {THEME['bg_dark']};
-                padding: 15px 30px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+                    stop:0 {THEME['primary']}, stop:1 {THEME['secondary']});
+                border: none;
+                border-radius: 8px;
+                color: white;
                 font-weight: bold;
+                letter-spacing: 1px;
             }}
             QPushButton:hover {{
-                background: {THEME['secondary']};
-                border: 2px solid {THEME['secondary']};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+                    stop:0 {THEME['secondary']}, stop:1 #00A0B0);
             }}
             QPushButton:pressed {{
-                background: #00A0B0;
-                border: 2px solid #00A0B0;
+                background: {THEME['secondary']};
             }}
             QPushButton:disabled {{
                 background: #666666;
-                border: 2px solid #666666;
                 color: #999999;
             }}
         """)
@@ -126,7 +126,6 @@ class NetworkTopologyPage:
         stats_widget.setStyleSheet(f"""
             QWidget {{
                 background: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 10px;
             }}
@@ -138,15 +137,15 @@ class NetworkTopologyPage:
         self.total_devices_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-size: 14px; ")
         stats_layout.addWidget(self.total_devices_label)
         
-        self.pc_count_label = QLabel("💻 PCs: 0")
+        self.pc_count_label = QLabel("PCs: 0")
         self.pc_count_label.setStyleSheet(f"color: {THEME['primary']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.pc_count_label)
         
-        self.iot_count_label = QLabel("📱 Mobile/IoT: 0")
+        self.iot_count_label = QLabel("Mobile/IoT: 0")
         self.iot_count_label.setStyleSheet(f"color: {THEME['warning']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.iot_count_label)
         
-        self.unknown_count_label = QLabel("❓ Unknown: 0")
+        self.unknown_count_label = QLabel("Unknown: 0")
         self.unknown_count_label.setStyleSheet(f"color: {THEME['danger']}; font-family: {THEME['font_mono']}; font-size: 14px;")
         stats_layout.addWidget(self.unknown_count_label)
         
@@ -171,7 +170,6 @@ class NetworkTopologyPage:
         self.device_list.setStyleSheet(f"""
             QListWidget {{
                 background: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 10px;
                 color: {THEME['text_primary']};
@@ -179,7 +177,6 @@ class NetworkTopologyPage:
             }}
             QListWidget::item {{
                 padding: 10px;
-                border-bottom: 1px solid {THEME['border']};
                 border-radius: 5px;
                 margin: 2px 0;
             }}
@@ -220,7 +217,6 @@ class NetworkTopologyPage:
         self.device_details.setStyleSheet(f"""
             QTextEdit {{
                 background: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
                 border-radius: 10px;
                 padding: 15px;
                 color: {THEME['text_primary']};
@@ -421,7 +417,7 @@ class NetworkTopologyPage:
         print("[DEBUG] _apply_demo_devices called")
         if hasattr(self, '_pending_devices'):
             self._update_device_list(self._pending_devices)
-            self.scan_status.setText("⚠️ Demo mode (run with sudo for real scan)")
+            self.scan_status.setText("Demo mode (run with sudo for real scan)")
             self.scan_status.setStyleSheet("color: #FFD93D; font-family: 'Courier New', monospace; font-size: 12px;")
             self.scan_btn.setEnabled(True)
             print("[DEBUG] Demo devices applied to UI")

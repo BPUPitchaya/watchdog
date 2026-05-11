@@ -312,7 +312,7 @@ class SimulationController(QWidget):
         side_layout.setSpacing(10)
         
         # Sidebar Title
-        title = QLabel("⚔️ ATTACK SCENARIOS")
+        title = QLabel("ATTACK SCENARIOS")
         title.setObjectName("SidebarTitle")
         side_layout.addWidget(title)
         
@@ -324,27 +324,27 @@ class SimulationController(QWidget):
         side_layout.addSpacing(10)
         
         # Critical Risk Section
-        critical_label = QLabel("🔴 CRITICAL RISK")
+        critical_label = QLabel("CRITICAL RISK")
         critical_label.setObjectName("RiskLabel")
         critical_label.setStyleSheet("color: #FF4C4C; background-color: rgba(255,76,76,0.1);")
         side_layout.addWidget(critical_label)
         
-        btn_malware = QPushButton("🦠 Malware Infection\nCommand & Control traffic")
+        btn_malware = QPushButton("Malware Infection\nCommand & Control traffic")
         btn_malware.setObjectName("AttackBtn")
         btn_malware.clicked.connect(lambda: self._start_attack("Malware"))
         side_layout.addWidget(btn_malware)
         
-        btn_ddos = QPushButton("🚫 DDoS Attack\nHigh-volume traffic flood")
+        btn_ddos = QPushButton("DDoS Attack\nHigh-volume traffic flood")
         btn_ddos.setObjectName("AttackBtn")
         btn_ddos.clicked.connect(lambda: self._start_attack("DDoS"))
         side_layout.addWidget(btn_ddos)
         
-        btn_sql = QPushButton("💉 SQL Injection\nMalicious database queries")
+        btn_sql = QPushButton("SQL Injection\nMalicious database queries")
         btn_sql.setObjectName("AttackBtn")
         btn_sql.clicked.connect(lambda: self._start_attack("SQL Injection"))
         side_layout.addWidget(btn_sql)
         
-        btn_zero = QPushButton("📦 Zero-Day Exploit\nUnknown vulnerability")
+        btn_zero = QPushButton("Zero-Day Exploit\nUnknown vulnerability")
         btn_zero.setObjectName("AttackBtn")
         btn_zero.clicked.connect(lambda: self._start_attack("Zero-Day Exploit"))
         side_layout.addWidget(btn_zero)
@@ -352,22 +352,22 @@ class SimulationController(QWidget):
         side_layout.addSpacing(5)
         
         # High Risk Section
-        high_label = QLabel("🟠 HIGH RISK")
+        high_label = QLabel("HIGH RISK")
         high_label.setObjectName("RiskLabel")
         high_label.setStyleSheet("color: #FFA500; background-color: rgba(255,165,0,0.1);")
         side_layout.addWidget(high_label)
         
-        btn_phishing = QPushButton("🎣 Phishing Attack\nDeceptive email/links")
+        btn_phishing = QPushButton("Phishing Attack\nDeceptive email/links")
         btn_phishing.setObjectName("AttackBtn")
         btn_phishing.clicked.connect(lambda: self._start_attack("Phishing"))
         side_layout.addWidget(btn_phishing)
         
-        btn_xss = QPushButton("🌐 XSS Attack\nScript injection")
+        btn_xss = QPushButton("XSS Attack\nScript injection")
         btn_xss.setObjectName("AttackBtn")
         btn_xss.clicked.connect(lambda: self._start_attack("Cross-Site Scripting"))
         side_layout.addWidget(btn_xss)
         
-        btn_creds = QPushButton("🔓 Credential Stuffing\nStolen credentials")
+        btn_creds = QPushButton("Credential Stuffing\nStolen credentials")
         btn_creds.setObjectName("AttackBtn")
         btn_creds.clicked.connect(lambda: self._start_attack("Credential Stuffing"))
         side_layout.addWidget(btn_creds)
@@ -375,17 +375,17 @@ class SimulationController(QWidget):
         side_layout.addSpacing(5)
         
         # Medium Risk Section
-        medium_label = QLabel("🟡 MEDIUM RISK")
+        medium_label = QLabel("MEDIUM RISK")
         medium_label.setObjectName("RiskLabel")
         medium_label.setStyleSheet("color: #76D7EA; background-color: rgba(118,215,234,0.1);")
         side_layout.addWidget(medium_label)
         
-        btn_mitm = QPushButton("👤 Man-in-the-Middle\nSession hijacking")
+        btn_mitm = QPushButton("Man-in-the-Middle\nSession hijacking")
         btn_mitm.setObjectName("AttackBtn")
         btn_mitm.clicked.connect(lambda: self._start_attack("Man-in-the-Middle"))
         side_layout.addWidget(btn_mitm)
         
-        btn_brute = QPushButton("🔗 Brute Force\nPassword guessing")
+        btn_brute = QPushButton("Brute Force\nPassword guessing")
         btn_brute.setObjectName("AttackBtn")
         btn_brute.clicked.connect(lambda: self._start_attack("Brute Force"))
         side_layout.addWidget(btn_brute)
@@ -393,7 +393,7 @@ class SimulationController(QWidget):
         side_layout.addStretch()
         
         # Close button in sidebar
-        btn_close = QPushButton("✕ Close Sandbox")
+        btn_close = QPushButton("Close Sandbox")
         btn_close.setObjectName("CloseBtn")
         btn_close.clicked.connect(self.close)
         side_layout.addWidget(btn_close)
@@ -406,7 +406,7 @@ class SimulationController(QWidget):
         content_layout.setSpacing(15)
         
         # Log header
-        log_header = QLabel("📊 LIVE INJECTION FEED")
+        log_header = QLabel("LIVE INJECTION FEED")
         log_header.setObjectName("LogLabel")
         content_layout.addWidget(log_header)
         
@@ -421,7 +421,7 @@ class SimulationController(QWidget):
         control_bar = QHBoxLayout()
         control_bar.addStretch()
         
-        self.btn_stop = QPushButton("⏹️ EMERGENCY STOP")
+        self.btn_stop = QPushButton("⏹EMERGENCY STOP")
         self.btn_stop.setObjectName("StopBtn")
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self._stop_attack)
@@ -789,7 +789,7 @@ class ThreatEncyclopediaPage:
         header.setStyleSheet(f"""
             QWidget {{
                 background-color: #1A1E26;
-                border-bottom: 1px solid #343B47;
+                border-bottom: none;
             }}
         """)
         layout = QHBoxLayout(header)
@@ -888,63 +888,63 @@ class ThreatEncyclopediaPage:
         """Add all threat information cards in a horizontal layout."""
         threats = [
             {
-                "title": "🎣 Phishing",
+                "title": "Phishing",
                 "subtitle": "The Impersonator",
                 "risk": "HIGH RISK",
                 "how_it_works": "Fake emails or websites that trick users into revealing passwords, credit cards, or personal information by pretending to be legitimate companies.",
                 "role": "Detects suspicious email patterns, domain spoofing, and malicious links before they reach your inbox."
             },
             {
-                "title": "🦠 Malware",
+                "title": "Malware",
                 "subtitle": "The Infector",
                 "risk": "CRITICAL",
                 "how_it_works": "Viruses, trojans, ransomware, and spyware that infect your device to steal data, encrypt files for ransom, or spy on activities.",
                 "role": "Monitors file system changes, network connections, and process behaviors to detect and quarantine malicious software."
             },
             {
-                "title": "🚫 DDoS Attack",
+                "title": "DDoS Attack",
                 "subtitle": "The Overwhelmer",
                 "risk": "HIGH RISK",
                 "how_it_works": "Distributed Denial of Service floods servers with massive amounts of fake traffic, causing websites and services to crash.",
                 "role": "Identifies unusual traffic patterns, rate limits suspicious connections, and blocks attacking IP addresses."
             },
             {
-                "title": "👤 Man-in-the-Middle",
+                "title": "Man-in-the-Middle",
                 "subtitle": "The Eavesdropper",
                 "risk": "MEDIUM RISK",
                 "how_it_works": "Attackers secretly intercept and potentially alter communications between two parties without their knowledge.",
                 "role": "Validates SSL/TLS certificates, detects ARP spoofing, and alerts on suspicious network routing changes."
             },
             {
-                "title": "💉 SQL Injection",
+                "title": "SQL Injection",
                 "subtitle": "The Database Hacker",
                 "risk": "CRITICAL",
                 "how_it_works": "Hackers insert malicious SQL code into input fields to manipulate databases, steal data, or gain unauthorized access.",
                 "role": "Monitors database queries for suspicious patterns and detects abnormal data access attempts."
             },
             {
-                "title": "🌐 Cross-Site Scripting",
+                "title": "Cross-Site Scripting",
                 "subtitle": "The Script Injector",
                 "risk": "HIGH RISK",
                 "how_it_works": "Malicious scripts are injected into trusted websites, stealing cookies, session tokens, or redirecting users to phishing sites.",
                 "role": "Scans web traffic for script injection patterns and sanitizes suspicious input data."
             },
             {
-                "title": "📦 Zero-Day Exploit",
+                "title": "Zero-Day Exploit",
                 "subtitle": "The Unknown Threat",
                 "risk": "CRITICAL",
                 "how_it_works": "Attacks exploiting software vulnerabilities that are unknown to vendors and have no patches available yet.",
                 "role": "Uses behavioral analysis to detect unusual system activity even when the specific vulnerability is unknown."
             },
             {
-                "title": "🔗 Brute Force",
+                "title": "Brute Force",
                 "subtitle": "The Password Cracker",
                 "risk": "MEDIUM RISK",
                 "how_it_works": "Automated tools try thousands of username and password combinations to gain unauthorized access to accounts.",
                 "role": "Detects multiple failed login attempts, implements account lockouts, and blocks suspicious IP addresses."
             },
             {
-                "title": "🔓 Credential Stuffing",
+                "title": "Credential Stuffing",
                 "subtitle": "The Reuser",
                 "risk": "HIGH RISK",
                 "how_it_works": "Using username/password pairs stolen from previous data breaches to try accessing other accounts.",
@@ -971,7 +971,7 @@ class ThreatEncyclopediaPage:
                 threat["role"],
                 page_ref=self  # Pass reference to ThreatEncyclopediaPage
             )
-            card.setObjectName(threat["title"].lower().split()[1])
+            card.setObjectName(threat["title"].lower().split()[0])
             self.cards.append(card)
             self.cards_layout.addWidget(card)
     
@@ -985,13 +985,13 @@ class ThreatEncyclopediaPage:
     def _on_simulation_started(self, threat_name, description):
         """Handle simulation start - show banner."""
         if self.simulation_label:
-            self.simulation_label.setText(f"🧪 SIMULATION: {threat_name} - {description}")
+            self.simulation_label.setText(f"SIMULATION: {threat_name} - {description}")
             self.simulation_banner.setVisible(True)
     
     def _on_simulation_finished(self, threat_name):
         """Handle simulation finish - hide banner."""
         if self.simulation_label:
-            self.simulation_label.setText(f"✅ Simulation Complete: {threat_name}")
+            self.simulation_label.setText(f"Simulation Complete: {threat_name}")
             # Hide banner after 3 seconds
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(3000, lambda: self.simulation_banner.setVisible(False))

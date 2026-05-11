@@ -16,7 +16,12 @@ python3 src/ui/pyqt_dashboard.py
 python3 src/ui/pyqt_dashboard.py --layout-only
 python3 src/ui/pyqt_dashboard.py --no-ai
 
+sudo python3 src/ui/pyqt_dashboard.py
+
 sudo nmap -sS localhost
 
 ./run_all.sh
 ./stop_all.sh
+
+source watchdog_env/bin/activate && python3 src/ui/pyqt_dashboard.py
+

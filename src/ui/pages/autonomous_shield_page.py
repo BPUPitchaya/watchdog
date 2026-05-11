@@ -195,9 +195,8 @@ class AutonomousShieldPage:
         confidence_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
                 padding: 15px;
+
             }}
         """)
         self._add_shadow(confidence_container)
@@ -225,11 +224,9 @@ class AutonomousShieldPage:
                 height: 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #FF6B6B, stop:0.5 #FFD93D, stop:1 #6BCF7F);
-                border-radius: 4px;
             }
             QSlider::handle:horizontal {
                 background: white;
-                border: 2px solid #00D4FF;
                 width: 16px;
                 height: 16px;
                 border-radius: 8px;
@@ -255,8 +252,6 @@ class AutonomousShieldPage:
                 QPushButton {{
                     background-color: transparent;
                     color: {color};
-                    border: 1px solid {color};
-                    border-radius: 6px;
                     padding: 6px 12px;
                     font-family: {THEME['font_mono']};
                     font-size: 11px;
@@ -310,7 +305,6 @@ class AutonomousShieldPage:
         self.stats_table.setStyleSheet(f"""
             QTableWidget {{
                 background-color: transparent;
-                border: none;
                 font-family: {THEME['font_mono']};
                 font-size: 13px;
                 color: {THEME['text_primary']};

@@ -11,10 +11,11 @@ import threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem, 
-    QScrollArea, QSplitter, QHeaderView, QTextEdit, QProgressBar,
-    QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QFrame, QStackedWidget, QScrollArea, QSplitter,
+    QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QFileDialog,
+    QMenuBar, QStatusBar, QSizePolicy, QDockWidget,
+    QProgressBar, QStackedWidget, QDialog, QListWidget, QSlider, QFrame, QComboBox, QCheckBox
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QByteArray
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
@@ -113,11 +114,9 @@ class WatchdogDashboard(QMainWindow):
         self.toast = None  # Toast notification instance
         self.manual_block_count = 0
         self.manual_blocked_ips = set()  # Track which IPs were manually blocked
-        
-        # Shared conversation history for AI chat sync
-        self.conversation_history = []  # List of (sender, message) tuples
         self.ai_mentor_page = None  # Will be set in create_pages()
-
+        self.conversation_history = []  # Shared conversation history for AI chat sync
+        
         # Load ML (skip if layout-only)
         if not self.layout_only:
             try:
@@ -239,13 +238,13 @@ class WatchdogDashboard(QMainWindow):
         nav_buttons = [
             ("DASHBOARD", "Real-time visibility and high-frequency packet monitoring", "dashboard icon.png"),
             ("FORENSIC LOG VAULT", "Translating complex metadata into human-readable advice", "log vault icon.png"),
-            ("SECURITY CONTROL", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
-            ("FORENSIC AI ASSISTANT", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
-            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap", "network topology icon.png"),
+            ("SECURITY CONTROL", "Managing host firewall and setting AI confidence thresholds", "security control icon.png"),
+            ("AI ASSISTANT", "AI model selector and real-time analysis", "Ai assistant icon.png"),
+            ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve visibility gap", "network topology icon.png"),
             ("THREAT ENCYCLOPEDIA", "Educational resource for understanding cyber threats and attack types", "Threat_encyclopedia.png"),
             ("SETTINGS AND PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
         ]
-
+        
         self.nav_button_group = []
         self.nav_button_labels = []  # Store text labels for show/hide
         self.nav_button_icons = []  # Store icon paths
@@ -401,6 +400,7 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(sentinel_widget)
         self.table = live_sentinel.table
         self.live_sentinel_page = live_sentinel  # Store reference for updates
+        self.forensic_panel = live_sentinel.forensic_panel  # Link AI chat panel
         
         # Page 1: Forensic Vault
         self.forensic_vault = ForensicVaultPage(self)
@@ -1125,36 +1125,15 @@ class WatchdogDashboard(QMainWindow):
             return "Hello! I'm the AI assistant for WATCHDOG. Type 'help' to see what I can do."
         
         elif msg_lower.strip() in ["help", "?", "help me", "commands"] or msg_lower.startswith("help "):
-            return """Available Commands (AI-free mode):
+            return """Quick Commands:
 
-Basic:
-• hi/hello - Greeting
-• help - Show this message
-• time - Current time
+Basic:      hi | help | time
+Security:   threat level | status | danger
+Info:       traffic | logs | firewall | attacks
+Advice:     tips | prevent | secure network
+ML:         predict: src_ip=X dst_ip=Y protocol=tcp
 
-Security Status:
-• threat level - Current risk with live data
-• status - Full system health
-• dangerous/risk/warning - Quick safety check
-
-Information:
-• packets/traffic - Network activity summary
-• logs/history - Activity log overview
-• monitor - Monitoring capabilities
-• firewall - Firewall status
-• attack types - Common threats detected
-
-Advice (No AI needed):
-• prevent threats - Security best practices
-• tips/advice - Security recommendations
-• improve security - Quick wins for protection
-• secure my network - Actionable steps
-
-Analysis:
-• predict: src_ip=X dst_ip=Y protocol=tcp length=100 - ML packet analysis
-• what can you do - List capabilities
-
-Enable AI with Ollama on port 11434 for detailed analysis."""
+Type any command above to get started!"""
         
         elif "what can you do" in msg_lower or "capabilities" in msg_lower:
             offline_features = [
@@ -1230,9 +1209,9 @@ Currently: ML threat detection {'active' if self.model else 'offline'}, monitori
         elif "dangerous" in msg_lower or "risk" in msg_lower or "warning" in msg_lower:
             context = self._get_system_context()
             if context['threat_level'] in ['HIGH', 'ELEVATED']:
-                return f"⚠️ ALERT: {context['recent_alerts']}\n\nRisk Score: {context['risk_score']:.1f}%\nStatus: {context['system_health']}\n\nRecommend immediate review of recent traffic. Check Settings > Flagged Incidents for details."
+                return f"ALERT: {context['recent_alerts']}\n\nRisk Score: {context['risk_score']:.1f}%\nStatus: {context['system_health']}\n\nRecommend immediate review of recent traffic. Check Settings > Flagged Incidents for details."
             else:
-                return f"✅ System is currently safe. Risk Level: {context['threat_level']} ({context['risk_score']:.1f}%)\n\n{context['system_health']}\n\nContinue monitoring - no immediate threats detected."
+                return f"System is currently safe. Risk Level: {context['threat_level']} ({context['risk_score']:.1f}%)\n\n{context['system_health']}\n\nContinue monitoring - no immediate threats detected."
         
         elif "attack" in msg_lower and "type" in msg_lower:
             return """Common Attack Types Detected by WATCHDOG:
@@ -1246,6 +1225,55 @@ Currently: ML threat detection {'active' if self.model else 'offline'}, monitori
 
 Current Detection: ML model {'active' if self.model else 'offline'}
 Check Live Sentinel > Flagged Incidents for detected threats."""
+
+        elif "wpa3" in msg_lower:
+            if "enable" in msg_lower or "turn on" in msg_lower or "setup" in msg_lower:
+                return """How to Enable WPA3 on Your Router:
+
+1. Access router admin panel (usually 192.168.1.1 or 192.168.0.1)
+2. Login with admin credentials
+3. Go to WiFi/Wireless Settings
+4. Change Security Mode to "WPA3-Personal" or "WPA3-SAE"
+5. Save and restart router
+6. Reconnect all devices with new password
+
+Note: Older devices may not support WPA3."""
+            else:
+                return """WPA3 (WiFi Protected Access 3):
+
+Latest WiFi security standard with:
+- Stronger encryption (192-bit for enterprise)
+- Protection against offline dictionary attacks
+- Forward secrecy (past traffic stays encrypted)
+- Simplified device setup (QR codes)
+
+Upgrade from WPA2 if your router supports it."""
+
+        elif "password" in msg_lower and ("strong" in msg_lower or "good" in msg_lower or "create" in msg_lower):
+            return """Strong Password Tips:
+
+Length: Use 12+ characters
+Mix: Upper, lower, numbers, symbols
+Avoid: Common words, names, dates
+Unique: Different password for each device
+Manager: Use a password manager
+
+Example good password: Tr0ub4dor&3X9!kL
+
+Change default router password first!"""
+
+        elif "update" in msg_lower or "patch" in msg_lower:
+            return """Keeping Software Updated:
+
+Router: Check for firmware updates monthly
+Devices: Enable auto-updates when possible
+Priority order:
+1. Router firmware
+2. Operating system updates
+3. Security software
+4. Other applications
+
+Updates fix security vulnerabilities quickly."""
         
         elif "log" in msg_lower or "history" in msg_lower or "record" in msg_lower:
             context = self._get_system_context()
@@ -1337,19 +1365,38 @@ Auto-refresh: Every 2 seconds"""
             except Exception as e:
                 return f"Error processing log: {str(e)}"
         
-        else:
-            # Gather real-time system context for AI
-            context = self._get_system_context()
-            prompt = GENERAL_PROMPT.format(
-                query=msg,
-                threat_level=context['threat_level'],
-                risk_score=context['risk_score'],
-                total_packets=context['total_packets'],
-                recent_alerts=context['recent_alerts'],
-                system_health=context['system_health']
-            )
-            self._start_ai_query(prompt)
-            return "__AI_PROCESSING__"
+        # Catch-all for general security questions (works without AI)
+        elif any(word in msg_lower for word in ["how", "what", "why", "can", "should", "do i"]):
+            return """I can help with security topics. Try these commands:
+
+Network: secure network | firewall | attacks | traffic
+WiFi: wpa3 | password tips
+System: threat level | status | tips | updates
+
+For specific questions about WATCHDOG features, type 'help' to see all commands.
+
+Enable Ollama AI (port 11434) for detailed answers to any question."""
+        
+        # AI-dependent responses (require ai_client)
+        if not self.ai_client:
+            return f"I'm not connected to the AI backend right now. Try 'help' to see available offline commands, or enable AI with Ollama running on port 11434."
+        
+        # Check if there's already an AI query running
+        if hasattr(self, '_ai_worker') and self._ai_worker and self._ai_worker.isRunning():
+            return "I'm still processing your previous question. Please wait..."
+        
+        # General query - use AI with context
+        context = self._get_system_context()
+        prompt = GENERAL_PROMPT.format(
+            query=msg,
+            threat_level=context['threat_level'],
+            risk_score=context['risk_score'],
+            total_packets=context['total_packets'],
+            recent_alerts=context['recent_alerts'],
+            system_health=context['system_health']
+        )
+        self._start_ai_query(prompt)
+        return "__AI_PROCESSING__"
     
     def _get_system_context(self):
         """Gather current system state for AI context (fast, no ML predictions)."""
@@ -1378,13 +1425,21 @@ Auto-refresh: Every 2 seconds"""
                 if action_item and action_item.text() == "ATTACK":
                     attack_count += 1
         
+        # Set threat level based on risk percentage (aligned with system health thresholds)
+        if context['risk_score'] > 70:
+            context['threat_level'] = 'HIGH'
+        elif context['risk_score'] > 40:
+            context['threat_level'] = 'ELEVATED'
+        elif attack_count > 0:
+            context['threat_level'] = 'LOW'
+        
         if attack_count > 0:
-            context['threat_level'] = 'ELEVATED' if attack_count < 3 else 'HIGH'
             context['recent_alerts'] = f"{attack_count} threats in recent traffic"
         
         # Get risk score from gauge (fast)
-        if hasattr(self, 'right_gauge') and hasattr(self.right_gauge, 'current_value'):
-            context['risk_score'] = round(self.right_gauge.current_value, 1)
+        if hasattr(self, 'live_sentinel_page') and self.live_sentinel_page:
+            if hasattr(self.live_sentinel_page, 'right_gauge') and hasattr(self.live_sentinel_page.right_gauge, 'risk_value'):
+                context['risk_score'] = round(self.live_sentinel_page.right_gauge.risk_value, 1)
         
         # Determine system health
         if context['risk_score'] > 70:
@@ -1469,12 +1524,16 @@ Auto-refresh: Every 2 seconds"""
         self.add_chat_message("ai", f"❌ {error_msg}")
 
     def update_ai_model(self, model_name):
-        """Update the AI model used by OllamaClient."""
+        """Update AI model used by OllamaClient."""
         if self.ai_client:
             self.ai_client.model = model_name
             print(f"AI model updated to: {model_name}")
         else:
             print("AI client not initialized - model switch will apply on next AI query")
+        
+        # Update AI widget if available
+        if hasattr(self, 'ai_widget'):
+            self.ai_widget.set_model(model_name)
 
     def closeEvent(self, event):
         # Stop all timers
