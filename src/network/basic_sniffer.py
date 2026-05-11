@@ -94,7 +94,7 @@ class BasicSniffer:
                 break
             time.sleep(0.1)
     
-    def start_sniffing(self, packet_count=50, interface=None):
+    def start_sniffing(self, packet_count=0, interface=None):
         """Start packet capture."""
         if self.is_running:
             print("Sniffer is already running!")
@@ -105,15 +105,18 @@ class BasicSniffer:
         # self.packet_count = 0  # Removed this line
         # self.captured_packets = []  # Don't clear all packets, just manage size
         
-        print(f"Starting packet capture (capturing {packet_count} packets, total count: {self.packet_count})...")
+        if packet_count > 0:
+            print(f"Starting packet capture (capturing {packet_count} packets, total count: {self.packet_count})...")
+        else:
+            print(f"Starting continuous packet capture (total count: {self.packet_count})...")
         self.write_data()
         
         try:
-            # Start sniffing
+            # Start sniffing - if packet_count=0, run continuously
             sniff(
                 prn=self.packet_callback,
                 store=0,
-                count=packet_count,
+                count=packet_count if packet_count > 0 else 0,  # 0 = continuous
                 iface=interface,
                 stop_filter=lambda x: not self.is_running  # Check for stop signal
             )
@@ -170,7 +173,7 @@ if __name__ == "__main__":
         try:
             while sniffer.keep_running:
                 if not sniffer.is_running:
-                    sniffer.start_sniffing(packet_count=50)
+                    sniffer.start_sniffing(packet_count=0)  # 0 = continuous
                 
                 time.sleep(0.5)  # Brief pause between captures
                 

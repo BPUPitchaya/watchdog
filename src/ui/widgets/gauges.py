@@ -141,7 +141,7 @@ class SystemHealthGauge(QWidget):
     """Circular gauge showing system health percentage"""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.health_value = 92
+        self.health_value = 0  # Start with 0, will be updated immediately
         self.setMinimumSize(180, 180)
         
     def set_health(self, value):
@@ -181,7 +181,7 @@ class RiskAnalysisGauge(QWidget):
     """Circular gauge showing risk percentage"""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.risk_value = 5
+        self.risk_value = 0  # Start with 0, will be updated immediately
         self.setMinimumSize(180, 180)
         
     def set_risk(self, value):

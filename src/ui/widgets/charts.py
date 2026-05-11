@@ -12,12 +12,13 @@ class LiveTrafficWidget(QWidget):
         self.setMinimumSize(400, 200)
         self.data = [0] * 30
         self.previous_packets = 0
-        self.y_axis_max = 1000
+        self.y_axis_max = 50
         self.is_scanning = False
         self.scan_timer = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_data)
-        # self.timer.start(1000)  # 1s  # Disabled for performance
+        self.timer.start(1000)  # 1s  # Disabled for performance
+        self.network_status = "Disconnected" #Add network status tracking
 
     def update_data(self):
         current_packets = 0
@@ -27,17 +28,43 @@ class LiveTrafficWidget(QWidget):
                 packet_data = json.load(f)
             current_packets = packet_data.get('packet_count', 0)
             packets = packet_data.get('packets', [])[-500:]
+            
+            # Update network status based on sniffer status - with debouncing
+            status = packet_data.get('status', 'stopped')
+            # Only update status if it's different and stable
+            if status == 'running' and self.network_status != "Connected":
+                # Check if we have actual packet flow
+                if current_packets > self.previous_packets:
+                    self.network_status = "Connected"
+            elif status == 'stopped' and self.network_status != "Disconnected":
+                self.network_status = "Disconnected"
+                
         except (FileNotFoundError, json.JSONDecodeError):
+            if self.network_status != "Disconnected":
+                self.network_status = "Disconnected"
             pass
-        pps = max(0, current_packets - self.previous_packets)
-        self.previous_packets = current_packets
+            
+        # Calculate actual packets per second from recent packets
+        if len(packets) > 0:
+            # Count packets in the last second
+            current_time = packets[-1].get('timestamp', 0)
+            recent_packets = [p for p in packets if current_time - p.get('timestamp', 0) <= 1.0]
+            pps = len(recent_packets)
+        else:
+            pps = 0
+            
         self.data.append(pps)
         max_pps = max(self.data)
         if max_pps > 0.8 * self.y_axis_max:
             self.y_axis_max *= 2
-        elif max_pps < 0.2 * self.y_axis_max and self.y_axis_max > 1000:
+        elif max_pps < 0.2 * self.y_axis_max and self.y_axis_max > 10:
             self.y_axis_max //= 2
         self.update()  # Force redraw
+
+    def set_network_status(self, status):
+        """Update network connection status."""
+        self.network_status = status
+        self.update() 
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -52,6 +79,12 @@ class LiveTrafficWidget(QWidget):
         chart_rect = QRectF(chart_left, chart_top, chart_right - chart_left, chart_bottom - chart_top)
         width = chart_rect.width()
         height = chart_rect.height()
+
+        status_color = QColor(76, 175, 80) if self.network_status == "Connected" else QColor(255, 107, 107)
+        painter.setPen(QPen(status_color))
+        painter.setFont(QFont(THEME['font_mono'].strip('"'), 10))
+        status_text = f"Status: {self.network_status}"
+        painter.drawText(int(chart_rect.left() + 100), int(chart_rect.top()), status_text)
         
         # Y-Axis
         painter.setPen(QPen(QColor(100, 100, 100)))

@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
     QTableWidgetItem, QPushButton, QScrollArea, QFrame, QHeaderView,
-    QSlider, QMessageBox, QSizePolicy
+    QSlider, QMessageBox, QSizePolicy, QDial
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont

@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QDialog, QSizePolicy, QListWidget, QListWidgetItem, QMessageBox, QSlider, QFrame, QComboBox, QCheckBox
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QByteArray
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
@@ -102,7 +102,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Check for --layout-only and --no-ai flags
         import sys
-        self.layout_only = '--layout-only' in sys.argv
+        self.layout_only = False  # Force UI creation for widgets
         self.no_ai = '--no-ai' in sys.argv
 
         # Initialize attributes
@@ -242,7 +242,7 @@ class WatchdogDashboard(QMainWindow):
             ("SECURITY CONTROL", "Managing the host firewall and setting AI confidence thresholds", "security control icon.png"),
             ("FORENSIC AI ASSISTANT", "A dedicated chat interface for Llama 4 Scout to provide education-active security guidance", "Ai assistant icon.png"),
             ("NETWORK TOPOLOGY", "Identifying all hardware on the LAN to resolve the visibility gap", "network topology icon.png"),
-            ("THREAT ENCYCLOPEDIA", "Educational resource for understanding cyber threats and attack types", "encyclopedia icon.png"),
+            ("THREAT ENCYCLOPEDIA", "Educational resource for understanding cyber threats and attack types", "Threat_encyclopedia.png"),
             ("SETTINGS AND PRIVACY", "Configuring Ollama and ensuring alignment with NZ Privacy Act 2020 principles", "setting icon.png")
         ]
 
@@ -270,6 +270,18 @@ class WatchdogDashboard(QMainWindow):
             icon_path = os.path.join(os.path.dirname(__file__), "assets", icon_file)
             if os.path.exists(icon_path):
                 pixmap = QPixmap(icon_path).scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                # Special handling for Threat Encyclopedia icon with white background
+                if icon_file == "Threat_encyclopedia.png":
+                    # Create circular mask to hide white background
+                    # Create a circular mask
+                    mask = QPixmap(48, 48)
+                    mask.fill(Qt.GlobalColor.black)
+                    painter = QPainter(mask)
+                    painter.setBrush(QBrush(Qt.GlobalColor.white))
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.drawEllipse(2, 2, 44, 44)  # Draw white circle
+                    painter.end()
+                    pixmap.setMask(mask.createMaskFromColor(Qt.GlobalColor.black))
                 icon_label.setPixmap(pixmap)
             icon_label.setFixedSize(48, 48)
             container_layout.addWidget(icon_label)
@@ -388,6 +400,7 @@ class WatchdogDashboard(QMainWindow):
         sentinel_widget = self._add_help_button(live_sentinel.create(), "Live Sentinel")
         self.page_container.addWidget(sentinel_widget)
         self.table = live_sentinel.table
+        self.live_sentinel_page = live_sentinel  # Store reference for updates
         
         # Page 1: Forensic Vault
         self.forensic_vault = ForensicVaultPage(self)
@@ -423,6 +436,32 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(settings_widget)
         self.settings_nav = settings_page.settings_nav
         self.settings_content = settings_page.settings_content
+
+        from src.network.basic_sniffer import BasicSniffer
+        from PyQt6.QtCore import QThread
+
+        class SnifferThread(QThread):
+            def __init__(self, sniffer):
+                super().__init__()
+                self.sniffer = sniffer
+            
+            def run(self):
+                self.sniffer.start_sniffing()
+
+        self.sniffer = BasicSniffer()
+        self.sniffer_thread = SnifferThread(self.sniffer)
+        self.sniffer_thread.start()
+
+    def update_traffic_status():
+        if hasattr(self, 'sniffer') and self.sniffer.is_running:
+            # Find the live sentinel page and update status
+            for i in range(self.page_container.count()):
+                widget = self.page_container.widget(i)
+                if hasattr(widget, 'findChild'):
+                    traffic_widgets = widget.findChildren(LiveTrafficWidget)
+                    for traffic_widget in traffic_widgets:
+                        traffic_widget.set_network_status("Connected")
+    QTimer.singleShot(3000, update_traffic_status)
     
     def _on_overlay_resize(self, event):
         """Update page container and sidebar when overlay container is resized"""
@@ -983,6 +1022,10 @@ class WatchdogDashboard(QMainWindow):
             current_packets = data.get('packet_count', 0)
         except (FileNotFoundError, json.JSONDecodeError):
             data = {"packets": []}
+        
+        # Update LiveSentinelPage widgets
+        if hasattr(self, 'live_sentinel_page') and self.live_sentinel_page:
+            self.live_sentinel_page.update_all_widgets()
 
         packets = data.get("packets", [])
         if packets:

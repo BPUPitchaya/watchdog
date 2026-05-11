@@ -68,7 +68,7 @@ class HelpDialog(QDialog):
         container = QWidget()
         container.setStyleSheet(f"""
             background-color: {THEME['bg_card']};
-            border: 2px solid {THEME['border']};
+            border: none;
             border-radius: 10px;
         """)
         
@@ -156,7 +156,7 @@ class HelpDialog(QDialog):
         panel.setStyleSheet(f"""
             QFrame {{
                 background-color: {THEME['bg_card']};
-                border: 2px solid {THEME['border']};
+                border: none;
                 border-radius: 10px;
             }}
         """)
@@ -195,6 +195,7 @@ class HelpDialog(QDialog):
         content_widget = QWidget()
         content_widget.setStyleSheet(f"""
             background-color: {THEME['bg_dark']};
+            border: none;
             border-radius: 8px;
         """)
         content_layout = QVBoxLayout(content_widget)
@@ -232,7 +233,7 @@ class HelpDialog(QDialog):
         tips_widget = QWidget()
         tips_widget.setStyleSheet(f"""
             background-color: {THEME['bg_header']};
-            border-left: 4px solid {THEME['warning']};
+            border: none;
             border-radius: 5px;
         """)
         tips_layout = QVBoxLayout(tips_widget)
@@ -268,6 +269,7 @@ class HelpDialog(QDialog):
             }}
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
+                border: none;
             }}
         """)
         close_btn.clicked.connect(self.accept)

@@ -451,12 +451,12 @@ class SimulationController(QWidget):
     
     def _on_sim_started(self, threat_name, desc):
         """Handle simulation started."""
-        self.status_label.setText(f"Status: 🧪 RUNNING: {threat_name}")
+        self.status_label.setText(f"Status: RUNNING: {threat_name}")
         self.status_label.setStyleSheet("color: #9B59B6; font-weight: bold; padding: 10px; background-color: #0F1218; border-radius: 5px;")
         self.btn_stop.setEnabled(True)
         self.packet_log.clear()
         self.packet_log.append(f"{'='*50}")
-        self.packet_log.append(f"🚀 STARTING: {threat_name} Attack Simulation")
+        self.packet_log.append(f"STARTING: {threat_name} Attack Simulation")
         self.packet_log.append(f"Description: {desc}")
         self.packet_log.append(f"{'='*50}\n")
     
@@ -466,7 +466,7 @@ class SimulationController(QWidget):
         self.status_label.setStyleSheet("color: #5BA4B3; font-weight: bold; padding: 10px; background-color: #0F1218; border-radius: 5px;")
         self.btn_stop.setEnabled(False)
         self.packet_log.append(f"\n{'='*50}")
-        self.packet_log.append(f"✅ SIMULATION ENDED: {threat_name}")
+        self.packet_log.append(f"SIMULATION ENDED: {threat_name}")
         self.packet_log.append(f"{'='*50}\n")
     
     def _on_packet_injected(self, packet):
@@ -796,7 +796,7 @@ class ThreatEncyclopediaPage:
         layout.setContentsMargins(40, 20, 40, 20)
         
         # Title with Segoe UI
-        title = QLabel("📚 Threat Encyclopedia")
+        title = QLabel("Threat Encyclopedia")
         title_font = QFont("Segoe UI", 24)
         title_font.setWeight(QFont.Weight.DemiBold)
         title.setFont(title_font)
