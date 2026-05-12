@@ -1,4 +1,5 @@
 import json
+import time
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, QTimer, QRectF
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath
@@ -9,18 +10,26 @@ from src.ui.theme import THEME
 class LiveTrafficWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(400, 200)
-        self.data = [0] * 30
-        self.previous_packets = 0
+        self.data = [0] * 50
         self.y_axis_max = 50
+        self.network_status = "Disconnected"
         self.is_scanning = False
         self.scan_timer = 0
+        self.previous_packets = []
+        self.elapsed_time = 0  # Track elapsed time for dynamic axis
+        self.setMinimumSize(300, 200)
+        self.setMouseTracking(True)
+        
+        # Set up timer for updates
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_data)
-        self.timer.start(1000)  # 1s  # Disabled for performance
+        self.timer.start(300)  # 0.3s for smoother visualization
         self.network_status = "Disconnected" #Add network status tracking
 
     def update_data(self):
+        # Update elapsed time for dynamic axis
+        self.elapsed_time += 0.3  # 300ms = 0.3 seconds per update
+        
         current_packets = 0
         packets = []
         try:
@@ -29,20 +38,44 @@ class LiveTrafficWidget(QWidget):
             current_packets = packet_data.get('packet_count', 0)
             packets = packet_data.get('packets', [])[-500:]
             
-            # Update network status based on sniffer status - with debouncing
+            # Update network status based on sniffer status - with improved logic
             status = packet_data.get('status', 'stopped')
-            # Only update status if it's different and stable
-            if status == 'running' and self.network_status != "Connected":
-                # Check if we have actual packet flow
-                if current_packets > self.previous_packets:
-                    self.network_status = "Connected"
-            elif status == 'stopped' and self.network_status != "Disconnected":
-                self.network_status = "Disconnected"
+            
+            # More robust status detection
+            if status == 'running':
+                # Check if we have actual packet flow in recent time window
+                recent_time = packets[-1].get('timestamp', 0) if packets else 0
+                current_time = recent_time
+                # Check if we have recent packets (within last 8 seconds)
+                recent_packets = [p for p in packets if current_time - p.get('timestamp', 0) < 8]
                 
-        except (FileNotFoundError, json.JSONDecodeError):
+                if recent_packets:
+                    self.network_status = "Connected"
+                    self.is_scanning = False
+                    self.scan_timer = 0
+                else:
+                    # No recent packets - check if we should show disconnected
+                    if not self.is_scanning:
+                        self.scan_timer += 1
+                        if self.scan_timer > 6:  # 6 seconds without packets (3 seconds * 2)
+                            self.network_status = "Disconnected"
+                            self.is_scanning = True
+            elif status == 'stopped':
+                if self.network_status != "Disconnected":
+                    self.network_status = "Disconnected"
+                self.scan_timer = 0
+                
+            self.previous_packets = current_packets
+                
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            # Only disconnect on actual file errors, not temporary issues
             if self.network_status != "Disconnected":
                 self.network_status = "Disconnected"
-            pass
+            self.scan_timer = 0
+            # Error logged silently
+        except Exception as e:
+            # Unexpected error caught silently
+            self.scan_timer = 0
             
         # Calculate actual packets per second from recent packets
         if len(packets) > 0:
@@ -54,11 +87,27 @@ class LiveTrafficWidget(QWidget):
             pps = 0
             
         self.data.append(pps)
-        max_pps = max(self.data)
-        if max_pps > 0.8 * self.y_axis_max:
-            self.y_axis_max *= 2
-        elif max_pps < 0.2 * self.y_axis_max and self.y_axis_max > 10:
-            self.y_axis_max //= 2
+        
+        # Remove old data instead of compressing - keep only last 15 points
+        if len(self.data) > 15:
+            self.data = self.data[-15:]
+            
+        max_pps = max(self.data) if self.data else 0
+        
+        # Improved auto-adjustment logic
+        if max_pps > 0.9 * self.y_axis_max:
+            # Scale up quickly when approaching limit
+            self.y_axis_max = max_pps * 1.5
+        elif max_pps < 0.1 * self.y_axis_max and self.y_axis_max > 5:
+            # Scale down when much lower than current max
+            self.y_axis_max = max(max_pps * 2, 5)
+        elif max_pps < 0.3 * self.y_axis_max and self.y_axis_max > 10:
+            # Gentle scale down for moderate underutilization
+            self.y_axis_max = max(max_pps * 1.5, 10)
+            
+        # Ensure reasonable bounds
+        self.y_axis_max = max(min(self.y_axis_max, 1000), 5)
+        
         self.update()  # Force redraw
 
     def set_network_status(self, status):
@@ -106,15 +155,15 @@ class LiveTrafficWidget(QWidget):
         painter.setPen(QPen(QColor(100, 100, 100)))
         painter.drawLine(int(chart_rect.left()), int(chart_rect.bottom()), int(chart_rect.right()), int(chart_rect.bottom()))
         
-        # X-Labels
+        # X-Labels with dynamic time calculation
         painter.setPen(QPen(QColor(THEME['text_secondary'])))
         painter.setFont(QFont(THEME['font_mono'].strip("'"), 9))
-        # -15s at left
-        painter.drawText(int(chart_rect.left() - 10), int(chart_rect.bottom() + 20), "-15 s")
-        # -7.5s at center
-        painter.drawText(int(chart_rect.center().x() - 15), int(chart_rect.bottom() + 20), "-7.5 s")
-        # NOW at right
-        painter.drawText(int(chart_rect.right() - 25), int(chart_rect.bottom() + 20), "Now")
+        
+        # Calculate current time for dynamic labels
+        import time
+        current_time = time.time()
+        
+        # No time labels - clean graph without axis labels
 
         # Draw the path with Bézier - using teal colors from mockup
         stroke_color = THEME['primary']

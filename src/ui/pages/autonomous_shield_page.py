@@ -403,21 +403,16 @@ class AutonomousShieldPage:
                 self.blocked_ip_table.removeRow(selected_row)
                 if ip_address in self.dashboard.blocked_ips:
                     self.dashboard.blocked_ips.remove(ip_address)
-                print(f"Unblocked IP: {ip_address}")
                 
                 # Check if this was a manually blocked IP and decrement counter
                 if hasattr(self.dashboard, 'manual_block_count'):
                     # Check if IP is in manual_blocked_ips set (most reliable method)
                     is_manual_block = hasattr(self.dashboard, 'manual_blocked_ips') and ip_address in self.dashboard.manual_blocked_ips
-                    print(f"Checking IP {ip_address} - Is manual block: {is_manual_block}")
-                    print(f"Manual blocked IPs set: {getattr(self.dashboard, 'manual_blocked_ips', 'Not found')}")
                     
                     if is_manual_block:
                         self.dashboard.manual_block_count = max(0, self.dashboard.manual_block_count - 1)
                         # Remove from manual_blocked_ips set
                         self.dashboard.manual_blocked_ips.discard(ip_address)
-                        print(f"Decremented manual block count to {self.dashboard.manual_block_count}")
-                        print(f"Removed {ip_address} from manual_blocked_ips set")
                 
                 self._update_blocking_statistics()
                 
@@ -433,7 +428,6 @@ class AutonomousShieldPage:
         #Calculate auto blocked (total - manual)
         auto_blocked = total_blocked - manual_blocked
         
-        print(f"Statistics Update - Total: {total_blocked}, Manual: {manual_blocked}, Auto: {auto_blocked}")
         
         # Update the stats table
         self.stats_table.setItem(0, 1, QTableWidgetItem(str(total_blocked)))
@@ -445,9 +439,6 @@ class AutonomousShieldPage:
         self._update_blocking_statistics()
     def _sync_blocked_ips(self):
         """Sync blocked IPs from dashboard to local table."""
-        import traceback
-        print(f"_sync_blocked_ips called from:")
-        traceback.print_stack(limit=3)
         if hasattr(self.dashboard, 'blocked_ips'):
             # Completely rebuild table to avoid caching issues
             self.blocked_ip_table.clearContents()

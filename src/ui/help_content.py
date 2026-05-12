@@ -17,10 +17,10 @@ PAGE_HELP_CONTENT = {
             "• Memory/RAM (active programs)\n"
             "• Network Activity (internet data)\n\n"
             "COLOR CODES:\n"
-            "🟢 Green (0-60%) = Healthy - your computer is handling things well\n"
-            "🟡 Yellow (60-80%) = Busy - some programs are working hard\n"
-            "🔴 Red (80%+) = Critical - check Task Manager to see what's using resources\n\n"
-            "💡 TIP: If you see red often, you might need more RAM or fewer programs running.", "💚"),
+            "Green (0-60%) = Healthy - your computer is handling things well\n"
+            " Yellow (60-80%) = Busy - some programs are working hard\n"
+            " Red (80%+) = Critical - check Task Manager to see what's using resources\n\n"
+            " TIP: If you see red often, you might need more RAM or fewer programs running."),
         HelpHotspot(400, 100, "Live Traffic Monitor", 
             "This is like a heart monitor but for your internet connection. It shows data flowing in real-time:\n\n"
             "WHAT IT SHOWS:\n"
@@ -31,7 +31,7 @@ PAGE_HELP_CONTENT = {
             "• Small bars = Normal browsing\n"
             "• Medium bars = Streaming video\n"
             "• Big spikes = Large downloads or potential attacks\n\n"
-            "⚠️ WATCH FOR: Sudden huge spikes when you're not doing anything - that could be suspicious!", "📊"),
+            "WATCH FOR: Sudden huge spikes when you're not doing anything - that could be suspicious!"),
         HelpHotspot(650, 100, "Risk Analysis Gauge", 
             "This gauge shows how dangerous your current network activity looks to the AI.\n\n"
             "HOW IT WORKS:\n"
@@ -40,22 +40,29 @@ PAGE_HELP_CONTENT = {
             "• Unusual connection patterns\n"
             "• Suspicious IP addresses\n\n"
             "RISK LEVELS:\n"
-            "🟢 Green (Low 0-30%) = Safe surfing - nothing suspicious detected\n"
-            "🟡 Yellow (Medium 30-60%) = Caution - some unusual patterns, keep watching\n"
-            "🔴 Red (High 60%+) = Danger - Likely attack detected, check Forensic Vault\n\n"
-            "🎯 ACTION: If you see red, click 'View Details' or ask the AI Assistant about it.", "⚠️"),
+            " Green (Low 0-30%) = Safe surfing - nothing suspicious detected\n"
+            " Yellow (Medium 30-60%) = Caution - some unusual patterns, keep watching\n"
+            " Red (High 60%+) = Danger - Likely attack detected, check Forensic Vault\n\n"
+            " ACTION: If you see red, click 'View Details' or ask the AI Assistant about it."),
         HelpHotspot(150, 400, "Network Traffic Table", 
             "This is your security log showing every single network connection. Like a CCTV recording of your internet.\n\n"
             "COLUMNS EXPLAINED:\n"
-            "• Source IP = Where the data came from (like a return address)\n"
+            "• Source IP = Where data came from (like a return address)\n"
             "• Destination IP = Where it's going (like a mailing address)\n"
-            "• Protocol = Type of 'road' the data travels on\n"
+            "• Protocol = Type of 'road' data travels on\n"
             "  - TCP = Reliable (websites, emails)\n"
             "  - UDP = Fast (video calls, gaming)\n"
+            "  - PROTO-1 = Unknown/Unidentified protocol\n"
             "• Length = Size of data packet (bytes)\n"
             "• Confidence Score = AI's certainty about threat level (0-100%)\n"
             "• Action = What Watchdog did (Allow/Block/Flag)\n\n"
-            "💡 PRO TIP: Click any row to see detailed AI analysis of that connection!", "📋"),
+            "ABOUT PROTO-1:\n"
+            "PROTO-1 appears when Scapy can't identify the specific protocol type. This could be:\n"
+            "• Encrypted traffic (HTTPS, VPN)\n"
+            "• Custom protocols (special applications)\n"
+            "• Network scanning tools\n"
+            "• Malware using unusual communication\n\n"
+            "PRO TIP: Click any row to see detailed AI analysis of that connection!"),
         HelpHotspot(750, 400, "AI Security Assistant", 
             "Your personal cybersecurity expert! This chatbot helps you understand threats in plain English.\n\n"
             "WHAT YOU CAN ASK:\n"
@@ -68,7 +75,7 @@ PAGE_HELP_CONTENT = {
             "1. Type your question in the box below\n"
             "2. Press Enter or click Send\n"
             "3. AI responds with beginner-friendly explanations\n\n"
-            "⚡ SMART FEATURE: The AI remembers your conversation, so you can ask follow-up questions!", "🤖"),
+            "SMART FEATURE: The AI remembers your conversation, so you can ask follow-up questions!"),
     ],
     "Forensic Vault": [
         HelpHotspot(400, 150, "Flagged Incidents Table", 
@@ -83,7 +90,7 @@ PAGE_HELP_CONTENT = {
             "2. Use the search box to find specific IPs or dates\n"
             "3. Click any row to see detailed analysis\n"
             "4. Export data if you need to report to IT/security team\n\n"
-            "🎯 WHY THIS MATTERS: Even 'blocked' attacks are recorded so you can see WHO tried to attack you and WHEN.", "🚨"),
+            "WHY THIS MATTERS: Even 'blocked' attacks are recorded so you can see WHO tried to attack you and WHEN."),
         HelpHotspot(150, 400, "Threat Details Panel", 
             "When you click an incident in the table, this area shows the full 'detective report' on that threat.\n\n"
             "WHAT YOU'LL SEE:\n"
@@ -93,7 +100,7 @@ PAGE_HELP_CONTENT = {
             "• Source IP: Attacker's location on the internet\n"
             "• Target: What they tried to attack on your network\n"
             "• AI Analysis: Beginner-friendly explanation of what happened\n\n"
-            "⚡ SMART FEATURE: Click 'Ask AI' to get more details about any specific incident!", "🔍"),
+            "SMART FEATURE: Click 'Ask AI' to get more details about any specific incident!"),
     ],
     "Autonomous Shield": [
         HelpHotspot(300, 150, "Firewall Status", 
@@ -104,25 +111,25 @@ PAGE_HELP_CONTENT = {
             "• Blocks unauthorized attempts to enter your network\n"
             "• Stops known attack patterns automatically\n\n"
             "STATUS INDICATORS:\n"
-            "🟢 ON (Green) = Protected - firewall is actively blocking threats\n"
-            "🔴 OFF (Red) = Vulnerable - your network is exposed to attacks\n\n"
-            "⚠️ IMPORTANT: Only turn OFF if you're troubleshooting network issues. Always keep it ON otherwise!", "🛡️"),
+            "ON (Green) = Protected - firewall is actively blocking threats\n"
+            "OFF (Red) = Vulnerable - your network is exposed to attacks\n\n"
+            "IMPORTANT: Only turn OFF if you're troubleshooting network issues. Always keep it ON otherwise!"),
         HelpHotspot(600, 150, "AI Protection Mode", 
             "This setting controls how cautious vs. aggressive the AI is when deciding to block something.\n\n"
             "THE THREE MODES:\n\n"
-            "🟢 CONSERVATIVE (Recommended for beginners)\n"
+            "CONSERVATIVE (Recommended for beginners)\n"
             "• Only blocks CLEAR threats\n"
             "• Very low chance of blocking good traffic\n"
             "• Might let some suspicious stuff through\n\n"
-            "🟡 BALANCED (Default setting)\n"
+            "BALANCED (Default setting)\n"
             "• Blocks most threats\n"
             "• Occasionally might flag normal traffic\n"
             "• Good for everyday users\n\n"
-            "🔴 AGGRESSIVE (For high-security needs)\n"
+            "AGGRESSIVE (For high-security needs)\n"
             "• Blocks ANYTHING slightly suspicious\n"
             "• Might block some legitimate websites/apps\n"
             "• Best for businesses or if you're under attack\n\n"
-            "💡 TIP: Start with Conservative and only increase if you get attacked frequently.", "🎯"),
+            "TIP: Start with Conservative and only increase if you get attacked frequently."),
         HelpHotspot(400, 400, "Blocked IPs List", 
             "Your 'most wanted' list of attackers! These IP addresses have been caught trying to harm your network.\n\n"
             "WHAT YOU SEE:\n"
@@ -136,41 +143,41 @@ PAGE_HELP_CONTENT = {
             "• Keep blocked - They stay banned forever\n"
             "• Unblock - Use if you blocked something by mistake\n"
             "• Report - Send to authorities for serious attackers\n\n"
-            "🎯 SECURITY TIP: Never unblock IPs you don't recognize!", "🚫"),
+            "SECURITY TIP: Never unblock IPs you don't recognize!"),
     ],
     "AI Mentor": [
         HelpHotspot(200, 150, "Chat History Panel", 
             "This is your conversation log with the AI cybersecurity tutor. Everything you ask and every answer is saved here.\n\n"
             "HOW IT WORKS:\n"
             "• Your questions appear on the right\n"
-            "• AI answers appear on the left with 🤖 icon\n"
+            "• AI answers appear on the left\n"
             "• Scroll up to see older conversations\n"
             "• Newest messages at the bottom\n\n"
             "USEFUL FEATURES:\n"
             "• Click 'Clear Chat' to start a fresh conversation\n"
             "• AI remembers context - you can ask follow-ups\n"
             "• Copy useful answers to save them elsewhere\n\n"
-            "💡 LEARNING TIP: Ask the AI to explain the same thing multiple ways until you understand it!", "💬"),
+            "LEARNING TIP: Ask the AI to explain the same thing multiple ways until you understand it!"),
         HelpHotspot(600, 150, "AI Model Selector", 
             "Choose which 'brain' powers your AI assistant. Different models = different capabilities.\n\n"
             "MODEL OPTIONS (based on your computer's RAM):\n\n"
-            "⚡ 1b Model (8GB RAM)\n"
+            "1b Model (8GB RAM)\n"
             "• Super fast responses (1-2 seconds)\n"
             "• Basic, simple answers\n"
             "• Good for quick questions\n\n"
-            "⚡ 3b Model (8GB+ RAM) ⭐ RECOMMENDED\n"
+            "3b Model (8GB+ RAM) RECOMMENDED\n"
             "• Balanced speed and quality\n"
             "• Detailed but understandable answers\n"
             "• Best for most users\n\n"
-            "⚡ 8b Model (16GB+ RAM)\n"
+            "8b Model (16GB+ RAM)\n"
             "• Slower (5-10 seconds)\n"
             "• Very detailed, technical answers\n"
             "• Good for advanced users\n\n"
-            "⚡ Phi4 Model (16GB+ RAM)\n"
+            "Phi4 Model (16GB+ RAM)\n"
             "• Best quality answers\n"
             "• Professional-grade analysis\n"
             "• Slowest but most accurate\n\n"
-            "💡 HOW TO CHECK RAM: Mac = Apple menu → About This Mac | Windows = Settings → System → About", "🧠"),
+            "HOW TO CHECK RAM: Mac = Apple menu → About This Mac | Windows = Settings → System → About"),
         HelpHotspot(400, 500, "Question Input Box", 
             "Your direct line to the AI expert! Type any cybersecurity question here and get instant help.\n\n"
             "WHAT TO ASK:\n"
@@ -183,7 +190,7 @@ PAGE_HELP_CONTENT = {
             "1. Be specific - mention IP addresses from the table\n"
             "2. Ask follow-ups - 'Tell me more' or 'Explain differently'\n"
             "3. Request examples - 'Give me an example'\n\n"
-            "🎯 POWER USER TIP: Paste threat details from the Traffic Table for instant analysis!", "❓"),
+            "POWER USER TIP: Paste threat details from the Traffic Table for instant analysis!"),
     ],
     "Network Topology": [
         HelpHotspot(400, 200, "Network Visualization Map", 
@@ -192,18 +199,18 @@ PAGE_HELP_CONTENT = {
             "• YOUR COMPUTER = The central hub (you are here!)\n"
             "• Lines = Network cables or WiFi connections\n"
             "• Device icons = Different types of gadgets\n"
-            "  - 📱 Phones/Tablets\n"
-            "  - 💻 Computers/Laptops\n"
-            "  - 📺 Smart TVs/Streaming devices\n"
-            "  - 🖨️ Printers\n"
-            "  - 🔊 Smart speakers\n"
-            "  - ❓ Unknown devices\n\n"
+            "  - Phones/Tablets\n"
+            "  - Computers/Laptops\n"
+            "  - Smart TVs/Streaming devices\n"
+            "  - Printers\n"
+            "  - Smart speakers\n"
+            "  - Unknown devices\n\n"
             "SECURITY USE:\n"
             "Spot devices you don't recognize! Unknown devices could be:\n"
             "• Neighbors leeching your WiFi\n"
             "• Hacked smart home devices\n"
             "• Hidden cameras or microphones\n\n"
-            "🎯 ACTION: If you see unknown devices, change your WiFi password immediately!", "🌐"),
+            "ACTION: If you see unknown devices, change your WiFi password immediately!"),
         HelpHotspot(150, 450, "Device Details Table", 
             "A spreadsheet view of every device connected to your network with technical details.\n\n"
             "COLUMNS EXPLAINED:\n"
@@ -215,71 +222,71 @@ PAGE_HELP_CONTENT = {
             "• Manufacturer = Who made the device (Apple, Samsung, etc.)\n"
             "• Status = Online/Offline/Unknown\n"
             "• Last Seen = When device was last active\n\n"
-            "💡 PRO TIP: Write down MAC addresses of YOUR devices. Unknown MACs = potential intruders!", "📱"),
+            "PRO TIP: Write down MAC addresses of YOUR devices. Unknown MACs = potential intruders!"),
         HelpHotspot(750, 450, "Network Scan Controls", 
             "Buttons to discover and map all devices on your network.\n\n"
             "SCAN OPTIONS:\n\n"
-            "⚡ QUICK SCAN (30 seconds)\n"
+            "QUICK SCAN (30 seconds)\n"
             "• Checks the most common IP addresses\n"
             "• Finds most active devices quickly\n"
             "• Good for daily checks\n\n"
-            "🔍 DEEP SCAN (2-5 minutes)\n"
+            "DEEP SCAN (2-5 minutes)\n"
             "• Checks every possible IP address\n"
             "• Finds hidden or quiet devices\n"
             "• Best for security audits\n\n"
-            "➕ MANUAL ADD\n"
+            "MANUAL ADD\n"
             "• Type a specific IP address\n"
             "• Useful for adding devices that block scans\n"
             "• Good for offline devices you know about\n\n"
-            "🎯 WHEN TO SCAN:\n"
+            "WHEN TO SCAN:\n"
             "• Weekly: Quick scan to check for intruders\n"
             "• Monthly: Deep scan full audit\n"
-            "• Immediately: If you suspect someone on your network", "🔍"),
+            "• Immediately: If you suspect someone on your network"),
     ],
     "Settings": [
         HelpHotspot(200, 150, "Settings Navigation", 
             "Different categories of settings to customize Watchdog for your needs.\n\n"
             "SETTINGS CATEGORIES:\n\n"
-            "🌐 NETWORK\n"
+            "NETWORK\n"
             "• WiFi connection settings\n"
             "• Network interface selection\n"
             "• Connection troubleshooting\n\n"
-            "🤖 AI & MODEL\n"
+            "AI & MODEL\n"
             "• Choose AI model (1b, 3b, 8b, phi4)\n"
             "• Set AI response preferences\n"
             "• Configure AI behavior\n\n"
-            "🛡️ SECURITY\n"
+            "SECURITY\n"
             "• Firewall settings\n"
             "• Automatic blocking rules\n"
             "• Threat detection sensitivity\n\n"
-            "🔒 PRIVACY\n"
+            "PRIVACY\n"
             "• Data collection settings\n"
             "• Log retention policies\n"
             "• Anonymous reporting\n\n"
-            "🎨 APPEARANCE\n"
+            "APPEARANCE\n"
             "• Theme selection (Default/Light/Dark)\n"
             "• Interface scale\n"
-            "• Animation toggles", "🧭"),
+            "• Animation toggles"),
         HelpHotspot(600, 200, "Theme & Appearance", 
             "Personalize how Watchdog looks and feels. Choose a theme that's comfortable for your eyes!\n\n"
             "THEME OPTIONS:\n\n"
-            "🟦 DEFAULT (Dark Teal)\n"
+            "DEFAULT (Dark Teal)\n"
             "• Original dark theme with teal accents\n"
             "• Easy on eyes during day or night\n"
             "• Good contrast for readability\n"
             "• Recommended for most users\n\n"
-            "⬜ LIGHT (White Background)\n"
+            "LIGHT (White Background)\n"
             "• Bright, clean appearance\n"
             "• Looks like modern websites\n"
             "• Good for well-lit rooms\n"
             "• High contrast text\n\n"
-            "⬛ DARK (Pure Black)\n"
+            "DARK (Pure Black)\n"
             "• OLED-friendly (saves battery on OLED screens)\n"
             "• Maximum contrast\n"
             "• Best for dark rooms\n"
             "• Popular with power users\n\n"
-            "💡 INTERFACE SCALE\n"
-            "Adjust text and button sizes if you have vision needs or prefer larger/smaller UI elements.", "🎨"),
+            "INTERFACE SCALE\n"
+            "Adjust text and button sizes if you have vision needs or prefer larger/smaller UI elements."),
     ],
     "Threat Encyclopedia": [
         HelpHotspot(400, 150, "Search Bar",
@@ -288,7 +295,7 @@ PAGE_HELP_CONTENT = {
             "• Type any threat name (e.g., 'phishing', 'malware')\n"
             "• Type attack characteristics (e.g., 'email', 'password')\n"
             "• Results filter automatically as you type\n\n"
-            "💡 TIP: Search for 'password' to find all password-related threats!", "🔍"),
+            "TIP: Search for 'password' to find all password-related threats!"),
         HelpHotspot(400, 400, "Threat Cards",
             "Each card explains a different cyber threat in simple terms.\n\n"
             "CARD SECTIONS:\n"
@@ -297,10 +304,10 @@ PAGE_HELP_CONTENT = {
             "• Description = What the attack does\n"
             "• Warning Signs = How to spot it happening\n"
             "• Prevention = How to protect yourself\n\n"
-            "🎯 USE THIS TO:\n"
+            "USE THIS TO:\n"
             "• Learn about new attack types\n"
             "• Identify threats you've encountered\n"
             "• Share knowledge with your team\n"
-            "• Prepare security training materials", "📚"),
+            "• Prepare security training materials"),
     ],
 }

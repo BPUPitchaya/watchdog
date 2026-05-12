@@ -43,7 +43,8 @@ Watchdog is a comprehensive network security solution that monitors network traf
 2. **Create and activate virtual environment**:
    ```bash
    python3 -m venv watchdog_env
-   source watchdog_env/bin/activate  # On Windows: watchdog_env\Scripts\activate
+   source watchdog_env/bin/activate  # On macOS/Linux: watchdog_env/bin/activate
+   # On Windows: watchdog_env\Scripts\activate
    ```
 
 3. **Install dependencies**:
@@ -51,9 +52,50 @@ Watchdog is a comprehensive network security solution that monitors network traf
    pip install -r requirements.txt
    ```
 
-4. **Install Ollama** (for AI assistant):
-   - Download from https://ollama.ai/
-   - Pull Llama 3 model: `ollama pull llama3`
+4. **Install system dependencies**:
+
+   **macOS**:
+   ```bash
+   # Install Homebrew if not already installed
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   
+   # Install nmap
+   brew install nmap
+   ```
+
+   **Linux (Ubuntu/Debian)**:
+   ```bash
+   sudo apt update
+   sudo apt install nmap
+   ```
+
+   **Linux (CentOS/RHEL)**:
+   ```bash
+   sudo yum install nmap
+   ```
+
+   **Windows**:
+   ```powershell
+   # Download nmap from https://nmap.org/download.html
+   # Or use Chocolatey: choco install nmap
+   # Or use winget: winget install nmap
+   ```
+
+5. **Install Ollama** (for AI assistant):
+   
+   **macOS/Linux**:
+   ```bash
+   # Download from https://ollama.ai/
+   # Pull Llama 3 model after installation
+   ollama pull llama3
+   ```
+   
+   **Windows**:
+   ```powershell
+   # Download installer from https://ollama.ai/
+   # Run installer and restart terminal
+   ollama pull llama3
+   ```
 
 ## Usage
 
@@ -61,21 +103,44 @@ Watchdog is a comprehensive network security solution that monitors network traf
 
 1. **Activate virtual environment**:
    ```bash
+   # macOS/Linux
    source watchdog_env/bin/activate
+   
+   # Windows
+   watchdog_env\Scripts\activate
    ```
 
-2. **Run the main application**:
+2. **Run main application**:
    ```bash
-   python main.py
+   # macOS/Linux: Full features (requires sudo)
+   sudo python3 src/ui/pyqt_dashboard.py
+   
+   # Windows: Run as Administrator
+   # Right-click Command Prompt/PowerShell and select "Run as administrator"
+   # Then run: python src/ui/pyqt_dashboard.py
+   
+   # Development mode (UI only, no sudo needed)
+   python src/ui/pyqt_dashboard.py
    ```
 
 3. **Run individual components**:
    ```bash
-   # Run basic Flet UI
-   python src/ui/hello_world.py
+   # macOS/Linux: Basic packet sniffer (requires sudo)
+   sudo python3 src/network/basic_sniffer.py
    
-   # Run basic packet sniffer
-   python src/network/basic_sniffer.py
+   # Windows: Basic packet sniffer (requires Administrator)
+   # Right-click Command Prompt/PowerShell and select "Run as administrator"
+   # Then run: python src/network/basic_sniffer.py
+   
+   # macOS/Linux: Network topology scanner (requires sudo)
+   sudo python3 src/ui/pages/network_topology_page.py
+   
+   # Windows: Network topology scanner (requires Administrator)
+   # Right-click Command Prompt/PowerShell and select "Run as administrator"
+   # Then run: python src/ui/pages/network_topology_page.py
+   
+   # ML analysis (no sudo needed on any platform)
+   python src/ml/dataset_analysis.py
    ```
 
 ### Basic Operations
@@ -137,12 +202,33 @@ watchdog/
 ### Common Issues
 
 1. **Permission Denied for Packet Capture**:
-   - Run with administrator privileges: `sudo python main.py`
-   - Ensure user has necessary network permissions
+   ```bash
+   # macOS/Linux: Run with sudo
+   sudo python3 src/ui/pyqt_dashboard.py
+   
+   # Windows: Run as Administrator
+   # Method 1: Right-click Command Prompt and select "Run as administrator"
+   # Method 2: Right-click PowerShell and select "Run as administrator"
+   # Method 3: Open Command Prompt as Administrator from Start Menu
+   # Then run: python src/ui/pyqt_dashboard.py
+   ```
 
 2. **Virtual Environment Issues**:
-   - Ensure virtual environment is activated
-   - Recreate environment if needed: `python3 -m venv watchdog_env`
+   ```bash
+   # macOS/Linux: Ensure virtual environment is activated
+   source watchdog_env/bin/activate
+   
+   # Windows: Ensure virtual environment is activated
+   # Method 1: watchdog_env\Scripts\activate
+   # Method 2: watchdog_env\Scripts\activate.bat
+   # Method 3: Use Command Prompt with activation script
+   
+   # Recreate environment if needed
+   python3 -m venv watchdog_env
+   source watchdog_env/bin/activate  # macOS/Linux
+   watchdog_env\Scripts\activate    # Windows
+   pip install -r requirements.txt
+   ```
 
 3. **Dependency Conflicts**:
    - Update pip: `pip install --upgrade pip`

@@ -123,7 +123,6 @@ class WatchdogDashboard(QMainWindow):
                 self.model = joblib.load('models/random_forest_model.pkl')
                 self.extractor = FeatureExtractor()
             except Exception as e:
-                print(f"Failed to load ML model: {e}")
                 self.model = None
                 self.extractor = None
 
@@ -132,7 +131,6 @@ class WatchdogDashboard(QMainWindow):
                 try:
                     self.ai_client = OllamaClient()
                 except Exception as e:
-                    print(f"Failed to initialize AI: {e}")
                     self.ai_client = None
 
         # Create UI components
@@ -341,7 +339,6 @@ class WatchdogDashboard(QMainWindow):
 
     def _add_help_button(self, page_widget, page_name):
         """Add floating help button to a page widget."""
-        print(f"[DEBUG] _add_help_button called for {page_name}")
         # Create wrapper widget
         wrapper = QWidget()
         wrapper.setLayout(QVBoxLayout())
@@ -422,18 +419,15 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(mentor_widget)
         
         # Page 4: Network Topology
-        print("[DEBUG] Creating Network Topology page...")
         try:
             self.network_topology = NetworkTopologyPage(self)
-            print("[DEBUG] Network Topology page instance created")
             topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
-            print("[DEBUG] Network Topology widget created and added")
             self.page_container.addWidget(topology_widget)
-            print("[DEBUG] Network Topology page added to container")
         except Exception as e:
-            print(f"[ERROR] Failed to create Network Topology page: {e}")
             import traceback
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            # Create a placeholder page instead
+            from src.ui.pages import PlaceholderPage
+            placeholder = PlaceholderPage(self)
             # Create a placeholder page instead
             from src.ui.pages import PlaceholderPage
             placeholder = PlaceholderPage(self)
@@ -633,15 +627,12 @@ class WatchdogDashboard(QMainWindow):
             if not self.ai_client:
                 try:
                     self.ai_client = OllamaClient()
-                    print("AI features enabled")
                 except Exception as e:
-                    print(f"Failed to initialize AI: {e}")
                     self.ai_toggle_btn.setChecked(False)
                     return
         else:
             # Disable AI
             self.ai_client = None
-            print("AI features disabled")
         
         # Update button text and style
         self.ai_toggle_btn.setText("AI: ON" if checked else "AI: OFF")
@@ -975,7 +966,6 @@ class WatchdogDashboard(QMainWindow):
             self.shield_page._sync_blocked_ips()
             self.shield_page.update_shield_statistics()
             
-            print(f"Blocked IP from vault: {ip_address}")
 
     def show_forensic_analysis(self, item):
         # Show forensic analysis dialog for clicked item
@@ -1542,9 +1532,9 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
         """Update AI model used by OllamaClient."""
         if self.ai_client:
             self.ai_client.model = model_name
-            print(f"AI model updated to: {model_name}")
         else:
-            print("AI client not initialized - model switch will apply on next AI query")
+            # Model switch will apply on next AI query
+            pass
         
         # Update AI widget if available
         if hasattr(self, 'ai_widget'):

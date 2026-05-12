@@ -15,6 +15,7 @@ class NetworkTopologyPage:
         self.dashboard = dashboard
         self.scan_btn = None
         self.scan_status = None
+        self.network_range_input = None
         self.device_list = None
         self.topology_widget = None
         self.device_details = None
@@ -55,28 +56,6 @@ class NetworkTopologyPage:
             # Auto-detection failed silently
             return "192.168.1.0/24"  # Fallback to common home network
 
-    def _get_user_ip(self):
-        """Get the user's local IP address."""
-        try:
-            import socket
-            
-            # Get local IP address
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            
-            # If this returns 127.0.0.1, try to get the actual network interface IP
-            if local_ip.startswith('127.'):
-                # Create a socket to connect to an external address
-                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-                    s.connect(("8.8.8.8", 80))
-                    local_ip = s.getsockname()[0]
-            
-            return local_ip
-            
-        except Exception as e:
-            # IP detection failed
-            return "Unknown"  # Fallback
-
     def create(self):
         """Create and return the full network topology page widget."""
         # Creating Network Topology page...
@@ -98,7 +77,7 @@ class NetworkTopologyPage:
         header_layout = QVBoxLayout(header_widget)
         
         # Title
-        title = QLabel("NETWORK TOPOLOGY SCANNER")
+        title = QLabel("🌐 NETWORK TOPOLOGY SCANNER")
         title.setStyleSheet(f"""
             QLabel {{
                 color: {THEME['primary']};
@@ -114,7 +93,7 @@ class NetworkTopologyPage:
         scan_controls = QHBoxLayout()
         
         # Scan button
-        self.scan_btn = QPushButton("SCAN NETWORK")
+        self.scan_btn = QPushButton("🔍 SCAN NETWORK")
         self.scan_btn.setStyleSheet(f"""
             QPushButton {{
                 background: {THEME['primary']};
@@ -141,32 +120,43 @@ class NetworkTopologyPage:
         # Scan button click handler connected!
         scan_controls.addWidget(self.scan_btn)
         
-        # IP Address Display Box
-        self.ip_display = QLabel()
-        self.ip_display.setStyleSheet(f"""
-            QLabel {{
+        
+        detected_network = self._detect_local_network()
+        # Auto-detected network
+         
+        # Network Range Input
+        range_layout = QHBoxLayout()
+        range_label = QLabel("Network Range:")
+        range_label.setStyleSheet(f"color: {THEME['text_primary']}; font-family: {THEME['font_mono']}; font-size: 12px;")
+        self.network_range_input = QLineEdit(detected_network)  
+        self.network_range_input.setStyleSheet(f"""
+            QLineEdit {{
                 background: {THEME['bg_card']};
                 border: 1px solid {THEME['border']};
                 border-radius: 6px;
-                color: {THEME['text_secondary']};
-                padding: 8px 12px;
+                color: {THEME['text_primary']};
+                padding: 8px;
                 font-family: {THEME['font_mono']};
-                font-size: 11px;
+                min-width: 150px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
             }}
         """)
-        scan_controls.addWidget(self.ip_display)
-        
-        # Auto-detect network on page load
-        detected_network = self._detect_local_network()
-        user_ip = self._get_user_ip()
-        
-        # Update IP display
-        self.ip_display.setText(f"Your IP: {user_ip} | Scanning: {detected_network}")
+        range_layout.addWidget(range_label)
+        range_layout.addWidget(self.network_range_input)
+        range_layout.addStretch()
+        scan_controls.addLayout(range_layout)
         
         # Status Label
         self.scan_status = QLabel("Ready to scan")
         self.scan_status.setStyleSheet(f"color: {THEME['success']}; font-family: {THEME['font_mono']}; font-size: 12px;")
         scan_controls.addWidget(self.scan_status)
+
+        # Show detected network info
+        if detected_network != "172.16.40.0/24":
+            self.scan_status.setText(f"🔍 Auto-detected network: {detected_network}")
+            self.scan_status.setStyleSheet("color: #6BCF7F; font-family: 'Courier New', monospace; font-size: 12px;")
         
         scan_controls.addStretch()
         header_layout.addLayout(scan_controls)
@@ -286,11 +276,12 @@ class NetworkTopologyPage:
         return topology_page
 
     def scan_network_devices(self):
-        """Scan my network for connected devices"""
+        """Scan network for connected devices using simple fast scan"""
+        # Starting simple fast scan...
         
         # Immediate UI feedback
         self.scan_btn.setEnabled(False)
-        self.scan_status.setText("Scanning network...")
+        self.scan_status.setText("🔍 Scanning network...")
         self.scan_status.setStyleSheet("color: #FFD93D; font-family: 'Courier New', monospace; font-size: 12px;")
         self.device_list.clear()
         self.topology_widget.set_devices([])
@@ -305,8 +296,8 @@ class NetworkTopologyPage:
             import subprocess
             import re
             
-            network_range = self._detect_local_network()
-            # Scanning auto-detected network
+            network_range = self.network_range_input.text().strip()
+            # Scanning network
             
             # Convert network range to CIDR if needed
             if '/' not in network_range:
@@ -352,26 +343,26 @@ class NetworkTopologyPage:
             
             # Update UI immediately with progress
             # Updating UI immediately...
-            self.scan_status.setText(f"Found {len(devices)} devices...")
+            self.scan_status.setText(f"🔍 Found {len(devices)} devices...")
             
             # Small delay to show progress before final update
             self._update_device_list(devices)
             
             # Final status update
-            self.scan_status.setText(f"Found {len(devices)} devices")
+            self.scan_status.setText(f"✅ Found {len(devices)} devices")
             self.scan_status.setStyleSheet("color: #6BCF7F; font-family: 'Courier New', monospace; font-size: 12px;")
             self.scan_btn.setEnabled(True)
             # Direct scan completed successfully
             
         except subprocess.TimeoutExpired:
             # Scan timed out
-            self._show_scan_error("Scan timed out")
+            self._show_scan_error("⏱️ Scan timed out")
         except FileNotFoundError:
             # nmap not found, using demo scan
             self._perform_demo_scan()
         except Exception as e:
             # Scan error occurred
-            self._show_scan_error(f"Scan error: {str(e)}")
+            self._show_scan_error(f"❌ Scan error: {str(e)}")
     
     def _check_scan_results(self):
         """Check if scan is complete and update UI"""
@@ -379,7 +370,7 @@ class NetworkTopologyPage:
         if self.scan_complete and hasattr(self, '_pending_devices') and self._pending_devices:
             # Scan complete, updating UI with devices
             self._update_device_list(self._pending_devices)
-            self.scan_status.setText(f"Found {len(self._pending_devices)} devices")
+            self.scan_status.setText(f"✅ Found {len(self._pending_devices)} devices")
             self.scan_status.setStyleSheet("color: #6BCF7F; font-family: 'Courier New', monospace; font-size: 12px;")
             self.scan_btn.setEnabled(True)
             self.scan_complete = False
@@ -394,15 +385,13 @@ class NetworkTopologyPage:
         if hasattr(self, '_pending_devices'):
             # Found devices to display
             self._update_device_list(self._pending_devices)
-            self.scan_status.setText(f"Found {len(self._pending_devices)} devices")
+            self.scan_status.setText(f"✅ Found {len(self._pending_devices)} devices")
             self.scan_status.setStyleSheet("color: #6BCF7F; font-family: 'Courier New', monospace; font-size: 12px;")
             self.scan_btn.setEnabled(True)
             # Background scan completed successfully
-        else:
+    else:
             # No pending devices found to update
             pass
-    
-    def _show_scan_error(self, error_message):
         """Show scan error message"""
         self.scan_status.setText(error_message)
         self.scan_status.setStyleSheet("color: #FF6B6B; font-family: 'Courier New', monospace; font-size: 12px;")
@@ -468,27 +457,26 @@ class NetworkTopologyPage:
             details = f"""
 🔍 DEVICE DETAILS
 ═══════════════════════════════════════
-IP Address: {device['ip']}
-MAC Address: {device['mac']}
-Hostname: {device['hostname']}
-Vendor: {device['vendor']}
-Device Type: {device['type'].upper()}
+📍 IP Address: {device['ip']}
+🏷️  MAC Address: {device['mac']}
+🖥️  Hostname: {device['hostname']}
+🏢 Vendor: {device['vendor']}
+📱 Device Type: {device['type'].upper()}
 
-Scan Information:
+🔍 Scan Information:
 • Discovered via network scan
 • Active on network
 • Responds to ping requests
 
-Tips:
+💡 Tips:
 • Click on devices in the topology view
 • Device type is estimated from MAC address
 • Some devices may not provide hostname info
             """
             self.device_details.setText(details.strip())
 
-    def _on_topology_device_clicked(self, device_data):
+    def _on_topology_device_clicked(self, device_ip):
         """Handle device click in topology view"""
-        device_ip = device_data.get('ip', '') if isinstance(device_data, dict) else str(device_data)
         if device_ip in self.discovered_devices:
             device = self.discovered_devices[device_ip]
             # Find and select the item in the list
