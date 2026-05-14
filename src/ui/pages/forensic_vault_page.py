@@ -28,6 +28,12 @@ class ForensicVaultPage:
         vault_page = QWidget()
         vault_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
+        # Start auto-refresh timer (e.g., every 5 seconds)
+        self.auto_update_timer = QTimer(vault_page)
+        self.auto_update_timer.timeout.connect(self.dashboard.load_flagged_incidents)
+        self.auto_update_timer.start(5000)
+        self.auto_update_enabled = True
+        
         # Main layout that fills the entire page
         main_layout = QVBoxLayout(vault_page)
         main_layout.setContentsMargins(20, 20, 20, 20)

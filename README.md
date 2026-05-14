@@ -1,6 +1,6 @@
 # Watchdog - Network Security Monitoring System
 
-An AI-powered network intrusion detection and prevention system built with Python, Flet, Scapy, and machine learning.
+An AI-powered network intrusion detection and prevention system built with Python, PyQt6, Scapy, and machine learning.
 
 ## Project Overview
 
@@ -10,14 +10,14 @@ Watchdog is a comprehensive network security solution that monitors network traf
 
 - **Real-time Network Monitoring**: Continuous packet capture and analysis using Scapy
 - **Machine Learning Detection**: Random Forest classifier trained on NSL-KDD dataset
-- **Modern UI Interface**: Flet-based web dashboard with real-time visualizations
+- **Modern UI Interface**: PyQt6-based desktop dashboard with real-time visualizations
 - **AI Assistant**: Llama 3 integration for intelligent log analysis and explanation
 - **Automated Response**: Firewall automation for threat mitigation
 - **Cross-platform**: Works on macOS, Linux, and Windows
 
 ## Technology Stack
 
-- **Frontend**: Flet (Python-based UI framework)
+- **Frontend**: PyQt6 (Python-based GUI framework)
 - **Network Monitoring**: Scapy for packet capture and analysis
 - **Machine Learning**: Scikit-learn Random Forest classifier
 - **AI Assistant**: Ollama with Llama 3 model
@@ -43,7 +43,7 @@ Watchdog is a comprehensive network security solution that monitors network traf
 2. **Create and activate virtual environment**:
    ```bash
    python3 -m venv watchdog_env
-   source watchdog_env/bin/activate  # On macOS/Linux: watchdog_env/bin/activate
+   source watchdog_env/bin/activate  # macOS/Linux
    # On Windows: watchdog_env\Scripts\activate
    ```
 
@@ -59,41 +59,55 @@ Watchdog is a comprehensive network security solution that monitors network traf
    # Install Homebrew if not already installed
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    
-   # Install nmap
-   brew install nmap
+   # Install nmap and libpcap (for packet capture)
+   brew install nmap libpcap
    ```
 
    **Linux (Ubuntu/Debian)**:
    ```bash
    sudo apt update
-   sudo apt install nmap
+   sudo apt install nmap libpcap-dev python3-dev
    ```
 
    **Linux (CentOS/RHEL)**:
    ```bash
-   sudo yum install nmap
+   sudo yum install nmap libpcap-devel python3-devel
    ```
 
    **Windows**:
    ```powershell
-   # Download nmap from https://nmap.org/download.html
+   # Install Npcap (required for Scapy packet capture)
+   # Download from https://npcap.com/#download
+   # During installation, check "Install Npcap in WinPcap API-compatible Mode"
+   
+   # Install nmap
+   # Download from https://nmap.org/download.html
    # Or use Chocolatey: choco install nmap
    # Or use winget: winget install nmap
    ```
 
 5. **Install Ollama** (for AI assistant):
    
-   **macOS/Linux**:
+   **macOS**:
    ```bash
-   # Download from https://ollama.ai/
+   # Download from https://ollama.ai/download
+   # After installation, pull Llama 3 model
+   ollama pull llama3
+   ```
+   
+   **Linux**:
+   ```bash
+   # Install using curl
+   curl -fsSL https://ollama.ai/install.sh | sh
    # Pull Llama 3 model after installation
    ollama pull llama3
    ```
    
    **Windows**:
    ```powershell
-   # Download installer from https://ollama.ai/
+   # Download installer from https://ollama.ai/download
    # Run installer and restart terminal
+   # Pull Llama 3 model after installation
    ollama pull llama3
    ```
 
@@ -112,15 +126,15 @@ Watchdog is a comprehensive network security solution that monitors network traf
 
 2. **Run main application**:
    ```bash
-   # macOS/Linux: Full features (requires sudo)
+   # macOS/Linux: Full features (requires sudo for packet capture)
    sudo python3 src/ui/pyqt_dashboard.py
    
-   # Windows: Run as Administrator
+   # Windows: Run as Administrator for packet capture
    # Right-click Command Prompt/PowerShell and select "Run as administrator"
    # Then run: python src/ui/pyqt_dashboard.py
    
-   # Development mode (UI only, no sudo needed)
-   python src/ui/pyqt_dashboard.py
+   # Development mode (UI only, no packet capture, no sudo needed)
+   python src/ui/pyqt_dashboard.py --layout-only
    ```
 
 3. **Run individual components**:
@@ -149,6 +163,23 @@ Watchdog is a comprehensive network security solution that monitors network traf
 2. **View Captured Packets**: Real-time display in the packet list
 3. **Stop Monitoring**: Click "Stop Sniffing" to halt packet capture
 4. **View Statistics**: Packet count and status displayed in real-time
+
+### Docker Support (Optional)
+
+For users who prefer containerized deployment:
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# This will:
+# - Build the watchdog application
+# - Start Ollama AI service
+# - Configure network access for packet capture
+# - Share display for GUI (Linux/macOS only)
+```
+
+**Note**: Docker GUI support requires X11 forwarding on Linux/macOS. Windows users should run the application natively for best experience.
 
 ## Project Structure
 
@@ -289,6 +320,24 @@ watchdog/
 4. **Ollama Not Found**:
    - Ensure Ollama is installed and in PATH
    - Restart terminal after installation
+   - Test with: `ollama list`
+
+5. **Scapy Packet Capture Issues**:
+   
+   **macOS**:
+   - Grant network permissions in System Preferences → Security & Privacy → Privacy → Full Disk Access
+   - Ensure libpcap is installed: `brew install libpcap`
+   
+   **Linux**:
+   - Add user to pcap group: `sudo usermod -a -G pcap $USER`
+   - Log out and back in for group changes to take effect
+   - Install libpcap-dev: `sudo apt install libpcap-dev` (Ubuntu/Debian)
+   
+   **Windows**:
+   - Ensure Npcap is installed with WinPcap compatibility mode
+   - Run Npcap installer as Administrator
+   - Restart after Npcap installation
+   - Check Npcap service is running in Services.msc
 
 ### Performance Tips
 

@@ -1,52 +1,68 @@
 # Watchdog Network Security Monitoring System
-# Core Dependencies
+# Cross-platform dependencies for macOS, Linux, and Windows
+
+# ============================================================================
+# CORE DEPENDENCIES (Required for all platforms)
+# ============================================================================
 PyQt6>=6.4.0
 scapy==2.7.0
 numpy>=1.21.0
 pandas>=1.3.0
 scikit-learn>=1.0.0
-matplotlib>=3.5.0
-seaborn>=0.11.0
 joblib>=1.1.0
 
-# Network and System Monitoring
+# ============================================================================
+# NETWORK AND SYSTEM MONITORING
+# ============================================================================
 psutil>=5.8.0
 requests>=2.25.0
 
-# Data Processing
+# ============================================================================
+# DATA PROCESSING AND ML
+# ============================================================================
 scipy>=1.7.0
-pillow>=8.0.0
+threadpoolctl>=3.0.0
 
-# UI and Visualization
+# ============================================================================
+# UI AND VISUALIZATION
+# ============================================================================
 matplotlib>=3.5.0
+seaborn>=0.11.0
+pillow>=8.0.0
 contourpy>=1.0.0
 kiwisolver>=1.3.0
 pyparsing>=3.0.0
 python-dateutil>=2.8.0
 six>=1.16.0
 
-# Machine Learning
-threadpoolctl>=3.0.0
+# ============================================================================
+# PLATFORM-SYSTEM DEPENDENCIES (Install separately, not via pip)
+# ============================================================================
+# macOS: brew install nmap libpcap
+# Linux (Ubuntu/Debian): sudo apt install nmap libpcap-dev python3-dev
+# Linux (CentOS/RHEL): sudo yum install nmap libpcap-devel python3-devel
+# Windows: 
+#   - Install Npcap from https://npcap.com/#download (check WinPcap compatibility)
+#   - Install nmap from https://nmap.org/download.html
 
-# Optional: Legacy Flet Support (if needed)
-# flet==0.81.0
-# anyio==4.12.1
-# certifi==2026.2.25
-# h11==0.16.0
-# httpcore==1.0.9
-# httpx==0.28.1
-# idna==3.11
-# msgpack==1.1.2
-# oauthlib==3.3.1
-# packaging==26.0
-# repath==0.9.0
+# ============================================================================
+# OPTIONAL DEPENDENCIES
+# ============================================================================
 
-# Development and Testing
+# Docker Support (if using containerized deployment)
+# docker>=6.0.0
+# docker-compose>=2.0.0
+
+# Development and Testing (uncomment if needed)
 # pytest>=6.0.0
 # pytest-cov>=2.12.0
 # black>=21.0.0
 # flake8>=3.9.0
 
-# AI Assistant (Optional - requires separate Ollama installation)
+# ============================================================================
+# AI ASSISTANT
+# ============================================================================
 # No additional Python packages needed for Ollama integration
+# Install Ollama separately: https://ollama.ai/download
+# After installation: ollama pull llama3
 

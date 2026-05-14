@@ -53,6 +53,8 @@ from src.ai.ollama_client import OllamaClient
 from src.ai.prompts import GENERAL_PROMPT, EXPLANATION_PROMPT, TECHNICAL_ANALYSIS_PROMPT
 from src.ai.utils import format_packet_log
 from src.ui.theme import THEME
+from src.firewall_manager import FirewallManager
+from src.ui.incidents_worker import IncidentsWorker
 from src.ui.widgets import (
     ThreatGauge, StatusCore, SystemHealthGauge, RiskAnalysisGauge,
     CircularGaugeWidget, LiveTrafficWidget, ToastNotification,
@@ -116,6 +118,8 @@ class WatchdogDashboard(QMainWindow):
         self.manual_blocked_ips = set()  # Track which IPs were manually blocked
         self.ai_mentor_page = None  # Will be set in create_pages()
         self.conversation_history = []  # Shared conversation history for AI chat sync
+        self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
+        self.firewall_manager = FirewallManager()  # System-level IP blocking via pfctl
         
         # Load ML (skip if layout-only)
         if not self.layout_only:
@@ -140,7 +144,7 @@ class WatchdogDashboard(QMainWindow):
         if not self.layout_only:
             self.timer = QTimer()
             self.timer.timeout.connect(self.update_ui)
-            self.timer.start(2000)  # 2 seconds - reduced for performance
+            self.timer.start(5000)  # Increased to 5 seconds for better performance
 
         # Initial update (skip in layout-only)
         if not self.layout_only:
@@ -659,32 +663,13 @@ class WatchdogDashboard(QMainWindow):
             data = {"packets": []}
 
         packets = data.get("packets", [])
-        flagged_packets = []
         
-        # Filter for packets with ATTACK classification or low confidence
-        for packet in packets:
-            if not self.layout_only and self.model and self.extractor:
-                packet_data = {
-                    'src_ip': packet.get('src_ip', '192.168.1.1'),
-                    'dst_ip': packet.get('dst_ip', '10.0.0.1'),
-                    'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
-                    'length': packet.get('length', 100),
-                    'src_port': packet.get('src_port', 12345),
-                    'dst_port': packet.get('dst_port', 80),
-                    'flags': packet.get('flags', 'S'),
-                    'direction': 'inbound'
-                }
-                features = self.extractor.extract_packet_features(packet_data)
-                selected_features = self.extractor.get_selected_features(features)
-                features_array = np.array(selected_features).reshape(1, -1)
-                prediction = self.model.predict(features_array)[0]
-                probabilities = self.model.predict_proba(features_array)[0]
-                confidence = max(probabilities) * 100
-                
-                # Flag if ATTACK prediction OR low confidence (< 60%)
-                if confidence < 60.0:
-                    flagged_packets.append(packet)
-        
+        # Move heavy processing to background thread
+        self.worker = IncidentsWorker(packets, self.model, self.extractor, self.layout_only)
+        self.worker.finished.connect(self._update_vault_table)
+        self.worker.start()
+
+    def _update_vault_table(self, flagged_packets):
         # Always add sample flagged incidents for demonstration
         sample_packets = [
             {
@@ -799,11 +784,15 @@ class WatchdogDashboard(QMainWindow):
             }
         ]
         
-        # Add all samples to ensure vault has content
-        flagged_packets.extend(sample_packets[:10])
+        # Merge sample packets if they aren't already represented (to ensure vault has content)
+        # For simplicity in demo, we just add them
+        final_list = flagged_packets + sample_packets[:10]
 
-        self.vault_table.setRowCount(len(flagged_packets))
-        for i, packet in enumerate(flagged_packets):
+        if not hasattr(self, 'vault_table') or self.vault_table is None:
+            return
+
+        self.vault_table.setRowCount(len(final_list))
+        for i, packet in enumerate(final_list):
             # Convert timestamp to human-readable format
             timestamp = packet.get('timestamp', 0)
             if isinstance(timestamp, (int, float)):
@@ -816,28 +805,9 @@ class WatchdogDashboard(QMainWindow):
             dst_ip = packet.get('dst_ip', '')
             protocol = packet.get('protocol', 'Other')
             
-            # Always calculate confidence for all packets
-            confidence = "N/A"
-            threat_level = "UNKNOWN"
-            if not self.layout_only and self.model and self.extractor:
-                packet_data = {
-                    'src_ip': src_ip or '192.168.1.1',
-                    'dst_ip': dst_ip or '10.0.0.1',
-                    'protocol': 6 if protocol.upper() == 'TCP' else 17,
-                    'length': packet.get('length', 100),
-                    'src_port': packet.get('src_port', 12345),
-                    'dst_port': packet.get('dst_port', 80),
-                    'flags': packet.get('flags', 'S'),
-                    'direction': 'inbound'
-                }
-                features = self.extractor.extract_packet_features(packet_data)
-                selected_features = self.extractor.get_selected_features(features)
-                features_array = np.array(selected_features).reshape(1, -1)
-                prediction = self.model.predict(features_array)[0]
-                probabilities = self.model.predict_proba(features_array)[0]
-                confidence = f"{max(probabilities) * 100:.1f}%"
-                threat_level = "ATTACK" if prediction == 1 else "NORMAL"
-            
+            # Use pre-calculated AI results from worker
+            confidence = packet.get('ai_confidence', "N/A")
+            threat_level = packet.get('ai_threat', "UNKNOWN")
             ai_summary = "Click to view AI analysis" if not self.layout_only else "Sample flagged packet"
 
             self.vault_table.setItem(i, 0, QTableWidgetItem(timestamp))
@@ -846,6 +816,16 @@ class WatchdogDashboard(QMainWindow):
             src_ip_item.setForeground(QColor(THEME['primary']))
             src_ip_item.setFont(QFont(THEME['font_mono'].strip("'"), 12))
             self.vault_table.setItem(i, 1, src_ip_item)
+            
+            # Add other columns
+            self.vault_table.setItem(i, 2, QTableWidgetItem(dst_ip))
+            self.vault_table.setItem(i, 3, QTableWidgetItem(protocol))
+            self.vault_table.setItem(i, 4, QTableWidgetItem(confidence))
+            self.vault_table.setItem(i, 5, QTableWidgetItem(threat_level))
+            self.vault_table.setItem(i, 6, QTableWidgetItem(ai_summary))
+            
+            # Action button
+            self.vault_table.setItem(i, 7, QTableWidgetItem("Analyze"))
             
             dst_ip_item = QTableWidgetItem(dst_ip)
             dst_ip_item.setForeground(QColor(THEME['primary']))
@@ -943,6 +923,12 @@ class WatchdogDashboard(QMainWindow):
             # Add to blocked IPs set
             if hasattr(self, 'blocked_ips'):
                 self.blocked_ips.add(ip_address)
+            
+            # Actually block at system firewall level
+            try:
+                self.firewall_manager.block_ip(ip_address)
+            except Exception as e:
+                print(f"Firewall block failed: {e}")
             
             # Add to shield's blocked list widget if it exists
             if hasattr(self, 'blocked_list_widget'):
@@ -1044,24 +1030,41 @@ class WatchdogDashboard(QMainWindow):
                 self.table.setItem(i, 3, QTableWidgetItem(str(packet.get('length', 0))))
                 
                 # ML predictions for Confidence Score and Action (skip in layout-only)
+                # Use cache to avoid expensive ML computation on the main thread
                 if not self.layout_only and self.model and self.extractor:
-                    packet_data = {
-                        'src_ip': packet.get('src_ip', '192.168.1.1'),
-                        'dst_ip': packet.get('dst_ip', '10.0.0.1'),
-                        'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
-                        'length': packet.get('length', 100),
-                        'src_port': packet.get('src_port', 12345),
-                        'dst_port': packet.get('dst_port', 80),
-                        'flags': packet.get('flags', 'S'),
-                        'direction': 'inbound'
-                    }
-                    features = self.extractor.extract_packet_features(packet_data)
-                    selected_features = self.extractor.get_selected_features(features)
-                    features_array = np.array(selected_features).reshape(1, -1)
-                    prediction = self.model.predict(features_array)[0]
-                    probabilities = self.model.predict_proba(features_array)[0]
-                    confidence = max(probabilities) * 100
-                    action = "NORMAL" if prediction == 0 else "ATTACK"
+                    # Build a cache key from packet identity fields
+                    cache_key = (
+                        packet.get('src_ip', ''),
+                        packet.get('dst_ip', ''),
+                        packet.get('protocol', ''),
+                        packet.get('length', 0),
+                        packet.get('src_port', 0),
+                        packet.get('dst_port', 0),
+                        packet.get('flags', '')
+                    )
+                    if cache_key in self._ml_cache:
+                        # Use cached result
+                        confidence, action = self._ml_cache[cache_key]
+                    else:
+                        # Compute once and cache
+                        packet_data = {
+                            'src_ip': packet.get('src_ip', '192.168.1.1'),
+                            'dst_ip': packet.get('dst_ip', '10.0.0.1'),
+                            'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
+                            'length': packet.get('length', 100),
+                            'src_port': packet.get('src_port', 12345),
+                            'dst_port': packet.get('dst_port', 80),
+                            'flags': packet.get('flags', 'S'),
+                            'direction': 'inbound'
+                        }
+                        features = self.extractor.extract_packet_features(packet_data)
+                        selected_features = self.extractor.get_selected_features(features)
+                        features_array = np.array(selected_features).reshape(1, -1)
+                        prediction = self.model.predict(features_array)[0]
+                        probabilities = self.model.predict_proba(features_array)[0]
+                        confidence = max(probabilities) * 100
+                        action = "NORMAL" if prediction == 0 else "ATTACK"
+                        self._ml_cache[cache_key] = (confidence, action)
                     if action == "ATTACK" and confidence > 70:
                         src_ip = packet.get('src_ip', 'unknown')
                         dst_ip = packet.get('dst_ip', 'unknown')
@@ -1076,6 +1079,9 @@ class WatchdogDashboard(QMainWindow):
                             f"Attack from {src_ip} to {dst_ip}\nConfidence: {confidence:.1f}%",
                             toast_type
                         )
+                        
+                        # Block the IP at firewall level
+                        self.firewall_manager.block_ip(src_ip)
                     self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
                 else:
@@ -1474,7 +1480,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
         # Setup timer for batched UI updates (every 150ms)
         self._stream_timer = QTimer(self)
         self._stream_timer.timeout.connect(self._flush_stream_buffer)
-        self._stream_timer.start(150)
+        self._stream_timer.start(500) # Increased to 500ms for better performance
         
         # Create and start worker thread
         self._ai_worker = AIWorker(self.ai_client, prompt)

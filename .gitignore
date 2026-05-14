@@ -172,5 +172,7 @@ cython_debug/
 # Project specific
 *.pcap
 network_logs/
-models/
-datasets/
+packet_data.json
+eda_plots/
+ollama_storage/
+data/
