@@ -171,7 +171,7 @@ class LiveSentinelPage(QWidget):
             scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             logo_label.setPixmap(scaled_logo)
         else:
-            logo_label.setText("🐺")
+            logo_label.setText()
             logo_label.setStyleSheet("font-size: 32px;")
         logo_label.setFixedSize(48, 48)
         logo_label.setStyleSheet("border: none; background-color: transparent;")
@@ -303,11 +303,11 @@ class LiveSentinelPage(QWidget):
         # RAM info label
         ram_gb = get_system_ram()
         if ram_gb:
-            ram_label = QLabel(f"💾 {ram_gb}GB RAM detected")
-            ram_text = f"💾 {ram_gb}GB RAM detected"
+            ram_label = QLabel(f"{ram_gb}GB RAM detected")
+            ram_text = f"{ram_gb}GB RAM detected"
         else:
-            ram_label = QLabel("💾 RAM: Unknown")
-            ram_text = "💾 RAM: Unknown"
+            ram_label = QLabel("RAM: Unknown")
+            ram_text = "RAM: Unknown"
         
         ram_label = QLabel(ram_text)
         ram_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

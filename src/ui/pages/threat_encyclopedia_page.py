@@ -813,7 +813,7 @@ class ThreatEncyclopediaPage:
         
         # Search box
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Search threats...")
+        self.search_input.setPlaceholderText("Search threats...")
         self.search_input.setFixedWidth(250)
         self.search_input.setStyleSheet("""
             QLineEdit {

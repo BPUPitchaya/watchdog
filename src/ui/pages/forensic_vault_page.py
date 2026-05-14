@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QTimer
 
 from src.ui.theme import THEME
 
@@ -18,6 +19,9 @@ class ForensicVaultPage:
         self.dashboard = dashboard
         self.vault_table = None
         self.vault_search = None
+        self.auto_update_timer = None
+        self.auto_update_enabled = False
+        self.last_update_time = None
         
     def create(self):
         """Create and return the forensic vault page widget."""

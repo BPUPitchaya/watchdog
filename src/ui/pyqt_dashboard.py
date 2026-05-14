@@ -212,7 +212,7 @@ class WatchdogDashboard(QMainWindow):
             scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.sidebar_logo.setPixmap(scaled_logo)
         else:
-            self.sidebar_logo.setText("🐺")
+            self.sidebar_logo.setText()
             self.sidebar_logo.setStyleSheet("font-size: 20px;")
         self.sidebar_logo.setFixedSize(48, 48)
         header_layout.addWidget(self.sidebar_logo)
@@ -682,7 +682,7 @@ class WatchdogDashboard(QMainWindow):
                 confidence = max(probabilities) * 100
                 
                 # Flag if ATTACK prediction OR low confidence (< 60%)
-                if prediction == 1 or confidence < 60.0:
+                if confidence < 60.0:
                     flagged_packets.append(packet)
         
         # Always add sample flagged incidents for demonstration
@@ -1069,7 +1069,7 @@ class WatchdogDashboard(QMainWindow):
                         # Check if this is a simulated attack
                         is_simulation = packet.get('simulated', False)
                         toast_type = "simulation" if is_simulation else "block"
-                        title = "🧪 SIMULATED THREAT" if is_simulation else "🚨 THREAT DETECTED"
+                        title = "SIMULATED THREAT" if is_simulation else "THREAT DETECTED"
                         
                         self.show_toast(
                             title,
@@ -1593,7 +1593,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
         """)
         toast_layout = QVBoxLayout(toast_section)
         
-        toast_title = QLabel("🍞 Toast Notification Testing")
+        toast_title = QLabel("Toast Notification Testing")
         toast_title.setFont(QFont(THEME['font_mono'].strip("'"), 18))
         toast_title.setStyleSheet(f"color: {THEME['text_primary']}; margin-bottom: 15px;")
         toast_layout.addWidget(toast_title)

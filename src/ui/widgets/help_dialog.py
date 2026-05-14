@@ -12,12 +12,11 @@ from src.ui.theme import THEME
 
 class HelpHotspot:
     """Defines a clickable help hotspot with explanation."""
-    def __init__(self, x, y, title, description, icon="❓"):
+    def __init__(self, x, y, title, description):
         self.x = x
         self.y = y
         self.title = title
         self.description = description
-        self.icon = icon
 
 
 class HelpDialog(QDialog):
@@ -76,7 +75,7 @@ class HelpDialog(QDialog):
         layout.setContentsMargins(10, 10, 10, 10)
         
         # Title
-        title = QLabel("📸 Page Screenshot - Click the circles to learn")
+        title = QLabel("Page Screenshot - Click the circles to learn")
         title.setStyleSheet(f"""
             color: {THEME['primary']};
             font-size: 16px;
@@ -136,16 +135,9 @@ class HelpDialog(QDialog):
         
         self.scene.addItem(circle)
         
-        # Add icon
-        text = self.scene.addText(spot.icon)
-        text.setPos(scaled_x - 12, scaled_y - 12)
-        text.setDefaultTextColor(QColor("white"))
-        font = QFont()
-        font.setPointSize(14)
-        text.setFont(font)
         
         # Store items for hover effects
-        self.hotspot_items.append((circle, text, spot))
+        self.hotspot_items.append((circle, spot))
         
         # Click handler
         circle.mousePressEvent = lambda e, s=spot: self._show_explanation(s)
@@ -166,7 +158,7 @@ class HelpDialog(QDialog):
         layout.setSpacing(15)
         
         # Header
-        header = QLabel("📖 Beginner's Guide")
+        header = QLabel("Beginner's Guide")
         header.setStyleSheet(f"""
             color: {THEME['primary']};
             font-size: 22px;
@@ -203,7 +195,7 @@ class HelpDialog(QDialog):
         content_layout.setSpacing(10)
         
         # Title
-        self.explanation_title = QLabel("👆 Select a Section")
+        self.explanation_title = QLabel("Select a Section")
         self.explanation_title.setStyleSheet(f"""
             color: {THEME['text_primary']};
             font-size: 18px;
@@ -239,7 +231,7 @@ class HelpDialog(QDialog):
         tips_layout = QVBoxLayout(tips_widget)
         tips_layout.setContentsMargins(12, 12, 12, 12)
         
-        tips_label = QLabel("💡 Pro Tips")
+        tips_label = QLabel("Pro Tips")
         tips_label.setStyleSheet(f"color: {THEME['warning']}; font-weight: bold; font-size: 13px;")
         tips_layout.addWidget(tips_label)
         
@@ -280,23 +272,16 @@ class HelpDialog(QDialog):
     def _show_explanation(self, hotspot):
         """Update side panel with hotspot explanation."""
         self.current_hotspot = hotspot
-        self.explanation_title.setText(f"{hotspot.icon} {hotspot.title}")
+        self.explanation_title.setText(hotspot.title)
         self.explanation_text.setText(hotspot.description)
         
         # Highlight selected hotspot - change colors only (no scaling to avoid misalignment)
-        for circle, text, spot in self.hotspot_items:
-            if spot == hotspot:
-                # Selected: Green fill, thick white border, larger emoji
+        for circle, spot_item in self.hotspot_items:
+            if spot_item == hotspot:
+                # Selected: Green fill, thick white border
                 circle.setBrush(QBrush(QColor(THEME['success'])))
                 circle.setPen(QPen(QColor("white"), 5))
-                font = QFont()
-                font.setPointSize(18)
-                font.setBold(True)
-                text.setFont(font)
             else:
-                # Not selected: Primary fill, thin white border, normal emoji
+                # Not selected: Primary fill, thin white border
                 circle.setBrush(QBrush(QColor(THEME['primary'])))
                 circle.setPen(QPen(QColor("white"), 3))
-                font = QFont()
-                font.setPointSize(14)
-                text.setFont(font)

@@ -19,9 +19,9 @@ except Exception as e:
     model = None
     extractor = None
 
-st.set_page_config(page_title="WATCHDOG AI Dashboard", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="WATCHDOG AI Dashboard", layout="wide")
 
-st.title("🛡️ WATCHDOG AI Dashboard")
+st.title("WATCHDOG AI Dashboard")
 
 # Sidebar
 st.sidebar.title("Navigation")
@@ -40,7 +40,7 @@ with col2:
 
 with col3:
     # Refresh button
-    if st.button("🔄 Refresh Data"):
+    if st.button("Refresh Data"):
         st.rerun()
 
 # Load packet data
@@ -54,7 +54,7 @@ packets = data.get("packets", [])
 alerts = data.get("alerts", [])
 
 # Traffic visualization
-st.subheader("📊 Network Traffic")
+st.subheader("Network Traffic")
 if packets:
     packet_count = len(packets)
     st.metric("Total Packets Captured", packet_count)
@@ -72,12 +72,12 @@ else:
 
 # Alerts section
 if alerts:
-    st.subheader("🚨 Recent Alerts")
+    st.subheader("Recent Alerts")
     for alert in alerts[-5:]:  # Last 5 alerts
         st.warning(f"Alert: {alert}")
 
 # AI Chat section
-st.subheader("🤖 AI Assistant")
+st.subheader("AI Assistant")
 
 # Initialize chat history
 if "messages" not in st.session_state:

@@ -154,25 +154,77 @@ Watchdog is a comprehensive network security solution that monitors network traf
 
 ```
 watchdog/
-├── README.md                 # Project documentation
-├── requirements.txt          # Python dependencies
-├── .gitignore               # Git ignore file
-├── main.py                  # Main application entry point
-├── src/                     # Source code directory
+├── README.md                    # Project documentation
+├── requirements.txt             # Python dependencies
+├── .gitignore                  # Git ignore file
+├── main.py                     # Main application entry point
+├── integrated_watchdog.py      # Integrated watchdog script
+├── run_all.sh                  # Script to run all components
+├── stop_all.sh                 # Script to stop all components
+├── packet_data.json            # Example packet data
+├── source.txt                  # Data source file
+├── data/                       # Data directory
+├── eda_plots/                  # Exploratory Data Analysis plots
+│   ├── correlation_matrix.png
+│   ├── dst_bytes_distribution.png
+│   └── ... (other plot images)
+├── src/                        # Source code directory
 │   ├── __init__.py
-│   ├── ui/                  # Flet UI components
+│   ├── firewall_manager.py     # Manages firewall rules
+│   ├── test_traffic.py         # Script for testing network traffic
+│   ├── ai/                     # AI assistant components
 │   │   ├── __init__.py
-│   │   └── hello_world.py
-│   ├── network/             # Network monitoring components
+│   │   ├── ollama_client.py    # Client for Ollama/Llama 3 interaction
+│   │   ├── prompts.py          # AI prompt definitions
+│   │   └── utils.py            # AI related utility functions
+│   ├── ml/                     # Machine learning components
 │   │   ├── __init__.py
-│   │   └── basic_sniffer.py
-│   ├── ml/                  # Machine learning components
-│   │   └── __init__.py
-│   └── utils/               # Utility functions
+│   │   ├── dataset_analysis.py # Scripts for dataset analysis
+│   │   ├── dataset_preparation.py # Data preparation and preprocessing
+│   │   ├── feature_extractor.py # Extracts features from network data
+│   │   ├── feature_selection.py # Selects relevant features
+│   │   ├── integration_testing.py # ML integration tests
+│   │   └── model_training.py   # Trains the ML model
+│   ├── network/                # Network monitoring components
+│   │   ├── __init__.py
+│   │   ├── basic_sniffer.py    # Basic packet sniffer
+│   │   └── sniffer_service.py  # Network sniffing service
+│   ├── ui/                     # User Interface components (PyQt/Flet)
+│   │   ├── __init__.py
+│   │   ├── hello_world.py      # Example UI file
+│   │   ├── help_content.py     # Help content for the UI
+│   │   ├── modern_dashboard.py # Modern dashboard layout
+│   │   ├── pyqt_dashboard.py   # Main PyQt dashboard application
+│   │   ├── streamlit_dashboard.py # Streamlit dashboard alternative
+│   │   ├── theme.py            # UI theme definitions
+│   │   ├── assets/             # UI assets (icons, fonts)
+│   │   │   ├── Ai assistant icon.png
+│   │   │   ├── dashboard icon.png
+│   │   │   └── ... (other UI assets)
+│   │   ├── pages/              # UI pages
+│   │   │   ├── __init__.py
+│   │   │   ├── ai_mentor_page.py # AI mentor page
+│   │   │   ├── autonomous_shield_page.py # Autonomous shield features
+│   │   │   ├── forensic_vault_page.py # Forensic data vault
+│   │   │   ├── live_sentinel_page.py # Live network monitoring
+│   │   │   ├── network_topology_page.py # Network topology visualization
+│   │   │   ├── placeholder_page.py # Placeholder for future pages
+│   │   │   ├── settings_page.py # Application settings
+│   │   │   └── threat_encyclopedia_page.py # Threat information database
+│   │   └── widgets/            # Reusable UI widgets
+│   │       ├── __init__.py
+│   │       ├── ai_widget.py    # AI assistant widget
+│   │       ├── charts.py       # Charting widgets
+│   │       ├── forensic_panel.py # Forensic data display panel
+│   │       ├── gauges.py       # Gauge widgets
+│   │       ├── help_dialog.py  # Help dialog widget
+│   │       ├── network_topology.py # Network topology visualization widget
+│   │       └── toast.py        # Notification toast widget
+│   └── utils/                  # General utility functions
 │       └── __init__.py
-├── tests/                   # Test files
-├── docs/                    # Documentation
-└── watchdog_env/            # Virtual environment
+├── tests/                      # Test files
+├── docs/                       # Documentation
+└── watchdog_env/               # Virtual environment
 ```
 
 ## Development Phases

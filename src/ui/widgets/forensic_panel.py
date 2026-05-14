@@ -276,13 +276,13 @@ class ForensicAssistantPanel(QWidget):
             }}
         """)
         
-        help_content = """<h2 style='color: #2DD4BF;'>🤖 AI Model Selection Guide</h2>
+        help_content = """<h2 style='color: #2DD4BF;'>AI Model Selection Guide</h2>
 
-<h3 style='color: #F97316;'>💻 How to Check Your RAM</h3>
+<h3 style='color: #F97316;'>How to Check Your RAM</h3>
 <p><b>Mac:</b> Click Apple menu → About This Mac → look for "Memory"</p>
 <p><b>Windows:</b> Press Win+Pause/Break or Settings → System → About</p>
 
-<h3 style='color: #2DD4BF;'>📊 Choose Your Model</h3>
+<h3 style='color: #2DD4BF;'>Choose Your Model</h3>
 <table border='0' cellpadding='5'>
 <tr style='color: #22C55E;'><td><b>⚡ 8GB</b></td><td>llama3.2:1b (~1GB)</td><td>Fast, basic answers</td></tr>
 <tr style='color: #22C55E;'><td><b>⚡ 8GB+</b></td><td>llama3.2:3b (~2GB)</td><td>Balanced speed/quality</td></tr>
@@ -290,17 +290,17 @@ class ForensicAssistantPanel(QWidget):
 <tr style='color: #EF4444;'><td><b>⚡ 16GB++</b></td><td>phi4 (~6GB)</td><td>Best quality, very slow on 8GB</td></tr>
 </table>
 
-<h3 style='color: #F97316;'>🎯 Recommendations</h3>
+<h3 style='color: #F97316;'>Recommendations</h3>
 <p><b>8GB Mac/PC:</b> Use <b>1b</b> for speed or <b>3b</b> if you close other apps</p>
 <p><b>16GB Mac/PC:</b> Use <b>3b</b> or <b>8b</b> for better answers</p>
 <p><b>32GB+ Mac/PC:</b> Use <b>phi4</b> for professional-grade analysis</p>
 
-<h3 style='color: #EF4444;'>⚠️ Warning Signs</h3>
+<h3 style='color: #EF4444;'>Warning Signs</h3>
 <p>• Rainbow wheel / spinning cursor = RAM full, switch to smaller model</p>
 <p>• Long delays (>30 sec) = model too big for your system</p>
 <p>• App freezes = immediately switch to 1b or use --no-ai mode</p>
 
-<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>💡 Tip: Start with 3b and only go higher if responses are fast enough.</i></p>"""
+<p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>Tip: Start with 3b and only go higher if responses are fast enough.</i></p>"""
         
         help_text.setHtml(help_content)
         layout.addWidget(help_text)

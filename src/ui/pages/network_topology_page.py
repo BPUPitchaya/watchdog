@@ -466,7 +466,7 @@ class NetworkTopologyPage:
         device = item.data(Qt.ItemDataRole.UserRole)
         if device:
             details = f"""
-🔍 DEVICE DETAILS
+DEVICE DETAILS
 ═══════════════════════════════════════
 IP Address: {device['ip']}
 MAC Address: {device['mac']}

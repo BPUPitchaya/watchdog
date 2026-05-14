@@ -53,7 +53,7 @@ class NetworkTopologyWidget(QWidget):
         if not self.devices:
             painter.setPen(QPen(QColor(THEME['text_secondary'])))
             painter.setFont(QFont(THEME['font_mono'].strip("'"), 14))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "🌐 No devices discovered\nRun a network scan to see topology")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No devices discovered\nRun a network scan to see topology")
             return
             
         angle_step = 2 * math.pi / len(self.devices)
@@ -161,14 +161,14 @@ class NetworkTopologyWidget(QWidget):
         painter.drawEllipse(center, radius, radius)
         
         icons = {
-            'pc': '🖥️',
-            'mobile': '📱',
-            'iot': '📡',
-            'vm': '💻',
-            'pi': '🥧',
-            'unknown': '❓'
+            'PC',
+            'Mobile',
+            'IOT',
+            'Virtual Machine',
+            'Raspberry Pi',
+            'Unknown'
         }
-        icon = icons.get(device_type, '❓')
+        icon = icons.get(device_type,)
         
         painter.setPen(QPen(QColor(THEME['text_primary'])))
         painter.setFont(QFont("Segoe UI Emoji", 16))
@@ -196,10 +196,10 @@ class NetworkTopologyWidget(QWidget):
         painter.drawText(legend_x, legend_y, "Device Types:")
         
         types = [
-            ('pc', '💻 PC/Server', THEME['primary']),
-            ('mobile', '📱 Mobile', THEME['warning']),
-            ('iot', '📡 IoT', '#FF9F43'),
-            ('unknown', '❓ Unknown', THEME['danger'])
+            ('pc', 'PC/Server', THEME['primary']),
+            ('mobile', 'Mobile', THEME['warning']),
+            ('iot', 'IoT', '#FF9F43'),
+            ('unknown', 'Unknown', THEME['danger'])
         ]
         
         for i, (type_id, label, color) in enumerate(types):
