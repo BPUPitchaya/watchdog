@@ -225,7 +225,7 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_title = QLabel("WATCHDOG")
         self.sidebar_title.setStyleSheet(f"""
             color: {THEME['primary']};
-            font-family: '{self.tech_font}', 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
+            font-family: 'Segoe UI';
             font-size: 18px;
             font-weight: bold;
             letter-spacing: 2px;
@@ -293,7 +293,7 @@ class WatchdogDashboard(QMainWindow):
                 color: {THEME['text_secondary']};
                 font-size: 12px;
                 font-weight: bold;
-                font-family: {THEME['font_mono']};
+                font-family: 'Segoe UI';
             """)
             text_label.setVisible(False)
             container_layout.addWidget(text_label)
@@ -597,7 +597,7 @@ class WatchdogDashboard(QMainWindow):
                     color: {THEME['primary']};
                     font-size: 12px;
                     font-weight: bold;
-                    font-family: {THEME['font_mono']};
+                    font-family: 'Segoe UI';
                 """)
             else:
                 container.setStyleSheet(f"""
@@ -615,7 +615,7 @@ class WatchdogDashboard(QMainWindow):
                     color: {THEME['text_secondary']};
                     font-size: 12px;
                     font-weight: bold;
-                    font-family: {THEME['font_mono']};
+                    font-family: 'Segoe UI';
                 """)
     
     def _animate_text_labels_in(self):
@@ -1620,7 +1620,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                 border: 2px solid {THEME['primary']};
                 border-radius: 8px;
                 padding: 12px 24px;
-                font-family: {THEME['font_mono']};
+                font-family: 'Segoe UI';
                 font-size: 12px;
                 font-weight: bold;
             }}
@@ -1640,7 +1640,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                 border: 2px solid {THEME['danger']};
                 border-radius: 8px;
                 padding: 12px 24px;
-                font-family: {THEME['font_mono']};
+                font-family: 'Segoe UI';
                 font-size: 12px;
                 font-weight: bold;
             }}
@@ -1660,7 +1660,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                 border: 2px solid {THEME['warning']};
                 border-radius: 8px;
                 padding: 12px 24px;
-                font-family: {THEME['font_mono']};
+                font-family: 'Segoe UI';
                 font-size: 12px;
                 font-weight: bold;
             }}
@@ -1714,7 +1714,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                     background-color: transparent;
                     border: none;
                     color: {THEME['text_secondary']};
-                    font-family: {THEME['font_mono']};
+                    font-family: 'Segoe UI';
                     font-size: 12px;
                     padding: 12px;
                     text-align: left;
@@ -1733,7 +1733,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
         if hasattr(self, 'sidebar_title'):
             self.sidebar_title.setStyleSheet(f"""
                 color: {THEME['primary']};
-                font-family: '{self.tech_font}', 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
+                font-family: 'Segoe UI';
                 font-size: 18px;
                 font-weight: bold;
                 letter-spacing: 2px;
@@ -1745,7 +1745,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                 background-color: {THEME['bg_header']};
                 border-top: 2px solid {THEME['border']};
                 color: {THEME['text_secondary']};
-                font-family: {THEME['font_mono']};
+                font-family: 'Segoe UI';
                 font-size: 11px;
                 padding: 5px 15px;
             """)
