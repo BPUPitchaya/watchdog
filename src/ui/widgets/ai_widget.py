@@ -102,7 +102,10 @@ class AIWidget(QWidget):
         models = ["llama3.2:1b", "llama3.2:3b", "llama3:8b", "phi4"]
         try:
             index = models.index(model_name)
+            # Block signals to prevent loop
+            self.model_selector.blockSignals(True)
             self.model_selector.setCurrentIndex(index)
+            self.model_selector.blockSignals(False)
             self.current_model = model_name
         except ValueError:
             pass  # Model not found, ignore

@@ -79,19 +79,26 @@ class ForensicVaultPage:
         
         # Search button
         search_btn = QPushButton("Search")
+        search_btn.setMinimumHeight(40)
         search_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
-                border: none;
+                color: white;
+                border: 2px solid {THEME['primary']};
                 border-radius: 8px;
                 padding: 10px 20px;
                 font-weight: bold;
                 font-family: {THEME['font_mono']};
+                font-size: 13px;
             }}
             
             QPushButton:hover {{
-                background-color: #00A8C6;
+                background-color: {THEME['secondary']};
+                border: 2px solid {THEME['secondary']};
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['primary']};
+                border: 2px solid white;
             }}
         """)
         
@@ -101,17 +108,26 @@ class ForensicVaultPage:
         
         # Clear button
         clear_btn = QPushButton("Clear")
+        clear_btn.setMinimumHeight(40)
         clear_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
                 color: {THEME['text_secondary']};
-                border: 1px solid {THEME['border']};
+                border: 2px solid {THEME['border']};
                 border-radius: 8px;
                 padding: 10px 20px;
+                font-weight: bold;
                 font-family: {THEME['font_mono']};
+                font-size: 13px;
             }}
             QPushButton:hover {{
-                background-color: rgba(255,255,255,0.1);
+                background-color: {THEME['bg_card']};
+                border: 2px solid {THEME['text_secondary']};
+                color: {THEME['text_primary']};
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['bg_card']};
+                border: 2px solid white;
             }}
         """)
         clear_btn.clicked.connect(self._clear_search)
@@ -220,18 +236,22 @@ class ForensicVaultPage:
         vault_refresh_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 10px;
-                padding: 12px 30px;
-                font-family: {THEME['font_mono']};
-                font-size: 12px;
+                color: white;
+                border: 2px solid {THEME['primary']};
+                border-radius: 8px;
+                padding: 10px 20px;
                 font-weight: bold;
-                margin: 5px
-                
+                font-family: {THEME['font_mono']};
+                font-size: 13px;
             }}
+            
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
+                border: 2px solid {THEME['secondary']};
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['primary']};
+                border: 2px solid white;
             }}
         """)
         main_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)

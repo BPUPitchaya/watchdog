@@ -31,21 +31,17 @@ class FirewallManager:
         self._create_table()
     
     def _create_table(self):
-        """Create the pf table if it doesn't exist."""
+        """Create the pf table if it doesn't exist (macOS pfctl creates table on first add)."""
         try:
             # Check if table exists
             result = subprocess.run(
                 ["sudo", "pfctl", "-t", self.table_name, "-T", "show"],
                 capture_output=True, text=True
             )
-            if result.returncode != 0:
-                # Create table
-                subprocess.run(
-                    ["sudo", "pfctl", "-t", self.table_name, "-T", "create"],
-                    check=True
-                )
+            # On macOS, tables are created automatically on first -T add
+            # No need to explicitly create with -T create (not supported on macOS)
         except subprocess.CalledProcessError:
-            print(f"Warning: Could not create pf table {self.table_name}")
+            print(f"Warning: Could not check pf table {self.table_name}")
     
     def _run_pfctl(self, args):
         """Run pfctl with sudo."""

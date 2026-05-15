@@ -419,29 +419,5 @@ class LiveSentinelPage(QWidget):
         layout.addWidget(self.table, stretch=1)
         
         # Refresh button (centered)
-        btn_container = QWidget()
-        btn_layout = QHBoxLayout(btn_container)
-        btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        refresh_btn = QPushButton("Refresh")
-        refresh_btn.setMinimumHeight(35)
-        refresh_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 10px;
-                font-family: {THEME['font_mono']};
-                font-size: 12px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {THEME['secondary']};
-            }}
-        """)
-        refresh_btn.clicked.connect(self.dashboard.update_ui)
-        btn_layout.addWidget(refresh_btn, stretch=1)
-        
-        layout.addWidget(btn_container)
         
         return container

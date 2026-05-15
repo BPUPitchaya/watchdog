@@ -116,6 +116,7 @@ class WatchdogDashboard(QMainWindow):
         self.toast = None  # Toast notification instance
         self.manual_block_count = 0
         self.manual_blocked_ips = set()  # Track which IPs were manually blocked
+        self.blocked_ips = set()  # Track all blocked IPs (auto + manual)
         self.ai_mentor_page = None  # Will be set in create_pages()
         self.conversation_history = []  # Shared conversation history for AI chat sync
         self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
@@ -126,7 +127,9 @@ class WatchdogDashboard(QMainWindow):
             try:
                 self.model = joblib.load('models/random_forest_model.pkl')
                 self.extractor = FeatureExtractor()
+                print("ML model loaded successfully")
             except Exception as e:
+                print(f"ML model loading failed: {e}")
                 self.model = None
                 self.extractor = None
 
@@ -445,6 +448,7 @@ class WatchdogDashboard(QMainWindow):
         
         # Page 6: Settings & Privacy (at bottom of sidebar)
         settings_page = SettingsPage(self)
+        self.settings_page = settings_page  # Store reference for syncing
         settings_widget = self._add_help_button(settings_page.create(), "Settings")
         self.page_container.addWidget(settings_widget)
         self.settings_nav = settings_page.settings_nav
@@ -1048,13 +1052,13 @@ class WatchdogDashboard(QMainWindow):
                     else:
                         # Compute once and cache
                         packet_data = {
-                            'src_ip': packet.get('src_ip', '192.168.1.1'),
-                            'dst_ip': packet.get('dst_ip', '10.0.0.1'),
+                            'src_ip': packet.get('src_ip', ''),
+                            'dst_ip': packet.get('dst_ip', ''),
                             'protocol': 6 if packet.get('protocol', 'TCP').upper() == 'TCP' else 17,
-                            'length': packet.get('length', 100),
-                            'src_port': packet.get('src_port', 12345),
-                            'dst_port': packet.get('dst_port', 80),
-                            'flags': packet.get('flags', 'S'),
+                            'length': packet.get('length', 0),
+                            'src_port': packet.get('src_port', 0),
+                            'dst_port': packet.get('dst_port', 0),
+                            'flags': packet.get('flags', ''),
                             'direction': 'inbound'
                         }
                         features = self.extractor.extract_packet_features(packet_data)
@@ -1065,6 +1069,7 @@ class WatchdogDashboard(QMainWindow):
                         confidence = max(probabilities) * 100
                         action = "NORMAL" if prediction == 0 else "ATTACK"
                         self._ml_cache[cache_key] = (confidence, action)
+                    
                     if action == "ATTACK" and confidence > 70:
                         src_ip = packet.get('src_ip', 'unknown')
                         dst_ip = packet.get('dst_ip', 'unknown')
@@ -1082,6 +1087,14 @@ class WatchdogDashboard(QMainWindow):
                         
                         # Block the IP at firewall level
                         self.firewall_manager.block_ip(src_ip)
+                        
+                        # Add to dashboard's blocked_ips set for UI display
+                        self.blocked_ips.add(src_ip)
+                        
+                        # Update shield page to show the newly blocked IP
+                        if hasattr(self, 'shield_page') and self.shield_page:
+                            self.shield_page._sync_blocked_ips()
+                            self.shield_page.update_shield_statistics()
                     self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
                 else:
@@ -1542,9 +1555,36 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
             # Model switch will apply on next AI query
             pass
         
+        # Add system message to dashboard AI chat
+        self.add_chat_message("ai", f"System: AI model switched to {model_name}")
+        
+        # Update AI mentor page if available
+        if hasattr(self, 'ai_mentor_page') and hasattr(self.ai_mentor_page, 'set_model'):
+            # Convert model name to index
+            models = ["llama3.2:1b", "llama3.2:3b", "llama3:8b", "phi4"]
+            try:
+                index = models.index(model_name)
+                self.ai_mentor_page.set_model(index)
+            except ValueError:
+                pass
+        
+        # Update forensic panel if available
+        if hasattr(self, 'forensic_panel') and hasattr(self.forensic_panel, 'set_model'):
+            # Convert model name to index
+            models = ["llama3.2:1b", "llama3.2:3b", "llama3:8b", "phi4"]
+            try:
+                index = models.index(model_name)
+                self.forensic_panel.set_model(index)
+            except ValueError:
+                pass
+        
         # Update AI widget if available
         if hasattr(self, 'ai_widget'):
             self.ai_widget.set_model(model_name)
+        
+        # Update settings page if available
+        if hasattr(self, 'settings_page') and hasattr(self.settings_page, 'set_model'):
+            self.settings_page.set_model(model_name)
 
     def closeEvent(self, event):
         # Stop all timers

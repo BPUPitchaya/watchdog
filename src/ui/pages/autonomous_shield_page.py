@@ -157,19 +157,24 @@ class AutonomousShieldPage:
         
         # Unblock button
         unblock_btn = QPushButton("Unblock Selected")
-        unblock_btn.setFixedHeight(40)
+        unblock_btn.setMinimumHeight(40)
         unblock_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: transparent;
-                color: {THEME['danger']};
+                background-color: {THEME['danger']};
                 border: 2px solid {THEME['danger']};
                 border-radius: 8px;
-                font-family: {THEME['font_mono']};
-                font-size: 14px;
+                color: white;
+                padding: 10px 20px;
                 font-weight: bold;
+                font-size: 13px;
             }}
             QPushButton:hover {{
-                background-color: rgba(255, 107, 107, 0.2);
+                background-color: #FF5252;
+                border: 2px solid #FF5252;
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['danger']};
+                border: 2px solid white;
             }}
         """)
         unblock_btn.clicked.connect(self._unblock_selected_ip)

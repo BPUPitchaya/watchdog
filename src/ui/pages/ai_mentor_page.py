@@ -185,18 +185,25 @@ class AIMentorPage:
         
         send_btn = QPushButton("Send")
         send_btn.setFixedWidth(80)
+        send_btn.setMinimumHeight(40)
         send_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 6px;
-                padding: 8px;
+                color: white;
+                border: 2px solid {THEME['primary']};
+                border-radius: 8px;
+                padding: 10px;
                 font-family: {THEME['font_mono']};
                 font-weight: bold;
+                font-size: 13px;
             }}
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
+                border: 2px solid {THEME['secondary']};
+            }}
+            QPushButton:pressed {{
+                background-color: {THEME['primary']};
+                border: 2px solid white;
             }}
         """)
         send_btn.clicked.connect(self._send_mentor_message)
@@ -381,8 +388,11 @@ Analyzed: 1,247 packets""")
                 self.dashboard.forensic_panel.set_model(index)
 
     def set_model(self, index):
-        """Set model from external source (sync from forensic panel)."""
+        """Set model from external source (sync from forensic panel or settings)."""
+        # Block signals to prevent loop
+        self.model_selector.blockSignals(True)
         self.model_selector.setCurrentIndex(index)
+        self.model_selector.blockSignals(False)
 
     def _show_model_help(self):
         """Show help dialog for selecting the best AI model based on RAM."""

@@ -244,7 +244,10 @@ class ForensicAssistantPanel(QWidget):
 
     def set_model(self, index):
         """Set model from external source (sync from AI Mentor page)."""
+        # Block signals to prevent loop and duplicate messages
+        self.model_selector.blockSignals(True)
         self.model_selector.setCurrentIndex(index)
+        self.model_selector.blockSignals(False)
 
     def _show_model_help(self):
         """Show help dialog for selecting the best AI model based on RAM."""
