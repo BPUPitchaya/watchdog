@@ -1027,64 +1027,6 @@ class SettingsPage:
         appearance_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
         appearance_layout.addWidget(appearance_header)
         
-        # Theme selector
-        theme_container = QWidget()
-        theme_container.setStyleSheet(f"""
-            QWidget {{
-                background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
-            }}
-        """)
-        theme_layout = QVBoxLayout(theme_container)
-        
-        theme_label = QLabel("Theme")
-        theme_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        theme_label.setStyleSheet(f"color: {THEME['text_primary']};")
-        theme_layout.addWidget(theme_label)
-        
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Default (Dark Teal)", "Light", "Dark"])
-        self.theme_combo.setStyleSheet(f"""
-            QComboBox {{
-                background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 6px;
-                color: {THEME['text_primary']};
-                padding: 8px;
-                font-family: {THEME['font_mono']};
-                min-width: 200px;
-            }}
-        """)
-        theme_layout.addWidget(self.theme_combo)
-        
-        # Apply button
-        apply_btn = QPushButton("Apply")
-        apply_btn.setMinimumHeight(40)
-        apply_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME['primary']};
-                border: 2px solid {THEME['primary']};
-                border-radius: 8px;
-                color: white;
-                padding: 10px 20px;
-                font-weight: bold;
-                font-size: 13px;
-            }}
-            QPushButton:hover {{
-                background-color: {THEME['secondary']};
-                border: 2px solid {THEME['secondary']};
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['primary']};
-                border: 2px solid white;
-            }}
-        """)
-        apply_btn.clicked.connect(lambda: self._on_theme_changed(self.theme_combo.currentIndex()))
-        theme_layout.addWidget(apply_btn)
-        appearance_layout.addWidget(theme_container)
-        
         # Font size slider
         font_container = QWidget()
         font_container.setStyleSheet(f"""
@@ -1265,58 +1207,181 @@ class SettingsPage:
         risk_levels = ["Low (Level 1)", "Low-Medium (Level 2)", "Medium (Level 3)", "Medium-High (Level 4)", "High (Level 5)"]
         self.risk_value_label.setText(risk_levels[value - 1])
 
-    def _on_theme_changed(self, index):
-        """Handle theme selection change with confirmation."""
-        try:
-            themes = ['default', 'light', 'dark']
-            theme_names = ['Default (Dark Teal)', 'Light', 'Dark']
-            selected = themes[index]
-            selected_name = theme_names[index]
-            
-            # Show confirmation dialog with theme styling
-            from src.ui.theme import THEME
-            confirm = QMessageBox(self.dashboard)
-            confirm.setWindowTitle("Confirm Theme Change")
-            confirm.setText(f"Apply '{selected_name}' theme?")
-            confirm.setInformativeText("The application will apply the new theme immediately.")
-            confirm.setIcon(QMessageBox.Icon.Question)
-            confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            confirm.setDefaultButton(QMessageBox.StandardButton.Yes)
-            confirm.setStyleSheet(f"""
-                QMessageBox {{
-                    background-color: {THEME['bg_dark']};
-                }}
-                QLabel {{
-                    color: {THEME['text_primary']};
-                    font-size: 13px;
-                }}
-                QPushButton {{
-                    background-color: {THEME['primary']};
-                    color: white;
+    def apply_theme(self):
+        """Re-apply current theme to settings page components."""
+        from src.ui.theme import THEME
+        from PyQt6.QtWidgets import QWidget, QLabel, QComboBox, QSlider, QCheckBox, QPushButton, QLineEdit, QListWidget
+        
+        # Update settings navigation
+        if hasattr(self, 'settings_nav'):
+            self.settings_nav.setStyleSheet(f"""
+                QListWidget {{
+                    background-color: {THEME['bg_card']};
                     border: none;
-                    border-radius: 6px;
-                    padding: 8px 16px;
-                    font-weight: bold;
+                    border-radius: 8px;
+                    padding: 8px;
+                    font-size: 13px;
+                    outline: none;
                 }}
-                QPushButton:hover {{
-                    background-color: {THEME['secondary']};
+                QListWidget::item {{
+                    padding: 12px 15px;
+                    border-radius: 8px;
+                    margin: 2px 0;
+                }}
+                QListWidget::item:selected {{
+                    background-color: {THEME['primary']};
+                    color: {THEME['bg_dark']};
+                }}
+                QListWidget::item:hover {{
+                    background-color: {THEME['bg_card']};
                 }}
             """)
-            
-            reply = confirm.exec()
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                # User confirmed - apply theme
-                from src.ui.theme import set_theme
-                if set_theme(selected):
-                    # Refresh UI with new theme
-                    if hasattr(self.dashboard, 'apply_theme'):
-                        self.dashboard.apply_theme()
+        
+        # Update settings content container
+        if hasattr(self, 'settings_content'):
+            self.settings_content.setStyleSheet(f"""
+                QStackedWidget {{
+                    background-color: {THEME['bg_card']};
+                    border: 1px solid {THEME['border']};
+                    border-radius: 12px;
+                }}
+            """)
+        
+        # Recursively update all widgets in the settings content
+        if hasattr(self, 'settings_content'):
+            self._update_widget_theme(self.settings_content)
+    
+    def _update_widget_theme(self, widget):
+        """Recursively update theme for all child widgets."""
+        from src.ui.theme import THEME
+        from PyQt6.QtWidgets import QWidget, QLabel, QComboBox, QSlider, QCheckBox, QPushButton, QLineEdit, QListWidget
+        
+        # Update the widget itself if it has a specific type
+        if isinstance(widget, QLabel):
+            widget.setStyleSheet(f"color: {THEME['text_primary']};")
+        elif isinstance(widget, QComboBox):
+            widget.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 6px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+            """)
+        elif isinstance(widget, QSlider):
+            widget.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    border: none;
+                    height: 6px;
+                    background: {THEME['bg_card']};
+                    border-radius: 3px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: {THEME['primary']};
+                    border-radius: 3px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: white;
+                    border: 2px solid {THEME['primary']};
+                    width: 14px;
+                    border-radius: 7px;
+                    margin: -4px 0;
+                }}
+            """)
+        elif isinstance(widget, QCheckBox):
+            widget.setStyleSheet(f"""
+                QCheckBox::indicator {{
+                    width: 35px;
+                    height: 18px;
+                    border-radius: 9px;
+                    background: {THEME['bg_card']};
+                    border: none;
+                }}
+                QCheckBox::indicator:checked {{
+                    background: {THEME['primary']};
+                }}
+            """)
+        elif isinstance(widget, QPushButton):
+            if widget.text() in ["Add", "Remove", "Apply"]:
+                widget.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {THEME['primary']};
+                        border: none;
+                        border-radius: 6px;
+                        color: white;
+                        padding: 4px 12px;
+                        font-weight: bold;
+                        font-size: 10px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {THEME['secondary']};
+                    }}
+                """)
             else:
-                # User cancelled - revert to previous selection
-                self.theme_combo.setCurrentIndex(self.theme_combo.findText(
-                    'Default (Dark Teal)' if selected == 'default' else 
-                    'Light' if selected == 'light' else 'Dark'
-                ))
-        except Exception as e:
-            print(f"Error applying theme: {e}")       
+                widget.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: transparent;
+                        border: none;
+                        border-radius: 6px;
+                        color: {THEME['text_primary']};
+                        padding: 4px 12px;
+                        font-weight: bold;
+                        font-size: 10px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {THEME['bg_card']};
+                    }}
+                """)
+        elif isinstance(widget, QLineEdit):
+            widget.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 6px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+            """)
+        elif isinstance(widget, QListWidget):
+            widget.setStyleSheet(f"""
+                QListWidget {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 4px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 10px;
+                }}
+                QListWidget::item {{
+                    padding: 4px;
+                    border-bottom: 1px solid {THEME['border']};
+                }}
+                QListWidget::item:selected {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                }}
+            """)
+        elif isinstance(widget, QWidget):
+            # Check if it's a container with the dark background style
+            current_style = widget.styleSheet()
+            if 'background-color: {THEME' in current_style or 'background-color: #0' in current_style or 'background-color: #F' in current_style:
+                widget.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {THEME['bg_dark']};
+                        border: 1px solid {THEME['border']};
+                        border-radius: 10px;
+                        padding: 12px;
+                    }}
+                """)
+        
+        # Recursively update children
+        if hasattr(widget, 'children'):
+            for child in widget.children():
+                if isinstance(child, QWidget):
+                    self._update_widget_theme(child)       

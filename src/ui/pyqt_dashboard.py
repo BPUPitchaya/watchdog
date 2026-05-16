@@ -1768,6 +1768,8 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                     color: {THEME['bg_dark']};
                 }}
             """)
+            # Recursively update sidebar widgets
+            self._update_widget_theme(self.nav_sidebar)
         
         # Update sidebar title
         if hasattr(self, 'sidebar_title'):
@@ -1799,6 +1801,144 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
                     page_widget = wrapper.layout().itemAt(0).widget()
                     if page_widget:
                         page_widget.setStyleSheet(f"background-color: {THEME['bg_dark']};")
+                        # Recursively update all widgets in the page
+                        self._update_widget_theme(page_widget)
+        
+        # Update settings page if exists
+        if hasattr(self, 'settings_page'):
+            self.settings_page.apply_theme()
+        
+        # Update AI mentor page if exists
+        if hasattr(self, 'ai_mentor_page'):
+            self.ai_mentor_page.apply_theme()
+        
+        # Update forensic panel if exists
+        if hasattr(self, 'forensic_panel'):
+            self.forensic_panel.apply_theme()
+    
+    def _update_widget_theme(self, widget):
+        """Recursively update theme for all child widgets."""
+        from src.ui.theme import THEME
+        from PyQt6.QtWidgets import QWidget, QLabel, QComboBox, QSlider, QCheckBox, QPushButton, QLineEdit, QListWidget
+        
+        # Update the widget itself if it has a specific type
+        if isinstance(widget, QLabel):
+            widget.setStyleSheet(f"color: {THEME['text_primary']};")
+        elif isinstance(widget, QComboBox):
+            widget.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 6px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+            """)
+        elif isinstance(widget, QSlider):
+            widget.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    border: none;
+                    height: 6px;
+                    background: {THEME['bg_card']};
+                    border-radius: 3px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: {THEME['primary']};
+                    border-radius: 3px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: white;
+                    border: 2px solid {THEME['primary']};
+                    width: 14px;
+                    border-radius: 7px;
+                    margin: -4px 0;
+                }}
+            """)
+        elif isinstance(widget, QCheckBox):
+            widget.setStyleSheet(f"""
+                QCheckBox::indicator {{
+                    width: 35px;
+                    height: 18px;
+                    border-radius: 9px;
+                    background: {THEME['bg_card']};
+                    border: none;
+                }}
+                QCheckBox::indicator:checked {{
+                    background: {THEME['primary']};
+                }}
+            """)
+        elif isinstance(widget, QPushButton):
+            widget.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: transparent;
+                    border: none;
+                    color: {THEME['text_secondary']};
+                    font-family: 'Segoe UI';
+                    font-size: 12px;
+                    padding: 12px;
+                    text-align: left;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['bg_card']};
+                    color: {THEME['text_primary']};
+                }}
+                QPushButton:checked {{
+                    background-color: {THEME['primary']};
+                    color: {THEME['bg_dark']};
+                }}
+            """)
+        elif isinstance(widget, QLineEdit):
+            widget.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 6px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+            """)
+        elif isinstance(widget, QListWidget):
+            widget.setStyleSheet(f"""
+                QListWidget {{
+                    background-color: {THEME['bg_card']};
+                    border: none;
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 4px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 10px;
+                }}
+                QListWidget::item {{
+                    padding: 4px;
+                    border-bottom: 1px solid {THEME['border']};
+                }}
+                QListWidget::item:selected {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                }}
+            """)
+        elif isinstance(widget, QWidget):
+            # Check if it's a container with the dark background style
+            current_style = widget.styleSheet()
+            if 'background-color: {THEME' in current_style or 'background-color: #0' in current_style or 'background-color: #F' in current_style:
+                widget.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {THEME['bg_dark']};
+                        border: 1px solid {THEME['border']};
+                        border-radius: 10px;
+                        padding: 12px;
+                    }}
+                """)
+        
+        # Recursively update children
+        if hasattr(widget, 'children'):
+            for child in widget.children():
+                if isinstance(child, QWidget):
+                    self._update_widget_theme(child)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

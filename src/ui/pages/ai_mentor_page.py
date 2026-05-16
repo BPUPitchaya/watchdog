@@ -394,6 +394,38 @@ Analyzed: 1,247 packets""")
         self.model_selector.setCurrentIndex(index)
         self.model_selector.blockSignals(False)
 
+    def apply_theme(self):
+        """Re-apply current theme to AI mentor page components."""
+        from src.ui.theme import THEME
+        
+        # Update model selector
+        if hasattr(self, 'model_selector'):
+            self.model_selector.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {THEME['bg_card']};
+                    border: 1px solid {THEME['border']};
+                    border-radius: 6px;
+                    color: {THEME['text_primary']};
+                    padding: 8px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 12px;
+                }}
+            """)
+        
+        # Update RAM indicator
+        if hasattr(self, 'ram_label'):
+            self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
+        
+        # Update mentor chat area
+        if hasattr(self, 'mentor_chat_area'):
+            self.mentor_chat_area.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {THEME['bg_dark']};
+                    border: none;
+                    border-radius: 8px;
+                }}
+            """)
+
     def _show_model_help(self):
         """Show help dialog for selecting the best AI model based on RAM."""
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
