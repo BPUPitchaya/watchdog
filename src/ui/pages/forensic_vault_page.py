@@ -36,20 +36,18 @@ class ForensicVaultPage:
         
         # Main layout that fills the entire page
         main_layout = QVBoxLayout(vault_page)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(10)
 
         # Header
-        vault_header = QLabel("FORENSIC VAULT")
-        vault_header.setFont(QFont(THEME['font_mono'].strip("'"), 28))
-        vault_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vault_header.setStyleSheet(f"color: {THEME['primary']};")
+        vault_header = QLabel("Forensic Vault")
+        vault_header.setFont(QFont(THEME['font_mono'].strip("'"), 18))
+        vault_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
         main_layout.addWidget(vault_header)
 
         # Subtitle
         vault_subtitle = QLabel("Translating complex metadata into human-readable advice")
-        vault_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 14))
-        vault_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        vault_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 11))
         vault_subtitle.setStyleSheet(f"color: {THEME['text_secondary']}; font-family: {THEME['font_mono']};")
         main_layout.addWidget(vault_subtitle)
 
@@ -65,40 +63,35 @@ class ForensicVaultPage:
         self.vault_search.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {THEME['bg_card']};
-                border: 2px solid {THEME['border']};
-                border-radius: 8px;
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
                 color: {THEME['text_primary']};
-                min-height: 40px;
-                padding: 8px 12px;
+                min-height: 34px;
+                padding: 6px 10px;
                 font-family: {THEME['font_mono']};
+                font-size: 12px;
             }}
             QLineEdit:focus {{
-                border: 2px solid {THEME['primary']};
+                border: 1px solid {THEME['primary']};
             }}
         """)
         
         # Search button
         search_btn = QPushButton("Search")
-        search_btn.setMinimumHeight(40)
+        search_btn.setMinimumHeight(34)
         search_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
                 color: white;
-                border: 2px solid {THEME['primary']};
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 16px;
+                font-weight: 600;
                 font-family: {THEME['font_mono']};
-                font-size: 13px;
+                font-size: 12px;
             }}
-            
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
-                border: 2px solid {THEME['secondary']};
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['primary']};
-                border: 2px solid white;
             }}
         """)
         
@@ -108,26 +101,20 @@ class ForensicVaultPage:
         
         # Clear button
         clear_btn = QPushButton("Clear")
-        clear_btn.setMinimumHeight(40)
+        clear_btn.setMinimumHeight(34)
         clear_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
                 color: {THEME['text_secondary']};
-                border: 2px solid {THEME['border']};
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                padding: 6px 16px;
                 font-family: {THEME['font_mono']};
-                font-size: 13px;
+                font-size: 12px;
             }}
             QPushButton:hover {{
                 background-color: {THEME['bg_card']};
-                border: 2px solid {THEME['text_secondary']};
                 color: {THEME['text_primary']};
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['bg_card']};
-                border: 2px solid white;
             }}
         """)
         clear_btn.clicked.connect(self._clear_search)
@@ -164,38 +151,34 @@ class ForensicVaultPage:
         ])
         self.vault_table.setStyleSheet(f"""
             QTableWidget {{
-                background-color: #0A1628;
+                background-color: {THEME['bg_card']};
                 border: none;
-                border-radius: 15px;
+                border-radius: 8px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
+                font-size: 12px;
             }}
             QTableWidget::item {{
-                padding: 12px;
-                border-bottom: 1px solid #1B2A38;
-                background-color: #0F2642;
+                padding: 8px 10px;
+                border-bottom: 1px solid {THEME['border']};
             }}
             QTableWidget::item:selected {{
                 background-color: {THEME['primary']};
                 color: {THEME['bg_dark']};
             }}
             QTableCornerButton::section {{
-                background-color: #0B1117;
+                background-color: {THEME['table_header_bg']};
                 border: none;
-                border-top-left-radius: 13px;
             }}
             QHeaderView::section {{
-                background-color: #0B1117;
-                color: {THEME['primary']};
+                background-color: {THEME['table_header_bg']};
+                color: {THEME['text_secondary']};
                 border: none;
-                padding: 12px;
+                border-bottom: 1px solid {THEME['border']};
+                padding: 8px 10px;
                 font-family: {THEME['font_mono']};
-            }}
-            QHeaderView::section:first {{
-                border-top-left-radius: 13px;
-            }}
-            QHeaderView::section:last {{
-                border-top-right-radius: 13px;
+                font-size: 11px;
+                font-weight: 600;
             }}
         """)
         
@@ -232,26 +215,20 @@ class ForensicVaultPage:
         # Refresh button
         vault_refresh_btn = QPushButton("Load Flagged Incidents")
         vault_refresh_btn.clicked.connect(self.dashboard.load_flagged_incidents)
-        vault_refresh_btn.setMinimumHeight(40)
+        vault_refresh_btn.setMinimumHeight(34)
         vault_refresh_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
                 color: white;
-                border: 2px solid {THEME['primary']};
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 20px;
+                font-weight: 600;
                 font-family: {THEME['font_mono']};
-                font-size: 13px;
+                font-size: 12px;
             }}
-            
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
-                border: 2px solid {THEME['secondary']};
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['primary']};
-                border: 2px solid white;
             }}
         """)
         main_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)

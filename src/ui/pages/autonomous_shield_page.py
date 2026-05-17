@@ -46,32 +46,24 @@ class AutonomousShieldPage:
         shield_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         
         main_layout = QVBoxLayout(shield_page)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(10)
         
-        # Page title at top left (gray)
+        # Page title
         page_title = QLabel("Security Control")
         page_title.setFont(QFont(THEME['font_mono'].strip("'"), 18))
-        page_title.setStyleSheet(f"color: {THEME['text_secondary']};")
+        page_title.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
         main_layout.addWidget(page_title)
         
-        # Header - Autonomous Shield (cyan)
-        shield_header = QLabel("Autonomous Shield (Security Control)")
-        shield_header.setFont(QFont(THEME['font_mono'].strip("'"), 24))
-        shield_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        shield_header.setStyleSheet(f"color: {THEME['primary']};")
-        main_layout.addWidget(shield_header)
-        
         # Subtitle
-        shield_subtitle = QLabel("Firewall Management and AI Confidence Control")
-        shield_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        shield_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        shield_subtitle.setStyleSheet(f"color: {THEME['text_primary']};")
+        shield_subtitle = QLabel("Firewall management and AI confidence control")
+        shield_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        shield_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
         main_layout.addWidget(shield_subtitle)
         
         # Split layout for left/right sections - RESPONSIVE
         split_layout = QHBoxLayout()
-        split_layout.setSpacing(20)
+        split_layout.setSpacing(12)
         
         # LEFT SECTION - Blocked IP Addresses (expands)
         left_section = QWidget()
@@ -80,8 +72,8 @@ class AutonomousShieldPage:
         left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         blocked_title = QLabel("Blocked IP Addresses")
-        blocked_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        blocked_title.setStyleSheet(f"color: {THEME['danger']};")
+        blocked_title.setFont(QFont(THEME['font_mono'].strip("'"), 13))
+        blocked_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
         left_layout.addWidget(blocked_title)
         
         # Scroll area for blocked IPs table
@@ -95,11 +87,10 @@ class AutonomousShieldPage:
         blocked_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
             }}
         """)
-        self._add_shadow(blocked_container)
         blocked_table_layout = QVBoxLayout(blocked_container)
         blocked_table_layout.setContentsMargins(0, 0, 0, 0)
         blocked_table_layout.setSpacing(0)
@@ -112,25 +103,27 @@ class AutonomousShieldPage:
             QTableWidget {{
                 background-color: transparent;
                 border: none;
-                border-radius: 15px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
+                font-size: 12px;
             }}
             QTableWidget::item {{
-                padding: 12px;
-                border-bottom: 1px solid #1B2A38;
-                background-color: #0f2642;
+                padding: 8px 10px;
+                border-bottom: 1px solid {THEME['border']};
             }}
             QTableWidget::item:selected {{
                 background-color: {THEME['primary']};
                 color: {THEME['bg_dark']};
             }}
             QHeaderView::section {{
-                background-color: #0B1117;
-                color: {THEME['primary']};
+                background-color: {THEME['table_header_bg']};
+                color: {THEME['text_secondary']};
                 border: none;
-                padding: 12px;
+                border-bottom: 1px solid {THEME['border']};
+                padding: 8px 10px;
                 font-family: {THEME['font_mono']};
+                font-size: 11px;
+                font-weight: 600;
             }}
         """)
         
@@ -157,24 +150,19 @@ class AutonomousShieldPage:
         
         # Unblock button
         unblock_btn = QPushButton("Unblock Selected")
-        unblock_btn.setMinimumHeight(40)
+        unblock_btn.setMinimumHeight(34)
         unblock_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['danger']};
-                border: 2px solid {THEME['danger']};
-                border-radius: 8px;
+                border: none;
+                border-radius: 6px;
                 color: white;
-                padding: 10px 20px;
-                font-weight: bold;
-                font-size: 13px;
+                padding: 6px 20px;
+                font-weight: 600;
+                font-size: 12px;
             }}
             QPushButton:hover {{
-                background-color: #FF5252;
-                border: 2px solid #FF5252;
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['danger']};
-                border: 2px solid white;
+                background-color: #DC2626;
             }}
         """)
         unblock_btn.clicked.connect(self._unblock_selected_ip)
@@ -190,9 +178,8 @@ class AutonomousShieldPage:
         
         # AI Confidence Threshold
         confidence_title = QLabel("AI Confidence Threshold")
-        confidence_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        confidence_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        confidence_title.setStyleSheet(f"color: {THEME['primary']};")
+        confidence_title.setFont(QFont(THEME['font_mono'].strip("'"), 13))
+        confidence_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
         right_layout.addWidget(confidence_title)
 
         # Confidence container
@@ -200,11 +187,11 @@ class AutonomousShieldPage:
         confidence_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                padding: 15px;
-
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
-        self._add_shadow(confidence_container)
 
         confidence_layout = QVBoxLayout(confidence_container)
         confidence_layout.setSpacing(10)
@@ -224,19 +211,23 @@ class AutonomousShieldPage:
         self.confidence_slider = QSlider(Qt.Orientation.Horizontal)
         self.confidence_slider.setRange(0, 100)
         self.confidence_slider.setValue(75)
-        self.confidence_slider.setStyleSheet("""
-            QSlider::groove:horizontal {
-                height: 8px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #FF6B6B, stop:0.5 #FFD93D, stop:1 #6BCF7F);
-            }
-            QSlider::handle:horizontal {
+        self.confidence_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                height: 4px;
+                background: {THEME['border']};
+                border-radius: 2px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {THEME['primary']};
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
                 background: white;
-                width: 16px;
-                height: 16px;
-                border-radius: 8px;
-                margin: -4px 0;
-            }
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                margin: -5px 0;
+            }}
         """)
         self.confidence_slider.valueChanged.connect(self._update_confidence_threshold)
         confidence_layout.addWidget(self.confidence_slider)
@@ -282,23 +273,20 @@ class AutonomousShieldPage:
         
         # Blocking Statistics Table
         stats_title = QLabel("Blocking Statistics")
-        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        stats_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        stats_title.setStyleSheet(f"color: {THEME['warning']};")
+        stats_title.setFont(QFont(THEME['font_mono'].strip("'"), 13))
+        stats_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
         right_layout.addWidget(stats_title)
 
         # Stats container
         stats_container = QWidget()
-        stats_container.setMinimumHeight(250)
+        stats_container.setMinimumHeight(180)
         stats_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
+                border: none;
+                border-radius: 8px;
             }}
         """)
-        self._add_shadow(stats_container)
 
         stats_layout = QVBoxLayout(stats_container)
         stats_layout.setSpacing(10)
@@ -311,11 +299,11 @@ class AutonomousShieldPage:
             QTableWidget {{
                 background-color: transparent;
                 font-family: {THEME['font_mono']};
-                font-size: 13px;
+                font-size: 12px;
                 color: {THEME['text_primary']};
             }}
             QTableWidget::item {{
-                padding: 8px 12px;
+                padding: 6px 10px;
                 border-bottom: 1px solid {THEME['border']};
             }}
         """)

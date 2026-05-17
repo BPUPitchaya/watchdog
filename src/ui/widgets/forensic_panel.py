@@ -20,7 +20,7 @@ class ForensicAssistantPanel(QWidget):
         # Header with AI toggle
         header_widget = QWidget()
         header_widget.setStyleSheet(f"""
-            background-color: {THEME['primary']};
+            background-color: {THEME['bg_card']};
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
         """)
@@ -29,12 +29,12 @@ class ForensicAssistantPanel(QWidget):
         header_layout.setSpacing(10)
         
         # Title
-        header_title = QLabel("Forensic Assistant AI")
+        header_title = QLabel("Forensic Assistant")
         header_title.setStyleSheet("""
-            color: white;
+            color: #D4D8E0;
             font-family: {THEME['font_mono']};
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: 600;
             background-color: transparent;
         """.replace("{THEME['font_mono']}", THEME['font_mono']))
         header_layout.addWidget(header_title)
@@ -70,8 +70,6 @@ class ForensicAssistantPanel(QWidget):
         settings_layout.setSpacing(10)
         settings_widget.setStyleSheet(f"""
             background-color: {THEME['bg_card']};
-            border: 1px solid {THEME['border']};
-            border-top: none;
         """)
         
         model_label = QLabel("AI Model:")
@@ -133,12 +131,11 @@ class ForensicAssistantPanel(QWidget):
         self.chat_area.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-top: none;
+                border: none;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
-                padding: 10px;
+                padding: 8px;
             }}
         """)
         layout.addWidget(self.chat_area)
@@ -150,8 +147,6 @@ class ForensicAssistantPanel(QWidget):
         input_layout.setSpacing(8)
         input_widget.setStyleSheet(f"""
             background-color: {THEME['bg_card']};
-            border: 1px solid {THEME['border']};
-            border-top: none;
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
         """)
@@ -160,14 +155,13 @@ class ForensicAssistantPanel(QWidget):
         self.input_field.setPlaceholderText("Type here to ask AI...")
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
-                background-color: {THEME['input_bg']};
+                background-color: {THEME['bg_dark']};
                 border: 1px solid {THEME['border']};
                 border-radius: 6px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
-                padding: 12px 14px;
-                min-height: 20px;
+                padding: 6px 10px;
             }}
             QLineEdit:focus {{
                 border: 1px solid {THEME['primary']};

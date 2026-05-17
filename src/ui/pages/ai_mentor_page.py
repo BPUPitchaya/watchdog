@@ -22,11 +22,35 @@ class AIMentorPage:
         """Create and return the AI mentor page widget."""
         mentor_page = QWidget()
         mentor_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
-        
-        # Main Horizontal Layout: 70% chat, 30% diagnostics
-        main_layout = QHBoxLayout(mentor_page)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+
+        page_layout = QVBoxLayout(mentor_page)
+        page_layout.setContentsMargins(16, 16, 16, 16)
+        page_layout.setSpacing(12)
+
+        # ===== PAGE HEADER =====
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        page_title = QLabel("AI Assistant")
+        page_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        page_title.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
+        header_layout.addWidget(page_title)
+
+        page_subtitle = QLabel("Forensic Analysis Hub")
+        page_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        page_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
+        page_subtitle.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        header_layout.addWidget(page_subtitle)
+        header_layout.addStretch()
+
+        page_layout.addLayout(header_layout)
+
+        # Content row: 70% chat, 30% diagnostics
+        content_widget = QWidget()
+        main_layout = QHBoxLayout(content_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
+        page_layout.addWidget(content_widget)
 
         # LEFT SIDE - Chat Area (70%)
         chat_container = QWidget()
@@ -35,11 +59,11 @@ class AIMentorPage:
 
         # Status Bar Header
         status_bar = QFrame()
-        status_bar.setFixedHeight(40)
+        status_bar.setFixedHeight(36)
         status_bar.setStyleSheet(f"""
             QFrame {{
                 background: {THEME['bg_card']};
-                color: {THEME['primary']};
+                border-radius: 6px;
             }}
         """)
         status_layout = QHBoxLayout(status_bar)
@@ -50,7 +74,7 @@ class AIMentorPage:
         pulse_icon.setStyleSheet(f"""
             QLabel {{
                 color: {THEME['primary']};
-                font-size: 16px;
+                font-size: 10px;
             }}
         """)
         status_layout.addWidget(pulse_icon)
@@ -59,9 +83,9 @@ class AIMentorPage:
         status_text = QLabel("SYSTEM STATUS: MONITORING | AGENT: LLAMA 4 SCOUT")
         status_text.setStyleSheet(f"""
             QLabel {{
-                color: {THEME['primary']};
+                color: {THEME['text_secondary']};
                 font-family: {THEME['font_mono']};
-                font-size: 12px;
+                font-size: 11px;
             }}
         """)
         status_layout.addWidget(status_text)
@@ -97,6 +121,7 @@ class AIMentorPage:
         model_layout.setSpacing(10)
         model_widget.setStyleSheet(f"""
             background-color: {THEME['bg_card']};
+            border-radius: 6px;
         """)
         
         model_label = QLabel("AI Model:")
@@ -115,11 +140,14 @@ class AIMentorPage:
             QComboBox {{
                 background-color: {THEME['bg_dark']};
                 border: 1px solid {THEME['border']};
-                border-radius: 4px;
+                border-radius: 6px;
                 color: {THEME['text_primary']};
-                padding: 4px;
+                padding: 4px 8px;
                 font-size: 11px;
-                min-width: 200px;
+                min-width: 180px;
+            }}
+            QComboBox:focus {{
+                border: 1px solid {THEME['primary']};
             }}
         """)
         self.model_selector.currentIndexChanged.connect(self._on_model_changed)
@@ -163,10 +191,11 @@ class AIMentorPage:
         input_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
+                border-radius: 6px;
             }}
         """)
         input_layout = QHBoxLayout(input_container)
-        input_layout.setContentsMargins(10, 5, 10, 5)
+        input_layout.setContentsMargins(8, 6, 8, 6)
         
         self.mentor_input = QLineEdit()
         self.mentor_input.setPlaceholderText("Ask the AI Mentor about security analysis...")
@@ -176,34 +205,33 @@ class AIMentorPage:
                 border: 1px solid {THEME['border']};
                 border-radius: 6px;
                 color: {THEME['text_primary']};
-                padding: 8px;
+                padding: 6px 10px;
                 font-family: {THEME['font_mono']};
+                font-size: 12px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {THEME['primary']};
             }}
         """)
         self.mentor_input.returnPressed.connect(self._send_mentor_message)
         input_layout.addWidget(self.mentor_input)
         
         send_btn = QPushButton("Send")
-        send_btn.setFixedWidth(80)
-        send_btn.setMinimumHeight(40)
+        send_btn.setFixedWidth(64)
+        send_btn.setMinimumHeight(34)
         send_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
                 color: white;
-                border: 2px solid {THEME['primary']};
-                border-radius: 8px;
-                padding: 10px;
+                border: none;
+                border-radius: 6px;
+                padding: 6px;
                 font-family: {THEME['font_mono']};
-                font-weight: bold;
-                font-size: 13px;
+                font-weight: 600;
+                font-size: 12px;
             }}
             QPushButton:hover {{
                 background-color: {THEME['secondary']};
-                border: 2px solid {THEME['secondary']};
-            }}
-            QPushButton:pressed {{
-                background-color: {THEME['primary']};
-                border: 2px solid white;
             }}
         """)
         send_btn.clicked.connect(self._send_mentor_message)
@@ -218,15 +246,16 @@ class AIMentorPage:
         diagnostics_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
+                border-radius: 8px;
             }}
         """)
         diagnostics_layout = QVBoxLayout(diagnostics_container)
-        diagnostics_layout.setContentsMargins(15, 15, 15, 15)
+        diagnostics_layout.setContentsMargins(12, 12, 12, 12)
         
         # Diagnostics Header
-        diag_header = QLabel("DIAGNOSTICS")
-        diag_header.setFont(QFont(THEME['font_mono'].strip("'"), 14))
-        diag_header.setStyleSheet(f"color: {THEME['primary']}; font-weight: bold;")
+        diag_header = QLabel("Diagnostics")
+        diag_header.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        diag_header.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
         diagnostics_layout.addWidget(diag_header)
         
         # Diagnostics content
@@ -238,7 +267,9 @@ class AIMentorPage:
                 color: {THEME['text_secondary']};
                 font-family: {THEME['font_mono']};
                 font-size: 11px;
-                padding: 10px;
+                padding: 8px;
+                border: none;
+                border-radius: 6px;
             }}
         """)
         diag_content.setText("""System Diagnostics:
@@ -253,9 +284,9 @@ Analyzed: 1,247 packets""")
         diagnostics_layout.addWidget(diag_content)
         
         # Quick Actions
-        actions_header = QLabel("QUICK ACTIONS")
-        actions_header.setFont(QFont(THEME['font_mono'].strip("'"), 12))
-        actions_header.setStyleSheet(f"color: {THEME['primary']}; font-weight: bold; margin-top: 10px;")
+        actions_header = QLabel("Quick Actions")
+        actions_header.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        actions_header.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600; margin-top: 8px;")
         diagnostics_layout.addWidget(actions_header)
         
         # Action buttons
@@ -265,17 +296,17 @@ Analyzed: 1,247 packets""")
                 QPushButton {{
                     background-color: transparent;
                     color: {THEME['text_secondary']};
-                    border: 2px solid {THEME['border_highlight']};
-                    border-radius: 4px;
-                    padding: 8px;
+                    border: 1px solid {THEME['border']};
+                    border-radius: 6px;
+                    padding: 6px 10px;
                     font-family: {THEME['font_mono']};
                     font-size: 11px;
                     margin: 2px 0;
+                    text-align: left;
                 }}
                 QPushButton:hover {{
-                    background-color: {THEME['primary']};
-                    color: {THEME['bg_dark']};
-                    border-color: {THEME['primary']};
+                    background-color: {THEME['bg_dark']};
+                    color: {THEME['text_primary']};
                 }}
             """)
             diagnostics_layout.addWidget(btn)

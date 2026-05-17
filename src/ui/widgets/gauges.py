@@ -157,13 +157,13 @@ class SystemHealthGauge(QWidget):
         radius = min(rect.width(), rect.height()) // 2 - 20
         
         # Background ring
-        painter.setPen(QPen(QColor(THEME['gauge_bg']), 12))
+        painter.setPen(QPen(QColor(THEME['gauge_bg']), 8))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(center, radius, radius)
         
         # Active arc (health percentage)
         angle = int(self.health_value * 3.6 * 16)  # Convert to 1/16 degrees
-        pen = QPen(QColor(THEME['gauge_active']), 12)
+        pen = QPen(QColor(THEME['gauge_active']), 8)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
@@ -171,7 +171,7 @@ class SystemHealthGauge(QWidget):
         
         # Center text
         painter.setPen(QPen(QColor(THEME['gauge_active'])))
-        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        painter.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         text = f"{self.health_value}%"
         text_rect = QRect(center.x() - 50, center.y() - 20, 100, 40)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
@@ -197,7 +197,7 @@ class RiskAnalysisGauge(QWidget):
         radius = min(rect.width(), rect.height()) // 2 - 20
         
         # Background ring
-        painter.setPen(QPen(QColor(THEME['gauge_bg']), 12))
+        painter.setPen(QPen(QColor(THEME['gauge_bg']), 8))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(center, radius, radius)
         
@@ -205,7 +205,7 @@ class RiskAnalysisGauge(QWidget):
         angle = int(self.risk_value * 3.6 * 16)
         # Use green for low risk, red for high
         color = THEME['risk_low'] if self.risk_value < 50 else THEME['risk_high']
-        pen = QPen(QColor(color), 12)
+        pen = QPen(QColor(color), 8)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
@@ -213,7 +213,7 @@ class RiskAnalysisGauge(QWidget):
         
         # Center text
         painter.setPen(QPen(QColor(color)))
-        painter.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        painter.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         text = f"{self.risk_value}%"
         text_rect = QRect(center.x() - 50, center.y() - 20, 100, 40)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)

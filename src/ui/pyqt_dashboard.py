@@ -178,14 +178,15 @@ class WatchdogDashboard(QMainWindow):
         self.tech_font = tech_font
         # Page container fills the entire overlay but with left margin for sidebar
         self.page_container.setParent(self.overlay_container)
-        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
+        self.page_container.setGeometry(64, 0, self.overlay_container.width() - 64, self.overlay_container.height())
         
         # Sidebar is a child of overlay container, positioned absolutely on the left
         self.nav_sidebar = QWidget(self.overlay_container)
-        self.nav_sidebar.setGeometry(0, 0, 80, self.overlay_container.height())
+        self.nav_sidebar.setGeometry(0, 0, 64, self.overlay_container.height())
         self.nav_sidebar.setStyleSheet(f"""
             QWidget {{
-                background-color: {THEME['bg_header']};
+                background-color: {THEME['bg_dark']};
+                border-right: 1px solid {THEME['border']};
             }}
         """)
         self.sidebar_expanded = False
@@ -197,8 +198,8 @@ class WatchdogDashboard(QMainWindow):
         self.overlay_container.resizeEvent = self._on_overlay_resize
 
         nav_layout = QVBoxLayout(self.nav_sidebar)
-        nav_layout.setContentsMargins(0, 20, 0, 20)
-        nav_layout.setSpacing(30)
+        nav_layout.setContentsMargins(0, 16, 0, 16)
+        nav_layout.setSpacing(4)
         nav_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
         # Logo and title header container
@@ -216,22 +217,22 @@ class WatchdogDashboard(QMainWindow):
         logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
-            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            scaled_logo = logo_pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.sidebar_logo.setPixmap(scaled_logo)
         else:
             self.sidebar_logo.setText()
-            self.sidebar_logo.setStyleSheet("font-size: 20px;")
-        self.sidebar_logo.setFixedSize(48, 48)
+            self.sidebar_logo.setStyleSheet("font-size: 16px;")
+        self.sidebar_logo.setFixedSize(32, 32)
         header_layout.addWidget(self.sidebar_logo)
         
         # Sidebar title (hidden when collapsed)
         self.sidebar_title = QLabel("WATCHDOG")
         self.sidebar_title.setStyleSheet(f"""
-            color: {THEME['primary']};
+            color: {THEME['text_primary']};
             font-family: 'Segoe UI';
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
         """)
         self.sidebar_title.setVisible(False)
         header_layout.addWidget(self.sidebar_title, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -260,12 +261,12 @@ class WatchdogDashboard(QMainWindow):
         for i, (label, tooltip, icon_file) in enumerate(nav_buttons):
             # Create container widget for icon + text
             container = QWidget()
-            container.setFixedSize(70, 60)
+            container.setFixedSize(62, 52)
             container.setCursor(Qt.CursorShape.PointingHandCursor)
             container.setToolTip(tooltip)
             container_layout = QHBoxLayout(container)
-            container_layout.setContentsMargins(5, 0, 5, 0)
-            container_layout.setSpacing(5)
+            container_layout.setContentsMargins(4, 0, 4, 0)
+            container_layout.setSpacing(6)
             container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             # Icon label (always visible)
@@ -273,7 +274,7 @@ class WatchdogDashboard(QMainWindow):
             icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             icon_path = os.path.join(os.path.dirname(__file__), "assets", icon_file)
             if os.path.exists(icon_path):
-                pixmap = QPixmap(icon_path).scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap = QPixmap(icon_path).scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                 # Special handling for Threat Encyclopedia icon with white background
                 if icon_file == "Threat_encyclopedia.png":
                     # Create circular mask to hide white background
@@ -287,7 +288,7 @@ class WatchdogDashboard(QMainWindow):
                     painter.end()
                     pixmap.setMask(mask.createMaskFromColor(Qt.GlobalColor.black))
                 icon_label.setPixmap(pixmap)
-            icon_label.setFixedSize(48, 48)
+            icon_label.setFixedSize(28, 28)
             container_layout.addWidget(icon_label)
             
             # Text label (hidden when collapsed)
@@ -307,7 +308,7 @@ class WatchdogDashboard(QMainWindow):
                 QWidget {{
                     background-color: transparent;
                     border: none;
-                    border-radius: 15px;
+                    border-radius: 6px;
                 }}
                 QWidget:hover {{
                     background-color: {THEME['bg_card']};
@@ -483,7 +484,7 @@ class WatchdogDashboard(QMainWindow):
     def _on_overlay_resize(self, event):
         """Update page container and sidebar when overlay container is resized"""
         # Update page container with left margin for sidebar
-        self.page_container.setGeometry(70, 0, self.overlay_container.width() - 70, self.overlay_container.height())
+        self.page_container.setGeometry(64, 0, self.overlay_container.width() - 64, self.overlay_container.height())
         # Update sidebar height
         self.nav_sidebar.setGeometry(
             self.nav_sidebar.x(), 
@@ -506,7 +507,7 @@ class WatchdogDashboard(QMainWindow):
     def _expand_sidebar(self):
         """Expand sidebar with coordinated animation - logo moves left, titles slide in"""
         self.sidebar_expanded = True
-        target_width = 280
+        target_width = 220
         
         # Create parallel animation group for coordinated animation
         self.animation_group = QParallelAnimationGroup()
@@ -516,7 +517,7 @@ class WatchdogDashboard(QMainWindow):
         sidebar_anim.setDuration(350)
         sidebar_anim.setStartValue(self.nav_sidebar.geometry())
         sidebar_anim.setEndValue(QRect(0, 0, target_width, self.overlay_container.height()))
-        sidebar_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        sidebar_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.animation_group.addAnimation(sidebar_anim)
         
         # 2. Show title label
@@ -532,7 +533,7 @@ class WatchdogDashboard(QMainWindow):
     def _contract_sidebar(self):
         """Contract sidebar with coordinated animation"""
         self.sidebar_expanded = False
-        target_width = 80
+        target_width = 64
         
         # Update buttons first (remove text, show icons)
         self._update_sidebar_buttons()
@@ -570,11 +571,11 @@ class WatchdogDashboard(QMainWindow):
             text_label = self.nav_item_text_labels[i]
             if self.sidebar_expanded:
                 # Wider container, text visible
-                container.setFixedSize(260, 60)
+                container.setFixedSize(200, 52)
                 text_label.setVisible(True)
             else:
                 # Narrow container, text hidden
-                container.setFixedSize(70, 60)
+                container.setFixedSize(62, 52)
                 text_label.setVisible(False)
     
     def _adjust_logo_alignment(self):
@@ -589,18 +590,21 @@ class WatchdogDashboard(QMainWindow):
         """Set active navigation item styling"""
         for i, container in enumerate(self.nav_item_containers):
             text_label = self.nav_item_text_labels[i]
+            icon_label = self.nav_item_icon_labels[i]
             if i == index:
                 container.setStyleSheet(f"""
                     QWidget {{
                         background-color: {THEME['bg_card']};
                         border: none;
-                        border-radius: 15px;
+                        border-left: 2px solid {THEME['primary']};
+                        border-radius: 0px;
                     }}
                 """)
+                icon_label.setStyleSheet("opacity: 1;")
                 text_label.setStyleSheet(f"""
                     color: {THEME['primary']};
-                    font-size: 12px;
-                    font-weight: bold;
+                    font-size: 11px;
+                    font-weight: 600;
                     font-family: 'Segoe UI';
                 """)
             else:
@@ -608,7 +612,7 @@ class WatchdogDashboard(QMainWindow):
                     QWidget {{
                         background-color: transparent;
                         border: none;
-                        border-radius: 15px;
+                        border-radius: 6px;
                     }}
                     QWidget:hover {{
                         background-color: {THEME['bg_card']};
@@ -617,15 +621,15 @@ class WatchdogDashboard(QMainWindow):
                 """)
                 text_label.setStyleSheet(f"""
                     color: {THEME['text_secondary']};
-                    font-size: 12px;
-                    font-weight: bold;
+                    font-size: 11px;
+                    font-weight: 400;
                     font-family: 'Segoe UI';
                 """)
     
     def _animate_text_labels_in(self):
         """Show text labels after expansion completes"""
         for container in self.nav_item_containers:
-            container.setFixedSize(260, 60)
+            container.setFixedSize(200, 52)
         for text_label in self.nav_item_text_labels:
             text_label.setVisible(True)
 

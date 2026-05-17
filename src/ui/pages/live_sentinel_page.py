@@ -149,51 +149,39 @@ class LiveSentinelPage(QWidget):
         main_content = QWidget()
         main_content.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         main_layout = QVBoxLayout(main_content)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
         
-        # ===== HEADER BAR =====
-        header_widget = QWidget()
-        header_widget.setFixedHeight(60)
-        header_widget.setStyleSheet(f"""
-            background-color: {THEME['bg_header']};
-            border-bottom: 1px solid {THEME['border']};
-        """)
-        header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(20, 0, 20, 0)
-        header_layout.setSpacing(15)
-        
-        # Dog/Wolf logo icon
-        logo_label = QLabel()
-        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
-        if os.path.exists(logo_path):
-            logo_pixmap = QPixmap(logo_path)
-            scaled_logo = logo_pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            logo_label.setPixmap(scaled_logo)
-        else:
-            logo_label.setText()
-            logo_label.setStyleSheet("font-size: 32px;")
-        logo_label.setFixedSize(48, 48)
-        logo_label.setStyleSheet("border: none; background-color: transparent;")
-        header_layout.addWidget(logo_label)
-        
-        # Title
-        title_label = QLabel("WATCHDOG AI")
-        title_label.setStyleSheet(f"""
-            color: {THEME['primary']};
-        font-family: 'Orbitron', 'Rajdhani', 'Courier New', sans-serif;
-        font-size: 24px;
-        font-weight: bold;
-        letter-spacing: 2px;
-        """)
-        header_layout.addWidget(title_label)
+        # ===== PAGE HEADER =====
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        page_title = QLabel("Dashboard")
+        page_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        page_title.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
+        header_layout.addWidget(page_title)
+
+        page_subtitle = QLabel("Live Sentinel")
+        page_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        page_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
+        page_subtitle.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        header_layout.addWidget(page_subtitle)
         header_layout.addStretch()
-        
-        main_layout.addWidget(header_widget)
-        
+
+        live_pill = QLabel("● LIVE")
+        live_pill.setStyleSheet(f"""
+            color: {THEME['primary']};
+            font-size: 10px;
+            font-weight: 600;
+            font-family: {THEME['font_mono']};
+        """)
+        header_layout.addWidget(live_pill)
+
+        main_layout.addLayout(header_layout)
+
         # ===== TOP ROW: Three Metric Cards =====
         cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(20)
+        cards_layout.setSpacing(12)
         
         # System Health Card with RAM info
         health_card, self.ram_label = self._create_health_card_with_ram()
@@ -237,22 +225,24 @@ class LiveSentinelPage(QWidget):
         card.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 12px;
+                border: none;
+                border-radius: 8px;
             }}
         """)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 15, 20, 20)
-        layout.setSpacing(10)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(8)
         
         # Title
         title_label = QLabel(title)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet(f"""
-            color: {THEME['text_primary']};
+            color: {THEME['text_secondary']};
             font-family: {THEME['font_mono']};
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
             border: none;
         """)
         layout.addWidget(title_label)
@@ -269,22 +259,23 @@ class LiveSentinelPage(QWidget):
         card.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 12px;
+                border: none;
+                border-radius: 8px;
             }}
         """)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(8)
         
         # Title
         title_label = QLabel("System Health")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet(f"""
-            color: {THEME['text_primary']};
+            color: {THEME['text_secondary']};
             font-family: {THEME['font_mono']};
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
             border: none;
         """)
         layout.addWidget(title_label)
@@ -367,23 +358,15 @@ class LiveSentinelPage(QWidget):
         self.table.setStyleSheet(f"""
             QTableWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
+                border: none;
                 border-radius: 8px;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
                 font-size: 12px;
                 gridline-color: {THEME['border']};
-                border-left: none;
-            }}
-            /* Alternating row colors */
-            QTableWidget::item:nth-child(even) {{
-                background-color: {THEME['table_row_even']};
-            }}
-            QTableWidget::item:nth-child(odd) {{
-                background-color: {THEME['table_row_odd']};
             }}
             QTableWidget::item {{
-                padding: 10px;
+                padding: 8px 10px;
                 border-bottom: 1px solid {THEME['border']};
             }}
             QTableWidget::item:selected {{
@@ -392,20 +375,13 @@ class LiveSentinelPage(QWidget):
             }}
             QHeaderView::section {{
                 background-color: {THEME['table_header_bg']};
-                color: {THEME['primary']};
+                color: {THEME['text_secondary']};
                 font-family: {THEME['font_mono']};
-                font-size: 12px;
-                font-weight: bold;
-                padding: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 8px 10px;
                 border: none;
-                border-bottom: 2px solid {THEME['primary']};
-                margin-left: 0px;
-            }}
-            QHeaderView::section:first {{
-                border-top-left-radius: 8px;
-            }}
-            QHeaderView::section:last {{
-                border-top-right-radius: 8px;
+                border-bottom: 1px solid {THEME['border']};
             }}
             QHeaderView::section:vertical {{
                 background-color: {THEME['table_header_bg']};

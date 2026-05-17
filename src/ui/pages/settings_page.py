@@ -25,17 +25,17 @@ class SettingsPage:
         
         # Main horizontal layout
         main_layout = QHBoxLayout(settings_page)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
         
         # LEFT: Navigation List
         nav_widget = QWidget()
-        nav_widget.setFixedWidth(200)
+        nav_widget.setFixedWidth(180)
         nav_widget.setStyleSheet(f"""
             QWidget {{
-                background-color: {THEME['bg_header']};
-                border: 1px solid {THEME['border']};
-                border-radius: 12px;
+                background-color: {THEME['bg_card']};
+                border: none;
+                border-radius: 8px;
             }}
         """)
         nav_layout = QVBoxLayout(nav_widget)
@@ -43,10 +43,10 @@ class SettingsPage:
         nav_layout.setSpacing(10)
         
         # Settings title
-        settings_title = QLabel("SETTINGS")
-        settings_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
-        settings_title.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
-        settings_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        settings_title = QLabel("Settings")
+        settings_title.setFont(QFont(THEME['font_mono'].strip("'"), 13))
+        settings_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600; margin-bottom: 8px;")
+        settings_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         nav_layout.addWidget(settings_title)
         
         # Navigation list
@@ -57,20 +57,22 @@ class SettingsPage:
                 border: none;
                 color: {THEME['text_primary']};
                 font-family: {THEME['font_mono']};
-                font-size: 13px;
+                font-size: 12px;
                 outline: none;
             }}
             QListWidget::item {{
-                padding: 12px 15px;
-                border-radius: 8px;
-                margin: 2px 0;
+                padding: 8px 12px;
+                border-left: 2px solid transparent;
+                margin: 1px 0;
             }}
             QListWidget::item:selected {{
-                background-color: {THEME['primary']};
-                color: {THEME['bg_dark']};
+                background-color: {THEME['bg_dark']};
+                border-left: 2px solid {THEME['primary']};
+                color: {THEME['primary']};
             }}
-            QListWidget::item:hover {{
-                background-color: {THEME['bg_card']};
+            QListWidget::item:hover:!selected {{
+                background-color: {THEME['bg_dark']};
+                color: {THEME['text_primary']};
             }}
         """)
         self.settings_nav.addItem("Network")
@@ -90,8 +92,8 @@ class SettingsPage:
         self.settings_content.setStyleSheet(f"""
             QStackedWidget {{
                 background-color: {THEME['bg_card']};
-                border: 1px solid {THEME['border']};
-                border-radius: 12px;
+                border: none;
+                border-radius: 8px;
             }}
         """)
         
@@ -115,12 +117,12 @@ class SettingsPage:
         """Create the Network settings tab."""
         network_tab = QWidget()
         network_layout = QVBoxLayout(network_tab)
-        network_layout.setContentsMargins(30, 30, 30, 30)
-        network_layout.setSpacing(20)
+        network_layout.setContentsMargins(20, 20, 20, 20)
+        network_layout.setSpacing(12)
         
-        network_header = QLabel("Network Settings")
-        network_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        network_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        network_header = QLabel("Network")
+        network_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        network_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         network_layout.addWidget(network_header)
         
         # Create scroll area for content
@@ -143,9 +145,9 @@ class SettingsPage:
         interface_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         interface_layout = QVBoxLayout(interface_container)
@@ -180,8 +182,8 @@ class SettingsPage:
         promiscuous_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
                 padding: 8px 12px;
             }}
         """)
@@ -217,9 +219,9 @@ class SettingsPage:
         ignore_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         ignore_layout = QVBoxLayout(ignore_container)
@@ -329,12 +331,12 @@ class SettingsPage:
         """Create the AI Brain settings tab."""
         ai_tab = QWidget()
         ai_layout = QVBoxLayout(ai_tab)
-        ai_layout.setContentsMargins(30, 30, 30, 30)
-        ai_layout.setSpacing(20)
+        ai_layout.setContentsMargins(20, 20, 20, 20)
+        ai_layout.setSpacing(12)
         
-        ai_header = QLabel("AI Brain Settings")
-        ai_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        ai_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        ai_header = QLabel("AI Brain")
+        ai_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        ai_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         ai_layout.addWidget(ai_header)
         
         # Create scroll area for content
@@ -357,9 +359,9 @@ class SettingsPage:
         model_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         model_layout = QVBoxLayout(model_container)
@@ -414,9 +416,9 @@ class SettingsPage:
         keepalive_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         keepalive_layout = QVBoxLayout(keepalive_container)
@@ -464,9 +466,9 @@ class SettingsPage:
         context_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         context_layout = QVBoxLayout(context_container)
@@ -514,9 +516,9 @@ class SettingsPage:
         explanation_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         explanation_layout = QVBoxLayout(explanation_container)
@@ -559,8 +561,8 @@ class SettingsPage:
         local_model_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
                 padding: 8px 12px;
             }}
         """)
@@ -601,12 +603,12 @@ class SettingsPage:
         """Create the Alerts & Notifications settings tab."""
         alerts_tab = QWidget()
         alerts_layout = QVBoxLayout(alerts_tab)
-        alerts_layout.setContentsMargins(30, 30, 30, 30)
-        alerts_layout.setSpacing(20)
+        alerts_layout.setContentsMargins(20, 20, 20, 20)
+        alerts_layout.setSpacing(12)
         
-        alerts_header = QLabel("Alert & Notification Preferences")
-        alerts_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        alerts_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        alerts_header = QLabel("Notifications")
+        alerts_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        alerts_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         alerts_layout.addWidget(alerts_header)
         
         # Create scroll area for content
@@ -629,9 +631,9 @@ class SettingsPage:
         risk_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         risk_layout = QVBoxLayout(risk_container)
@@ -680,8 +682,8 @@ class SettingsPage:
         sound_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
                 padding: 8px 12px;
             }}
         """)
@@ -717,9 +719,9 @@ class SettingsPage:
         retention_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         retention_layout = QVBoxLayout(retention_container)
@@ -762,12 +764,12 @@ class SettingsPage:
         """Create the System & Docker Integration settings tab."""
         system_tab = QWidget()
         system_layout = QVBoxLayout(system_tab)
-        system_layout.setContentsMargins(30, 30, 30, 30)
-        system_layout.setSpacing(20)
+        system_layout.setContentsMargins(20, 20, 20, 20)
+        system_layout.setSpacing(12)
         
-        system_header = QLabel("System & Docker Integration")
-        system_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        system_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        system_header = QLabel("System & Docker")
+        system_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        system_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         system_layout.addWidget(system_header)
         
         # Create scroll area for content
@@ -790,9 +792,9 @@ class SettingsPage:
         docker_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
             }}
         """)
         docker_layout = QHBoxLayout(docker_container)
@@ -828,8 +830,8 @@ class SettingsPage:
         gpu_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
                 padding: 8px 12px;
             }}
         """)
@@ -866,8 +868,8 @@ class SettingsPage:
         theme_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
+                border: none;
+                border-radius: 8px;
                 padding: 8px 12px;
             }}
         """)
@@ -908,12 +910,12 @@ class SettingsPage:
         """Create the Security settings tab."""
         security_tab = QWidget()
         security_layout = QVBoxLayout(security_tab)
-        security_layout.setContentsMargins(30, 30, 30, 30)
-        security_layout.setSpacing(20)
+        security_layout.setContentsMargins(20, 20, 20, 20)
+        security_layout.setSpacing(12)
         
-        security_header = QLabel("Security Settings")
-        security_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        security_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        security_header = QLabel("Security")
+        security_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        security_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         security_layout.addWidget(security_header)
         
         # Sensitivity slider
@@ -921,9 +923,9 @@ class SettingsPage:
         sensitivity_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
         sensitivity_layout = QVBoxLayout(sensitivity_container)
@@ -960,9 +962,9 @@ class SettingsPage:
         autoblock_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
         autoblock_layout = QHBoxLayout(autoblock_container)
@@ -998,12 +1000,12 @@ class SettingsPage:
         """Create the Privacy settings tab."""
         privacy_tab = QWidget()
         privacy_layout = QVBoxLayout(privacy_tab)
-        privacy_layout.setContentsMargins(30, 30, 30, 30)
-        privacy_layout.setSpacing(20)
+        privacy_layout.setContentsMargins(20, 20, 20, 20)
+        privacy_layout.setSpacing(12)
         
-        privacy_header = QLabel("Privacy Settings")
-        privacy_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        privacy_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        privacy_header = QLabel("Privacy")
+        privacy_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        privacy_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         privacy_layout.addWidget(privacy_header)
         
         privacy_info = QLabel("NZ Privacy Act 2020 Compliance\n\nYour data is processed locally.\nNo data is sent to external servers.")
@@ -1019,12 +1021,12 @@ class SettingsPage:
         """Create the Appearance settings tab."""
         appearance_tab = QWidget()
         appearance_layout = QVBoxLayout(appearance_tab)
-        appearance_layout.setContentsMargins(30, 30, 30, 30)
-        appearance_layout.setSpacing(20)
+        appearance_layout.setContentsMargins(20, 20, 20, 20)
+        appearance_layout.setSpacing(12)
         
-        appearance_header = QLabel("Appearance Settings")
-        appearance_header.setFont(QFont(THEME['font_mono'].strip("'"), 20))
-        appearance_header.setStyleSheet(f"color: {THEME['primary']}; margin-bottom: 20px;")
+        appearance_header = QLabel("Appearance")
+        appearance_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        appearance_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         appearance_layout.addWidget(appearance_header)
         
         # Font size slider
@@ -1032,9 +1034,9 @@ class SettingsPage:
         font_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
         font_layout = QVBoxLayout(font_container)
@@ -1074,9 +1076,9 @@ class SettingsPage:
         anim_container.setStyleSheet(f"""
             QWidget {{
                 background-color: {THEME['bg_dark']};
-                border: 1px solid {THEME['border']};
-                border-radius: 10px;
-                padding: 15px;
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
         anim_layout = QHBoxLayout(anim_container)
