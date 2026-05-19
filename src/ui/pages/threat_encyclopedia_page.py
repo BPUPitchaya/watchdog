@@ -561,12 +561,13 @@ class ThreatCard(QFrame):
     BTN_LEARN_BG = "#265C69"
     BTN_SIM_BG = "#343B47"
     
-    def __init__(self, title, subtitle, risk, how_it_works, role, page_ref=None, sim_callback=None, parent=None):
+    def __init__(self, title, subtitle, risk, how_it_works, role, page_ref=None, sim_callback=None, learn_url=None, parent=None):
         super().__init__(parent)
         self.setFixedWidth(320)
         self.title = title
         self.page_ref = page_ref  # Reference to ThreatEncyclopediaPage
         self.sim_callback = sim_callback
+        self.learn_url = learn_url
         self.setObjectName("ThreatCard")
         
         # Determine risk color
@@ -686,6 +687,10 @@ class ThreatCard(QFrame):
         # Connect simulator button to open sandbox
         sim_btn.clicked.connect(self._open_sandbox)
         
+        # Connect learn more button to open URL
+        if self.learn_url:
+            learn_btn.clicked.connect(self._open_learn_more)
+        
         btn_layout.addWidget(learn_btn)
         btn_layout.addWidget(sim_btn)
         
@@ -705,6 +710,13 @@ class ThreatCard(QFrame):
         """Open the simulation sandbox window."""
         if self.page_ref and hasattr(self.page_ref, 'show_sandbox'):
             self.page_ref.show_sandbox()
+    
+    def _open_learn_more(self):
+        """Open the learn more URL in default browser."""
+        if self.learn_url:
+            from PyQt6.QtGui import QDesktopServices
+            from PyQt6.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl(self.learn_url))
 
 
 class ThreatEncyclopediaPage:
@@ -892,63 +904,72 @@ class ThreatEncyclopediaPage:
                 "subtitle": "The Impersonator",
                 "risk": "HIGH RISK",
                 "how_it_works": "Fake emails or websites that trick users into revealing passwords, credit cards, or personal information by pretending to be legitimate companies.",
-                "role": "Detects suspicious email patterns, domain spoofing, and malicious links before they reach your inbox."
+                "role": "Detects suspicious email patterns, domain spoofing, and malicious links before they reach your inbox.",
+                "learn_url": "https://www.ibm.com/topics/phishing"
             },
             {
                 "title": "Malware",
                 "subtitle": "The Infector",
                 "risk": "CRITICAL",
                 "how_it_works": "Viruses, trojans, ransomware, and spyware that infect your device to steal data, encrypt files for ransom, or spy on activities.",
-                "role": "Monitors file system changes, network connections, and process behaviors to detect and quarantine malicious software."
+                "role": "Monitors file system changes, network connections, and process behaviors to detect and quarantine malicious software.",
+                "learn_url": "https://www.ibm.com/topics/malware"
             },
             {
                 "title": "DDoS Attack",
                 "subtitle": "The Overwhelmer",
                 "risk": "HIGH RISK",
                 "how_it_works": "Distributed Denial of Service floods servers with massive amounts of fake traffic, causing websites and services to crash.",
-                "role": "Identifies unusual traffic patterns, rate limits suspicious connections, and blocks attacking IP addresses."
+                "role": "Identifies unusual traffic patterns, rate limits suspicious connections, and blocks attacking IP addresses.",
+                "learn_url": "https://www.ibm.com/topics/ddos-attack"
             },
             {
                 "title": "Man-in-the-Middle",
                 "subtitle": "The Eavesdropper",
                 "risk": "MEDIUM RISK",
                 "how_it_works": "Attackers secretly intercept and potentially alter communications between two parties without their knowledge.",
-                "role": "Validates SSL/TLS certificates, detects ARP spoofing, and alerts on suspicious network routing changes."
+                "role": "Validates SSL/TLS certificates, detects ARP spoofing, and alerts on suspicious network routing changes.",
+                "learn_url": "https://www.ibm.com/topics/man-in-the-middle-attack"
             },
             {
                 "title": "SQL Injection",
                 "subtitle": "The Database Hacker",
                 "risk": "CRITICAL",
                 "how_it_works": "Hackers insert malicious SQL code into input fields to manipulate databases, steal data, or gain unauthorized access.",
-                "role": "Monitors database queries for suspicious patterns and detects abnormal data access attempts."
+                "role": "Monitors database queries for suspicious patterns and detects abnormal data access attempts.",
+                "learn_url": "https://www.ibm.com/topics/sql-injection"
             },
             {
                 "title": "Cross-Site Scripting",
                 "subtitle": "The Script Injector",
                 "risk": "HIGH RISK",
                 "how_it_works": "Malicious scripts are injected into trusted websites, stealing cookies, session tokens, or redirecting users to phishing sites.",
-                "role": "Scans web traffic for script injection patterns and sanitizes suspicious input data."
+                "role": "Scans web traffic for script injection patterns and sanitizes suspicious input data.",
+                "learn_url": "https://www.ibm.com/topics/cross-site-scripting"
             },
             {
                 "title": "Zero-Day Exploit",
                 "subtitle": "The Unknown Threat",
                 "risk": "CRITICAL",
                 "how_it_works": "Attacks exploiting software vulnerabilities that are unknown to vendors and have no patches available yet.",
-                "role": "Uses behavioral analysis to detect unusual system activity even when the specific vulnerability is unknown."
+                "role": "Uses behavioral analysis to detect unusual system activity even when the specific vulnerability is unknown.",
+                "learn_url": "https://www.ibm.com/topics/zero-day-exploit"
             },
             {
                 "title": "Brute Force",
                 "subtitle": "The Password Cracker",
                 "risk": "MEDIUM RISK",
                 "how_it_works": "Automated tools try thousands of username and password combinations to gain unauthorized access to accounts.",
-                "role": "Detects multiple failed login attempts, implements account lockouts, and blocks suspicious IP addresses."
+                "role": "Detects multiple failed login attempts, implements account lockouts, and blocks suspicious IP addresses.",
+                "learn_url": "https://www.ibm.com/topics/brute-force-attack"
             },
             {
                 "title": "Credential Stuffing",
                 "subtitle": "The Reuser",
                 "risk": "HIGH RISK",
                 "how_it_works": "Using username/password pairs stolen from previous data breaches to try accessing other accounts.",
-                "role": "Monitors for login attempts from compromised credentials and alerts on suspicious account access patterns."
+                "role": "Monitors for login attempts from compromised credentials and alerts on suspicious account access patterns.",
+                "learn_url": "https://www.ibm.com/topics/credential-stuffing"
             },
         ]
         
@@ -969,7 +990,9 @@ class ThreatEncyclopediaPage:
                 threat["risk"],
                 threat["how_it_works"],
                 threat["role"],
-                page_ref=self  # Pass reference to ThreatEncyclopediaPage
+                page_ref=self,  # Pass reference to ThreatEncyclopediaPage
+                sim_callback=self.simulation_engine.start_simulation,
+                learn_url=threat.get("learn_url")  # Pass IBM URL
             )
             card.setObjectName(threat["title"].lower().split()[0])
             self.cards.append(card)

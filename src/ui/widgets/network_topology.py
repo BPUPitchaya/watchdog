@@ -161,14 +161,14 @@ class NetworkTopologyWidget(QWidget):
         painter.drawEllipse(center, radius, radius)
         
         icons = {
-            'PC',
-            'Mobile',
-            'IOT',
-            'Virtual Machine',
-            'Raspberry Pi',
-            'Unknown'
+            'PC': '💻',
+            'Mobile': '📱',
+            'IOT': '🔌',
+            'Virtual Machine': '☁️',
+            'Raspberry Pi': '🍓',
+            'Unknown': '❓'
         }
-        icon = icons.get(device_type,)
+        icon = icons.get(device_type, '❓')
         
         painter.setPen(QPen(QColor(THEME['text_primary'])))
         painter.setFont(QFont("Segoe UI Emoji", 16))

@@ -50,6 +50,7 @@ def get_recommended_ai_model(ram_gb):
         return "phi4", f"High RAM ({ram_gb}GB) - Can use phi4 for best quality"
 
 from src.ai.ollama_client import OllamaClient
+from src.ai.ollama_installer import OllamaInstaller
 from src.ai.prompts import GENERAL_PROMPT, EXPLANATION_PROMPT, TECHNICAL_ANALYSIS_PROMPT
 from src.ai.utils import format_packet_log
 from src.ui.theme import THEME
@@ -136,8 +137,26 @@ class WatchdogDashboard(QMainWindow):
             # Initialize AI client (skip if --no-ai flag)
             if not self.no_ai:
                 try:
-                    self.ai_client = OllamaClient()
+                    # Check if Ollama is installed and running
+                    installer = OllamaInstaller(model=self.model)
+                    
+                    if not installer.is_ollama_installed():
+                        print("Ollama not found. AI features will be disabled.")
+                        print("To enable AI: python src/ai/ollama_installer.py --auto-install")
+                        self.ai_client = None
+                    elif not installer.is_ollama_running():
+                        print("Ollama is installed but not running. AI features will be disabled.")
+                        print("Please start Ollama application/service.")
+                        self.ai_client = None
+                    elif not installer.is_model_available():
+                        print(f"Model {self.model} not found. Pulling it now...")
+                        installer.pull_model()
+                        self.ai_client = OllamaClient(model=self.model)
+                    else:
+                        self.ai_client = OllamaClient(model=self.model)
+                        print(f"AI initialized with model: {self.model}")
                 except Exception as e:
+                    print(f"AI initialization failed: {e}")
                     self.ai_client = None
 
         # Create UI components
@@ -638,8 +657,48 @@ class WatchdogDashboard(QMainWindow):
             # Enable AI
             if not self.ai_client:
                 try:
-                    self.ai_client = OllamaClient()
+                    # Check if Ollama is installed and running
+                    installer = OllamaInstaller(model=self.model)
+                    
+                    if not installer.is_ollama_installed():
+                        from PyQt6.QtWidgets import QMessageBox
+                        QMessageBox.warning(
+                            self,
+                            "Ollama Not Found",
+                            "Ollama is not installed on your system.\n\n"
+                            "To enable AI features:\n"
+                            "1. Run: python src/ai/ollama_installer.py --auto-install\n"
+                            "2. Or download from https://ollama.ai/download"
+                        )
+                        self.ai_toggle_btn.setChecked(False)
+                        return
+                    elif not installer.is_ollama_running():
+                        from PyQt6.QtWidgets import QMessageBox
+                        QMessageBox.warning(
+                            self,
+                            "Ollama Not Running",
+                            "Ollama is installed but not running.\n\n"
+                            "Please start the Ollama application:\n"
+                            "- macOS: Open Ollama from Applications\n"
+                            "- Windows: Start Ollama from Start Menu\n"
+                            "- Linux: Run 'ollama serve' in terminal"
+                        )
+                        self.ai_toggle_btn.setChecked(False)
+                        return
+                    elif not installer.is_model_available():
+                        print(f"Model {self.model} not found. Pulling it now...")
+                        installer.pull_model()
+                        self.ai_client = OllamaClient(model=self.model)
+                    else:
+                        self.ai_client = OllamaClient(model=self.model)
+                        print(f"AI enabled with model: {self.model}")
                 except Exception as e:
+                    from PyQt6.QtWidgets import QMessageBox
+                    QMessageBox.critical(
+                        self,
+                        "AI Error",
+                        f"Failed to initialize AI: {str(e)}"
+                    )
                     self.ai_toggle_btn.setChecked(False)
                     return
         else:
@@ -846,7 +905,7 @@ class WatchdogDashboard(QMainWindow):
             
             # Add Action buttons - compact tool buttons
             action_widget = QWidget()
-            action_widget.setStyleSheet("background-color: transparent;")
+            action_widget.setStyleSheet(f"background-color: {THEME['bg_card']};")
             action_layout = QHBoxLayout(action_widget)
             action_layout.setContentsMargins(5, 3, 5, 8)
             action_layout.setSpacing(6)

@@ -88,6 +88,19 @@ Watchdog is a comprehensive network security solution that monitors network traf
 
 5. **Install Ollama** (for AI assistant):
    
+   **Option 1: Auto-Install (Recommended)**
+   ```bash
+   # Run the auto-installer script
+   python src/ai/ollama_installer.py --auto-install
+   
+   # This will automatically:
+   # - Detect if Ollama is installed
+   # - Download and install Ollama for your platform
+   # - Pull the required AI model
+   ```
+   
+   **Option 2: Manual Installation**
+   
    **macOS**:
    ```bash
    # Download from https://ollama.ai/download
@@ -163,23 +176,6 @@ Watchdog is a comprehensive network security solution that monitors network traf
 2. **View Captured Packets**: Real-time display in the packet list
 3. **Stop Monitoring**: Click "Stop Sniffing" to halt packet capture
 4. **View Statistics**: Packet count and status displayed in real-time
-
-### Docker Support (Optional)
-
-For users who prefer containerized deployment:
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-
-# This will:
-# - Build the watchdog application
-# - Start Ollama AI service
-# - Configure network access for packet capture
-# - Share display for GUI (Linux/macOS only)
-```
-
-**Note**: Docker GUI support requires X11 forwarding on Linux/macOS. Windows users should run the application natively for best experience.
 
 ## Project Structure
 
@@ -318,9 +314,11 @@ watchdog/
    - Check for conflicts: `pip check`
 
 4. **Ollama Not Found**:
-   - Ensure Ollama is installed and in PATH
+   - Use auto-installer: `python src/ai/ollama_installer.py --auto-install`
+   - Or manually install from https://ollama.ai/download
    - Restart terminal after installation
    - Test with: `ollama list`
+   - If Ollama is installed but not running, start the Ollama application/service
 
 5. **Scapy Packet Capture Issues**:
    

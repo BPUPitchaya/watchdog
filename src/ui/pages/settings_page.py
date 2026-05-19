@@ -78,7 +78,7 @@ class SettingsPage:
         self.settings_nav.addItem("Network")
         self.settings_nav.addItem("AI Brain")
         self.settings_nav.addItem("Notifications")
-        self.settings_nav.addItem("System & Docker")
+        self.settings_nav.addItem("System")
         self.settings_nav.addItem("Security")
         self.settings_nav.addItem("Privacy")
         self.settings_nav.addItem("Appearance")
@@ -761,13 +761,13 @@ class SettingsPage:
         return alerts_tab
         
     def _create_system_tab(self):
-        """Create the System & Docker Integration settings tab."""
+        """Create the System settings tab."""
         system_tab = QWidget()
         system_layout = QVBoxLayout(system_tab)
         system_layout.setContentsMargins(20, 20, 20, 20)
         system_layout.setSpacing(12)
         
-        system_header = QLabel("System & Docker")
+        system_header = QLabel("System")
         system_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
         system_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
         system_layout.addWidget(system_header)
@@ -786,43 +786,6 @@ class SettingsPage:
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setSpacing(15)
-        
-        # Docker Status Indicator
-        docker_container = QWidget()
-        docker_container.setStyleSheet(f"""
-            QWidget {{
-                background-color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 8px;
-                padding: 10px;
-            }}
-        """)
-        docker_layout = QHBoxLayout(docker_container)
-        docker_layout.setSpacing(8)
-        
-        docker_label = QLabel("Docker Status (Ollama Container)")
-        docker_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
-        docker_label.setStyleSheet(f"color: {THEME['text_primary']};")
-        docker_layout.addWidget(docker_label)
-        docker_layout.addStretch()
-        
-        # Green/red dot indicator
-        docker_status_dot = QLabel()
-        docker_status_dot.setFixedSize(12, 12)
-        docker_status_dot.setStyleSheet(f"""
-            QLabel {{
-                background-color: {THEME['success']};
-                border-radius: 6px;
-            }}
-        """)
-        docker_layout.addWidget(docker_status_dot)
-        
-        docker_status_text = QLabel("Connected")
-        docker_status_text.setFont(QFont(THEME['font_mono'].strip("'"), 10))
-        docker_status_text.setStyleSheet(f"color: {THEME['success']};")
-        docker_layout.addWidget(docker_status_text)
-        
-        scroll_layout.addWidget(docker_container)
         
         # Hardware Acceleration toggle
         gpu_container = QWidget()

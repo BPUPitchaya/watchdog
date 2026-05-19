@@ -49,10 +49,6 @@ six>=1.16.0
 # OPTIONAL DEPENDENCIES
 # ============================================================================
 
-# Docker Support (if using containerized deployment)
-# docker>=6.0.0
-# docker-compose>=2.0.0
-
 # Development and Testing (uncomment if needed)
 # pytest>=6.0.0
 # pytest-cov>=2.12.0
@@ -63,6 +59,7 @@ six>=1.16.0
 # AI ASSISTANT
 # ============================================================================
 # No additional Python packages needed for Ollama integration
-# Install Ollama separately: https://ollama.ai/download
+# Install Ollama using auto-installer: python src/ai/ollama_installer.py --auto-install
+# Or manually from: https://ollama.ai/download
 # After installation: ollama pull llama3
 
