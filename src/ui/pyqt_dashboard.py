@@ -15,9 +15,9 @@ from PyQt6.QtWidgets import (
     QLabel, QFrame, QStackedWidget, QScrollArea, QSplitter,
     QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QFileDialog,
     QMenuBar, QStatusBar, QSizePolicy, QDockWidget,
-    QProgressBar, QStackedWidget, QDialog, QListWidget, QSlider, QFrame, QComboBox, QCheckBox
+    QProgressBar, QStackedWidget, QDialog, QListWidget, QSlider, QFrame, QComboBox, QCheckBox, QSplashScreen
 )
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QByteArray
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QPoint, QByteArray
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
 from PyQt6.QtSvgWidgets import QSvgWidget
 
@@ -68,6 +68,237 @@ from src.ui.pages import (
 )
 from src.ui.help_content import PAGE_HELP_CONTENT
 
+
+class SplashScreen(QSplashScreen):
+    """Minimalist splash screen with logo."""
+    def __init__(self, parent=None):
+        # Create pixmap for splash screen
+        from PyQt6.QtWidgets import QApplication
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        
+        # Use screen size or reasonable max size
+        width = min(screen_geometry.width() - 100, 1200)
+        height = min(screen_geometry.height() - 100, 800)
+        
+        # Create pixmap
+        pixmap = QPixmap(width, height)
+        
+        super().__init__(pixmap)
+        
+        # Center on screen
+        x = (screen_geometry.width() - width) // 2
+        y = (screen_geometry.height() - height) // 2
+        self.move(x, y)
+        
+        # Draw content on pixmap
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Gradient background
+        gradient = QLinearGradient(0, 0, width, height)
+        gradient.setColorAt(0, QColor(THEME['bg_dark']))
+        gradient.setColorAt(1, QColor('#0F1318'))
+        painter.fillRect(pixmap.rect(), gradient)
+        
+        # Decorative circles
+        painter.setPen(Qt.PenStyle.NoPen)
+        center_x = width // 2
+        center_y = height // 2 - 50
+        
+        # Large outer circle
+        color1 = QColor(THEME['primary'])
+        color1.setAlpha(20)
+        painter.setBrush(color1)
+        painter.drawEllipse(QPoint(center_x, center_y), min(width, height) // 3, min(width, height) // 3)
+        
+        # Medium circle
+        color2 = QColor(THEME['primary'])
+        color2.setAlpha(40)
+        painter.setBrush(color2)
+        painter.drawEllipse(QPoint(center_x, center_y), min(width, height) // 4, min(width, height) // 4)
+        
+        # Small inner circle
+        color3 = QColor(THEME['primary'])
+        color3.setAlpha(60)
+        painter.setBrush(color3)
+        painter.drawEllipse(QPoint(center_x, center_y), min(width, height) // 6, min(width, height) // 6)
+        
+        # Logo
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        if os.path.exists(logo_path):
+            logo_pixmap = QPixmap(logo_path)
+            logo_size = min(width, height) // 5
+            scaled_logo = logo_pixmap.scaled(logo_size, logo_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_x = (width - scaled_logo.width()) // 2
+            logo_y = (height - scaled_logo.height()) // 2 - 80
+            painter.drawPixmap(logo_x, logo_y, scaled_logo)
+        else:
+            painter.setPen(QColor(THEME['primary']))
+            font_size = min(width, height) // 10
+            font = QFont('Segoe UI', font_size, QFont.Weight.Bold)
+            painter.setFont(font)
+            painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "WATCHDOG")
+        
+        # Title
+        painter.setPen(QColor(THEME['text_primary']))
+        font = QFont('Segoe UI', min(width, height) // 30, QFont.Weight.Bold)
+        painter.setFont(font)
+        title_rect = QRect(0, center_y + min(width, height) // 4, width, 50)
+        painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, "Network Security Monitoring")
+        
+        # Subtitle
+        painter.setPen(QColor(THEME['text_secondary']))
+        font = QFont('Segoe UI', min(width, height) // 50)
+        painter.setFont(font)
+        subtitle_rect = QRect(0, center_y + min(width, height) // 4 + 40, width, 40)
+        painter.drawText(subtitle_rect, Qt.AlignmentFlag.AlignCenter, "AI-Powered Threat Detection System")
+        
+        # Loading text
+        painter.setPen(QColor(THEME['primary']))
+        font = QFont('Segoe UI', min(width, height) // 45, QFont.Weight.Medium)
+        painter.setFont(font)
+        loading_rect = QRect(0, height - 100, width, 40)
+        painter.drawText(loading_rect, Qt.AlignmentFlag.AlignCenter, "Initializing...")
+        
+        # Progress bar background
+        progress_bg_rect = QRect(width // 4, height - 60, width // 2, 4)
+        painter.setBrush(QColor(THEME['bg_card']))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(progress_bg_rect, 2, 2)
+        
+        # Progress bar fill (animated-looking)
+        progress_fill_rect = QRect(width // 4, height - 60, width // 4, 4)
+        painter.setBrush(QColor(THEME['primary']))
+        painter.drawRoundedRect(progress_fill_rect, 2, 2)
+        
+        # Version info at bottom
+        version_color = QColor(THEME['text_secondary'])
+        version_color.setAlpha(100)
+        painter.setPen(version_color)
+        font = QFont('Segoe UI', min(width, height) // 70)
+        painter.setFont(font)
+        version_rect = QRect(0, height - 30, width, 30)
+        painter.drawText(version_rect, Qt.AlignmentFlag.AlignCenter, "v2.0 | Secure • Monitor • Protect")
+        
+        painter.end()
+        
+        self.setPixmap(pixmap)
+        
+        # Auto-close after 3 seconds
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.close)
+        self.timer.start(3000)
+
+
+class TermsDialog(QDialog):
+    """Minimalist terms and conditions dialog."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Terms & Conditions")
+        self.setFixedSize(500, 400)
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {THEME['bg_dark']};
+                color: {THEME['text_primary']};
+            }}
+            QLabel {{
+                color: {THEME['text_primary']};
+                font-family: 'Segoe UI', sans-serif;
+            }}
+            QPushButton {{
+                background-color: {THEME['bg_card']};
+                color: {THEME['text_primary']};
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-size: 13px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['primary']};
+                color: white;
+                border: 1px solid {THEME['primary']};
+            }}
+            QPushButton#agree_btn {{
+                background-color: {THEME['primary']};
+                color: white;
+                border: 1px solid {THEME['primary']};
+            }}
+            QPushButton#agree_btn:hover {{
+                background-color: {THEME['secondary']};
+                border: 1px solid {THEME['secondary']};
+            }}
+            QScrollArea {{
+                border: none;
+                background-color: transparent;
+            }}
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        
+        # Title
+        title = QLabel("Network Monitoring Agreement")
+        title.setStyleSheet(f"""
+            font-size: 18px;
+            font-weight: 600;
+            color: {THEME['primary']};
+        """)
+        layout.addWidget(title)
+        
+        # Content in scrollable area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("border: none;")
+        
+        content = QLabel()
+        content.setWordWrap(True)
+        content.setText(f"""
+            <b>By using WATCHDOG, you agree to the following:</b><br><br>
+            
+            • This tool captures network packets for security monitoring<br>
+            • Packet headers and metadata are analyzed locally<br>
+            • No personal content is stored or transmitted<br>
+            • Use only on networks you own or have permission to monitor<br>
+            • Responsible for compliance with local laws and regulations<br><br>
+            
+            <b>Data Handling:</b><br>
+            - Captured data is stored locally in packet_data.json<br>
+            - ML analysis runs entirely on your machine<br>
+            - AI features (if enabled) process data locally via Ollama<br><br>
+            
+            <b>Privacy:</b>
+            - Designed for network security and forensic analysis<br>
+            - Aligns with privacy best practices<br>
+            - You can delete captured data at any time
+        """)
+        content.setStyleSheet(f"""
+            font-size: 12px;
+            line-height: 1.6;
+            color: {THEME['text_secondary']};
+        """)
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        decline_btn = QPushButton("Decline")
+        decline_btn.clicked.connect(self.reject)
+        button_layout.addWidget(decline_btn)
+        
+        agree_btn = QPushButton("Agree && Continue")
+        agree_btn.setObjectName("agree_btn")
+        agree_btn.clicked.connect(self.accept)
+        button_layout.addWidget(agree_btn)
+        
+        layout.addLayout(button_layout)
+
+
 def signal_handler(sig, frame):
     QApplication.quit()
 
@@ -108,6 +339,28 @@ class WatchdogDashboard(QMainWindow):
         import sys
         self.layout_only = False  # Force UI creation for widgets
         self.no_ai = '--no-ai' in sys.argv
+
+        # Show splash screen before proceeding (skip if layout-only)
+        if not self.layout_only:
+            print("Showing splash screen...")
+            splash = SplashScreen()
+            splash.show()
+            
+            # Process events to ensure splash is displayed
+            QApplication.processEvents()
+            
+            # Wait for splash to close
+            while not splash.isHidden():
+                QApplication.processEvents()
+                QThread.msleep(10)
+            
+            print("Splash screen closed")
+
+            # Show terms dialog after splash
+            terms_dialog = TermsDialog(self)
+            if terms_dialog.exec() != QDialog.DialogCode.Accepted:
+                print("User declined terms. Exiting.")
+                sys.exit(0)
 
         # Initialize attributes
         self.model = None
