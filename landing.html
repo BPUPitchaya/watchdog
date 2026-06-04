@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WATCHDOG - AI Network Security Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0B0E13 0%, #0F1318 100%);
+            color: #D4D8E0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        nav {
+            padding: 20px 0;
+            border-bottom: 1px solid #1C2230;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00B4D8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .nav-links a {
+            color: #5A6070;
+            text-decoration: none;
+            margin-left: 30px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #00B4D8;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .hero-logo {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            font-weight: bold;
+            color: #00B4D8;
+            margin-bottom: 20px;
+        }
+
+        .hero .subtitle {
+            font-size: 24px;
+            color: #5A6070;
+            margin-bottom: 40px;
+        }
+
+        .hero .description {
+            font-size: 18px;
+            color: #D4D8E0;
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #00B4D8;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background: #0096B4;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background: #131820;
+        }
+
+        .features h2 {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 60px;
+            color: #00B4D8;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: #0B0E13;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #1C2230;
+            transition: border-color 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: #00B4D8;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            color: #00B4D8;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            color: #5A6070;
+        }
+
+        /* Screenshot Section */
+        .screenshots {
+            padding: 80px 0;
+        }
+
+        .screenshots h2 {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 60px;
+            color: #00B4D8;
+        }
+
+        .screenshot-placeholder {
+            background: #131820;
+            border: 2px dashed #1C2230;
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .screenshot-placeholder p {
+            color: #5A6070;
+            font-size: 18px;
+        }
+
+        /* Setup Section */
+        .setup {
+            padding: 80px 0;
+            background: #131820;
+        }
+
+        .setup h2 {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 60px;
+            color: #00B4D8;
+        }
+
+        .setup-steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .setup-step {
+            background: #0B0E13;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00B4D8;
+        }
+
+        .setup-step code {
+            background: #1C2230;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #00B4D8;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #1C2230;
+            margin-bottom: 30px;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: none;
+            color: #5A6070;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .tab-button:hover {
+            color: #00B4D8;
+        }
+
+        .tab-button.active {
+            color: #00B4D8;
+            border-bottom: 2px solid #00B4D8;
+            margin-bottom: -2px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid #1C2230;
+        }
+
+        footer p {
+            color: #5A6070;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 48px;
+            }
+
+            .hero .subtitle {
+                font-size: 20px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <div class="logo">
+                <img src="logo.png" alt="WATCHDOG Logo">
+                <span>WATCHDOG</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#screenshots">Screenshots</a>
+                <a href="#setup">Setup</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <img src="logo.png" alt="WATCHDOG Logo" class="hero-logo">
+            <h1>WATCHDOG</h1>
+            <p class="subtitle">AI-Powered Network Security Monitoring</p>
+            <p class="description">
+                Real-time packet capture, ML-based threat detection, and AI-powered analysis.
+                Protect your network with intelligent monitoring that learns and adapts.
+            </p>
+            <a href="#setup" class="cta-button">Get Started</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>🎯 Real-Time Monitoring</h3>
+                    <p>Continuous packet capture with live traffic visualization and instant threat detection.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🤖 AI-Powered Analysis</h3>
+                    <p>Local AI integration via Ollama for intelligent threat explanation and forensic insights.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🛡️ ML Threat Detection</h3>
+                    <p>Machine learning models trained to identify suspicious patterns and potential attacks.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔒 Firewall Integration</h3>
+                    <p>Direct integration with system firewall for automatic IP blocking and threat mitigation.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📊 Forensic Vault</h3>
+                    <p>Comprehensive log storage with searchable incident database and detailed packet analysis.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🌐 Network Topology</h3>
+                    <p>Automatic discovery and visualization of all devices on your local network.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots" id="screenshots">
+        <div class="container">
+            <h2>Screenshots</h2>
+            <div class="screenshot-placeholder">
+                <p>📸 Dashboard Screenshot Placeholder</p>
+            </div>
+            <div class="screenshot-placeholder">
+                <p>📸 Threat Analysis Screenshot Placeholder</p>
+            </div>
+            <div class="screenshot-placeholder">
+                <p>📸 Network Topology Screenshot Placeholder</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Setup Section -->
+    <section class="setup" id="setup">
+        <div class="container">
+            <h2>Quick Setup</h2>
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('linux')">Linux</button>
+                <button class="tab-button" onclick="switchTab('macos')">macOS</button>
+                <button class="tab-button" onclick="switchTab('windows')">Windows</button>
+            </div>
+
+            <!-- Linux Tab -->
+            <div class="tab-content active" id="linux">
+                <div class="setup-steps">
+                    <div class="setup-step">
+                        <strong>1. Install system dependencies:</strong><br>
+                        <code>sudo apt install python3-dev libpcap-dev nmap</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>2. Clone the repository:</strong><br>
+                        <code>git clone https://github.com/BPUPitchaya/watchdog.git</code><br>
+                        <code>cd watchdog</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>3. Create virtual environment:</strong><br>
+                        <code>python3 -m venv watchdog_env</code><br>
+                        <code>source watchdog_env/bin/activate</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>4. Install Python dependencies:</strong><br>
+                        <code>pip install -r requirements.txt</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>5. Run the application:</strong><br>
+                        <code>python3 src/ui/pyqt_dashboard.py</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>6. For AI features (optional):</strong><br>
+                        <code>python src/ai/ollama_installer.py --auto-install</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- macOS Tab -->
+            <div class="tab-content" id="macos">
+                <div class="setup-steps">
+                    <div class="setup-step">
+                        <strong>1. Install Homebrew (if not installed):</strong><br>
+                        <code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>2. Install system dependencies:</strong><br>
+                        <code>brew install nmap libpcap python3</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>3. Clone the repository:</strong><br>
+                        <code>git clone https://github.com/BPUPitchaya/watchdog.git</code><br>
+                        <code>cd watchdog</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>4. Create virtual environment:</strong><br>
+                        <code>python3 -m venv watchdog_env</code><br>
+                        <code>source watchdog_env/bin/activate</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>5. Install Python dependencies:</strong><br>
+                        <code>pip install -r requirements.txt</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>6. Run the application:</strong><br>
+                        <code>python3 src/ui/pyqt_dashboard.py</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>7. For AI features (optional):</strong><br>
+                        <code>python src/ai/ollama_installer.py --auto-install</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Windows Tab -->
+            <div class="tab-content" id="windows">
+                <div class="setup-steps">
+                    <div class="setup-step">
+                        <strong>1. Install Npcap:</strong><br>
+                        Download from <a href="https://npcap.com/#download" style="color: #00B4D8;">npcap.com</a> with WinPcap API compatibility
+                    </div>
+                    <div class="setup-step">
+                        <strong>2. Install Nmap:</strong><br>
+                        Download from <a href="https://nmap.org/download.html" style="color: #00B4D8;">nmap.org</a>
+                    </div>
+                    <div class="setup-step">
+                        <strong>3. Clone the repository:</strong><br>
+                        <code>git clone https://github.com/BPUPitchaya/watchdog.git</code><br>
+                        <code>cd watchdog</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>4. Create virtual environment:</strong><br>
+                        <code>python -m venv watchdog_env</code><br>
+                        <code>watchdog_env\Scripts\activate</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>5. Install Python dependencies:</strong><br>
+                        <code>pip install -r requirements.txt</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>6. Run the application:</strong><br>
+                        <code>python src/ui/pyqt_dashboard.py</code>
+                    </div>
+                    <div class="setup-step">
+                        <strong>7. For AI features (optional):</strong><br>
+                        <code>python src/ai/ollama_installer.py --auto-install</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>WATCHDOG v2.0 | Secure • Monitor • Protect</p>
+            <p style="margin-top: 10px; font-size: 14px;">University Project | Network Security Monitoring System</p>
+        </div>
+    </footer>
+
+    <script>
+        function switchTab(tabName) {
+            // Remove active class from all tabs and buttons
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Add active class to selected tab and button
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
