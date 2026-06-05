@@ -1,4 +1,5 @@
 import flet as ft
+from flet import border
 import sys
 
 def main(page: ft.Page):
@@ -11,7 +12,7 @@ def main(page: ft.Page):
 
     # The Markdown string containing the T&C text
     tc_text = """
-### WatchDog AI – End User License Agreement (EULA)
+### WatchDog AI – End User License Agreement 
 
 **Please read these terms carefully before using WatchDog AI.** By clicking "I Agree" or continuing to use this software, you agree to be bound by these Terms and Conditions.
 
@@ -66,9 +67,9 @@ These terms shall be governed by and construed in accordance with the laws of Ne
         ),
         expand=True,
         padding=20,
-        border=ft.border.all(1, ft.colors.OUTLINE),
+        border=border.all(1, ft.Colors.OUTLINE),
         border_radius=10,
-        bgcolor=ft.colors.SURFACE_VARIANT,
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, 
     )
 
     # Action buttons
@@ -76,13 +77,13 @@ These terms shall be governed by and construed in accordance with the laws of Ne
         controls=[
             ft.ElevatedButton(
                 text="Decline & Exit", 
-                color=ft.colors.ERROR, 
+                color=ft.Colors.ERROR, 
                 on_click=decline_clicked
             ),
             ft.ElevatedButton(
                 text="I Agree", 
-                bgcolor=ft.colors.PRIMARY, 
-                color=ft.colors.ON_PRIMARY, 
+                bgcolor=ft.Colors.PRIMARY, 
+                color=ft.Colors.ON_PRIMARY, 
                 on_click=accept_clicked
             ),
         ],
@@ -97,4 +98,4 @@ These terms shall be governed by and construed in accordance with the laws of Ne
     )
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.run(main)
