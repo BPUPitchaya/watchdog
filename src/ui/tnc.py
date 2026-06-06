@@ -2,14 +2,7 @@ import flet as ft
 from flet import border
 import sys
 
-def main(page: ft.Page):
-    # Setup the initial page 
-    page.title = "WatchDog AI - End User License Agreement"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 30
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-
+def tnc_view(page: ft.Page):
     # The Markdown string containing the T&C text
     tc_text = """
 ### WatchDog AI – End User License Agreement 
@@ -43,17 +36,13 @@ These terms shall be governed by and construed in accordance with the laws of Ne
 """
 
     def accept_clicked(e):
-        # Clears the T&C page and transitions to the main dashboard
-        page.controls.clear()
-        page.add(ft.Text("Welcome to the WatchDog AI Dashboard!", size=30, weight=ft.FontWeight.BOLD))
-        page.update()
-        # Thae can call her main UI layout routing here
+        # INSTEAD of clearing controls, route to the dashboard!
+        page.go("/dashboard")
 
     def decline_clicked(e):
         # Exits the application if the user declines the terms
         sys.exit()
 
-    # The Markdown control placed inside a scrollable column
     tc_markdown = ft.Markdown(
         value=tc_text,
         selectable=True,
@@ -72,7 +61,6 @@ These terms shall be governed by and construed in accordance with the laws of Ne
         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, 
     )
 
-    # Action buttons
     action_buttons = ft.Row(
         controls=[
             ft.ElevatedButton(
@@ -90,12 +78,15 @@ These terms shall be governed by and construed in accordance with the laws of Ne
         alignment=ft.MainAxisAlignment.END,
     )
 
-    # Main UI layout rendering
-    page.add(
-        ft.Text("WatchDog AI Setup", size=28, weight=ft.FontWeight.BOLD),
-        tc_container,
-        action_buttons
+    # Return a View object containing the layout for the router
+    return ft.View(
+        route="/tnc",
+        controls=[
+            ft.Text("WatchDog AI Setup", size=28, weight=ft.FontWeight.BOLD),
+            tc_container,
+            action_buttons
+        ],
+        padding=30,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        vertical_alignment=ft.MainAxisAlignment.CENTER
     )
-
-if __name__ == "__main__":
-    ft.run(main)
