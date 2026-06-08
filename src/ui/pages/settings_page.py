@@ -81,7 +81,7 @@ class SettingsPage:
         self.settings_nav.addItem("System")
         self.settings_nav.addItem("Security")
         self.settings_nav.addItem("Privacy")
-        self.settings_nav.addItem("Appearance")
+        self.settings_nav.addItem("Keyboard Shortcuts")
         nav_layout.addWidget(self.settings_nav)
         nav_layout.addStretch()
         
@@ -104,7 +104,7 @@ class SettingsPage:
         self.settings_content.addWidget(self._create_system_tab())
         self.settings_content.addWidget(self._create_security_tab())
         self.settings_content.addWidget(self._create_privacy_tab())
-        self.settings_content.addWidget(self._create_appearance_tab())
+        self.settings_content.addWidget(self._create_keyboard_shortcuts_tab())
         
         # Connect navigation to content
         self.settings_nav.currentRowChanged.connect(self.settings_content.setCurrentIndex)
@@ -1073,6 +1073,113 @@ class SettingsPage:
         appearance_layout.addStretch()
         
         return appearance_tab
+
+    def _create_keyboard_shortcuts_tab(self):
+        """Create the Keyboard Shortcuts settings tab."""
+        shortcuts_tab = QWidget()
+        shortcuts_layout = QVBoxLayout(shortcuts_tab)
+        shortcuts_layout.setContentsMargins(20, 20, 20, 20)
+        shortcuts_layout.setSpacing(12)
+        
+        shortcuts_header = QLabel("Keyboard Shortcuts")
+        shortcuts_header.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        shortcuts_header.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;")
+        shortcuts_layout.addWidget(shortcuts_header)
+        
+        # Create scroll area for content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: transparent;
+                border: none;
+            }}
+        """)
+        
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(15)
+        
+        # Keyboard shortcuts info
+        info_label = QLabel("Learn the keyboard shortcuts to navigate Watchdog quickly and efficiently.")
+        info_label.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        info_label.setStyleSheet(f"color: {THEME['text_secondary']}; margin-bottom: 10px;")
+        info_label.setWordWrap(True)
+        scroll_layout.addWidget(info_label)
+        
+        # Shortcuts table
+        shortcuts_container = QWidget()
+        shortcuts_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                padding: 15px;
+            }}
+        """)
+        shortcuts_table_layout = QVBoxLayout(shortcuts_container)
+        
+        # Shortcut items
+        shortcuts = [
+            ("Ctrl+Q", "Quit application", "Close Watchdog and exit"),
+            ("Ctrl+S", "Navigate to Settings", "Jump directly to the Settings page"),
+            ("F11", "Toggle Fullscreen", "Switch between windowed and fullscreen mode"),
+        ]
+        
+        for key, action, description in shortcuts:
+            shortcut_item = QWidget()
+            shortcut_item.setStyleSheet(f"""
+                QWidget {{
+                    background-color: {THEME['bg_card']};
+                    border: 1px solid {THEME['border']};
+                    border-radius: 6px;
+                    padding: 12px;
+                }}
+            """)
+            shortcut_layout = QHBoxLayout(shortcut_item)
+            shortcut_layout.setSpacing(15)
+            
+            # Key badge
+            key_label = QLabel(key)
+            key_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+            key_label.setStyleSheet(f"""
+                QLabel {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                }}
+            """)
+            key_label.setFixedWidth(80)
+            shortcut_layout.addWidget(key_label)
+            
+            # Action and description
+            action_desc_layout = QVBoxLayout()
+            action_label = QLabel(action)
+            action_label.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+            action_label.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
+            action_desc_layout.addWidget(action_label)
+            
+            desc_label = QLabel(description)
+            desc_label.setFont(QFont(THEME['font_mono'].strip("'"), 10))
+            desc_label.setStyleSheet(f"color: {THEME['text_secondary']};")
+            desc_label.setWordWrap(True)
+            action_desc_layout.addWidget(desc_label)
+            
+            shortcut_layout.addLayout(action_desc_layout)
+            shortcut_layout.addStretch()
+            
+            shortcuts_table_layout.addWidget(shortcut_item)
+        
+        scroll_layout.addWidget(shortcuts_container)
+        scroll_layout.addStretch()
+        
+        scroll_area.setWidget(scroll_content)
+        shortcuts_layout.addWidget(scroll_area)
+        
+        return shortcuts_tab
 
     def _on_model_changed(self, index=None):
         """Handle AI model selection change."""

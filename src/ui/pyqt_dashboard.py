@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QProgressBar, QStackedWidget, QDialog, QListWidget, QSlider, QFrame, QComboBox, QCheckBox, QSplashScreen
 )
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPointF, QPoint, QByteArray
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QPainterPath, QLinearGradient, QRadialGradient, QPixmap, QIcon, QShortcut, QKeySequence
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 import joblib
@@ -263,23 +263,33 @@ class TermsDialog(QDialog):
         content = QLabel()
         content.setWordWrap(True)
         content.setText(f"""
-            <b>By using WATCHDOG, you agree to the following:</b><br><br>
+            <b>Please read these terms carefully before using WatchDog AI.</b><br><br>
+            By clicking "I Agree" or continuing to use this software, you agree to be bound by these Terms and Conditions.<br><br>
             
-            • This tool captures network packets for security monitoring<br>
-            • Packet headers and metadata are analyzed locally<br>
-            • No personal content is stored or transmitted<br>
-            • Use only on networks you own or have permission to monitor<br>
-            • Responsible for compliance with local laws and regulations<br><br>
+            <b>1. Acknowledgment of MVP Status</b><br>
+            WatchDog AI is provided as a Minimum Viable Product (MVP) and diagnostic tool. While the system utilizes machine learning to detect network anomalies and automate defenses, it is not a guarantee of absolute cybersecurity. The developers (Pitchaya and Thae) provide this software "as is" and without warranties of any kind.<br><br>
             
-            <b>Data Handling:</b><br>
-            - Captured data is stored locally in packet_data.json<br>
-            - ML analysis runs entirely on your machine<br>
-            - AI features (if enabled) process data locally via Ollama<br><br>
+            <b>2. Authorized Use & Legal Compliance</b><br>
+            WatchDog AI utilizes active packet-sniffing technology. By using this software, you explicitly warrant that:<br>
+            • You are the owner, or have explicit authorization from the owner, of the network and hardware being monitored.<br>
+            • You will not use this application to intercept, monitor, or capture data on networks or devices you do not have legal permission to audit.<br>
+            • Your use of this software complies with all applicable local and national cybersecurity legislation, including the New Zealand Computer Act.<br><br>
             
-            <b>Privacy:</b>
-            - Designed for network security and forensic analysis<br>
-            - Aligns with privacy best practices<br>
-            - You can delete captured data at any time
+            <b>3. Data Privacy and Edge Processing</b><br>
+            WatchDog AI is built on an "Uncompromising Data Sovereignty" architecture. We respect your privacy.<br>
+            <b>Zero Cloud Transmission:</b> All network packet ingestion, machine learning threat analysis, and Explainable AI (XAI) log generation occur entirely on your local hardware (Edge computing).<br>
+            No network telemetry, packet data, or system logs are ever transmitted to external servers, third-party APIs, or the developers. This localized processing aligns with the standards set by the New Zealand Privacy Act 2020.<br><br>
+            
+            <b>4. Automated Mitigation & System Modifications</b><br>
+            WatchDog AI includes an automated firewall mitigation feature that may actively alter your operating system's IP blocking rules to stop perceived threats.<br>
+            You acknowledge that automated mitigation carries the risk of "false positives," which may temporarily block legitimate business traffic or services.<br>
+            While fail-safes are built-in, you are solely responsible for reviewing the AI Assistant's logs and managing your firewall rules.<br><br>
+            
+            <b>5. Limitation of Liability</b><br>
+            To the maximum extent permitted by law, the developers shall not be held liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use this software. This includes, but is not limited to, data loss, business interruption, successful cyberattacks, or network outages caused by automated firewall modifications.<br><br>
+            
+            <b>6. Governing Law</b><br>
+            These terms shall be governed by and construed in accordance with the laws of New Zealand.
         """)
         content.setStyleSheet(f"""
             font-size: 12px;
@@ -309,6 +319,93 @@ class TermsDialog(QDialog):
         if self.on_accept:
             self.on_accept()
         self.accept()
+
+
+class ModeSelectionDialog(QDialog):
+    """Minimalist mode selection dialog."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.selected_mode = "live"  # Default to live mode
+        self.setWindowTitle("Select Mode")
+        self.setFixedSize(500, 350)
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {THEME['bg_dark']};
+                color: {THEME['text_primary']};
+            }}
+            QLabel {{
+                color: {THEME['text_primary']};
+                font-family: 'Segoe UI', sans-serif;
+            }}
+            QPushButton {{
+                background-color: {THEME['bg_card']};
+                color: white;
+                border: 1px solid {THEME['border']};
+                border-radius: 6px;
+                padding: 12px 24px;
+                font-size: 14px;
+                font-weight: 500;
+                text-align: center;
+                min-height: 40px;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['primary']};
+                color: white;
+                border: 1px solid {THEME['primary']};
+            }}
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setSpacing(30)
+        layout.setContentsMargins(50, 50, 50, 50)
+        
+        # Title
+        title = QLabel("Select Mode")
+        title.setStyleSheet(f"""
+            font-size: 24px;
+            font-weight: 600;
+            color: {THEME['primary']};
+        """)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+        
+        # Subtitle
+        subtitle = QLabel("Choose how you want to use Watchdog")
+        subtitle.setStyleSheet(f"""
+            font-size: 12px;
+            color: {THEME['text_secondary']};
+        """)
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(subtitle)
+        
+        layout.addStretch()
+        
+        # Mode buttons
+        button_layout = QVBoxLayout()
+        button_layout.setSpacing(20)
+        
+        # Demo Mode button
+        demo_btn = QPushButton("Demo Mode")
+        demo_btn.clicked.connect(lambda: self._select_mode("demo"))
+        button_layout.addWidget(demo_btn)
+        
+        # Live Mode button
+        live_btn = QPushButton("Live Mode")
+        live_btn.clicked.connect(lambda: self._select_mode("live"))
+        button_layout.addWidget(live_btn)
+        
+        layout.addLayout(button_layout)
+        
+        layout.addStretch()
+    
+    def _select_mode(self, mode):
+        """Handle mode selection."""
+        self.selected_mode = mode
+        self.accept()
+    
+    def get_selected_mode(self):
+        """Return the selected mode."""
+        return self.selected_mode
 
 
 def signal_handler(sig, frame):
@@ -388,8 +485,21 @@ class WatchdogDashboard(QMainWindow):
                 print("User declined terms. Exiting.")
                 sys.exit(0)
 
-            # Show main window after terms are accepted
+            # Show mode selection dialog after terms
+            mode_dialog = ModeSelectionDialog(self)
+            if mode_dialog.exec() != QDialog.DialogCode.Accepted:
+                print("User cancelled mode selection. Exiting.")
+                sys.exit(0)
+            
+            self.demo_mode = (mode_dialog.get_selected_mode() == "demo")
+            print(f"DEBUG: Demo mode = {self.demo_mode}")
+
+            # Show main window after mode selection
             self.show()
+            
+            # Update demo mode indicator
+            if hasattr(self, 'demo_indicator'):
+                self.demo_indicator.setVisible(self.demo_mode)
         
         # Show onboarding wizard for first-time users (outside layout-only check)
         is_first_time = self.settings_manager.is_first_time_user()
@@ -449,6 +559,7 @@ class WatchdogDashboard(QMainWindow):
         self.conversation_history = []  # Shared conversation history for AI chat sync
         self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
         self.firewall_manager = FirewallManager()  # System-level IP blocking via pfctl
+        self.demo_mode = False  # Track whether demo mode is active
         
         # Load ML (skip if layout-only)
         if not self.layout_only:
@@ -497,6 +608,9 @@ class WatchdogDashboard(QMainWindow):
         # Create UI components
         self.create_ui()
 
+        # Setup keyboard shortcuts
+        self._setup_keyboard_shortcuts()
+
         # Timer for auto-update (skip in layout-only)
         if not self.layout_only:
             self.timer = QTimer()
@@ -506,6 +620,35 @@ class WatchdogDashboard(QMainWindow):
         # Initial update (skip in layout-only)
         if not self.layout_only:
             self.update_ui()
+
+    def _setup_keyboard_shortcuts(self):
+        """Setup keyboard shortcuts for quick access."""
+        # Ctrl+Q: Quit application
+        quit_shortcut = QShortcut(QKeySequence.StandardKey.Quit, self)
+        quit_shortcut.activated.connect(self.close)
+
+        # Ctrl+S: Navigate to settings
+        settings_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        settings_shortcut.activated.connect(self._navigate_to_settings)
+
+        # F11: Toggle fullscreen
+        fullscreen_shortcut = QShortcut(QKeySequence("F11"), self)
+        fullscreen_shortcut.activated.connect(self._toggle_fullscreen)
+
+    def _navigate_to_settings(self):
+        """Navigate to settings page."""
+        if hasattr(self, 'settings_nav'):
+            # Navigate to settings page (index 6)
+            self.page_container.setCurrentIndex(6)
+            # Update navigation button
+            self._set_nav_active(6)
+
+    def _toggle_fullscreen(self):
+        """Toggle fullscreen mode."""
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
 
     def create_ui(self):
         # Create page container first (full-size content area)
@@ -591,6 +734,20 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_title.setVisible(False)
         header_layout.addWidget(self.sidebar_title, alignment=Qt.AlignmentFlag.AlignVCenter)
         header_layout.addStretch()
+        
+        # Demo mode indicator
+        self.demo_indicator = QLabel("DEMO MODE")
+        self.demo_indicator.setStyleSheet(f"""
+            color: {THEME['warning']};
+            font-family: {THEME['font_mono']};
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: rgba(255, 193, 7, 0.1);
+        """)
+        self.demo_indicator.setVisible(False)
+        header_layout.addWidget(self.demo_indicator)
         
         nav_layout.addWidget(self.sidebar_header)
 
@@ -1399,14 +1556,105 @@ class WatchdogDashboard(QMainWindow):
         dialog.resize(600, 400)
         dialog.exec()
 
+    def _generate_demo_data(self):
+        """Generate realistic simulated threat data for demo mode."""
+        import random
+        import datetime
+        
+        # Simulated IP addresses
+        source_ips = [
+            "192.168.1.100", "10.0.0.50", "172.16.0.25",
+            "203.0.113.45", "198.51.100.23", "192.0.2.78"
+        ]
+        dest_ips = ["192.168.1.1", "192.168.1.94", "192.168.1.200"]
+        
+        # Threat types with realistic scenarios
+        threat_scenarios = [
+            {
+                "source": "203.0.113.45",
+                "destination": "192.168.1.94",
+                "protocol": "TCP",
+                "length": 1500,
+                "threat_type": "DDoS Attack",
+                "confidence": 95,
+                "action": "Block"
+            },
+            {
+                "source": "198.51.100.23",
+                "destination": "192.168.1.1",
+                "protocol": "TCP",
+                "length": 60,
+                "threat_type": "Port Scanning",
+                "confidence": 88,
+                "action": "Flag"
+            },
+            {
+                "source": "192.0.2.78",
+                "destination": "192.168.1.94",
+                "protocol": "UDP",
+                "length": 512,
+                "threat_type": "Malware C2",
+                "confidence": 92,
+                "action": "Block"
+            },
+            {
+                "source": "10.0.0.50",
+                "destination": "192.168.1.200",
+                "protocol": "TCP",
+                "length": 1200,
+                "threat_type": "Phishing Attempt",
+                "confidence": 85,
+                "action": "Flag"
+            },
+            {
+                "source": "192.168.1.100",
+                "destination": "192.168.1.1",
+                "protocol": "TCP",
+                "length": 64,
+                "threat_type": "Brute Force",
+                "confidence": 90,
+                "action": "Block"
+            }
+        ]
+        
+        # Generate packets based on scenarios
+        packets = []
+        current_time = datetime.datetime.now()
+        
+        for i in range(15):  # Generate 15 packets
+            scenario = random.choice(threat_scenarios)
+            packet = {
+                "source": scenario["source"],
+                "destination": scenario["destination"],
+                "protocol": scenario["protocol"],
+                "length": scenario["length"] + random.randint(-100, 100),
+                "timestamp": (current_time - datetime.timedelta(seconds=random.randint(0, 60))).isoformat(),
+                "threat_type": scenario["threat_type"],
+                "confidence": scenario["confidence"] + random.randint(-5, 5),
+                "action": scenario["action"]
+            }
+            packets.append(packet)
+        
+        return {
+            "packets": packets,
+            "packet_count": len(packets),
+            "demo_mode": True
+        }
+
     def update_ui(self):
-        current_packets = 0
-        try:
-            with open('packet_data.json', 'r') as f:
-                data = json.load(f)
+        if self.demo_mode:
+            # Use simulated data in demo mode
+            data = self._generate_demo_data()
             current_packets = data.get('packet_count', 0)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {"packets": []}
+        else:
+            # Use real network data in live mode
+            current_packets = 0
+            try:
+                with open('packet_data.json', 'r') as f:
+                    data = json.load(f)
+                current_packets = data.get('packet_count', 0)
+            except (FileNotFoundError, json.JSONDecodeError):
+                data = {"packets": []}
         
         # Update LiveSentinelPage widgets
         if hasattr(self, 'live_sentinel_page') and self.live_sentinel_page:
