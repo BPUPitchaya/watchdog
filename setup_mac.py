@@ -61,6 +61,6 @@ OPTIONS = {
 setup(
     app=APP,
     data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
+    options={'py2app': OPTIONS['py2app']},
     setup_requires=['py2app'],
 )

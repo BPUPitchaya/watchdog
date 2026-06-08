@@ -5,6 +5,7 @@ Creates a standalone Windows executable
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 import sys
+import os
 
 # Main application script
 main_script = 'src/ui/pyqt_dashboard.py'
@@ -84,7 +85,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='src/ui/assets/icon.ico' if sys.path.exists('src/ui/assets/icon.ico') else None,
+    icon='src/ui/assets/icon.ico' if os.path.exists('src/ui/assets/icon.ico') else None,
 )
 
 coll = COLLECT(
@@ -117,5 +118,5 @@ exe_onefile = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='src/ui/assets/icon.ico' if sys.path.exists('src/ui/assets/icon.ico') else None,
+    icon='src/ui/assets/icon.ico' if os.path.exists('src/ui/assets/icon.ico') else None,
 )
