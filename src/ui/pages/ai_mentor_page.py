@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from src.ui.theme import THEME
+from src.ui.widgets.loading_spinner import LoadingOverlay
 
 
 class AIMentorPage:
@@ -17,6 +18,7 @@ class AIMentorPage:
         self.mentor_chat_area = None
         self.mentor_chat_layout = None
         self.mentor_input = None
+        self.loading_overlay = None
         
     def create(self):
         """Create and return the AI mentor page widget."""
@@ -185,6 +187,11 @@ class AIMentorPage:
         self.mentor_chat_layout.setSpacing(10)
         self.mentor_chat_area.setWidget(chat_content)
         chat_layout.addWidget(self.mentor_chat_area)
+        
+        # Loading overlay (hidden by default)
+        self.loading_overlay = LoadingOverlay("AI Processing...", self.mentor_chat_area)
+        self.loading_overlay.setGeometry(0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height())
+        self.loading_overlay.hide()
 
         # Input area
         input_container = QWidget()
@@ -328,8 +335,18 @@ Analyzed: 1,247 packets""")
         # Add to shared conversation history (this syncs both chats)
         self.dashboard.add_chat_message("user", msg)
         
+        # Show loading overlay
+        if self.loading_overlay:
+            self.loading_overlay.setGeometry(0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height())
+            self.loading_overlay.show()
+            self.loading_overlay.raise_()
+        
         # Use process_command to get proper response
         ai_response = self.dashboard.process_command(msg)
+        
+        # Hide loading overlay
+        if self.loading_overlay:
+            self.loading_overlay.hide()
         
         # Add AI response to shared history (skip if async processing)
         if ai_response != "__AI_PROCESSING__":

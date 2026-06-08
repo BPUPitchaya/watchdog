@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from PyQt6.QtGui import QFont
 
 from src.ui.theme import THEME
@@ -15,7 +15,7 @@ class ToastNotification(QWidget):
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool |
+            Qt.WindowType.ToolTip |
             Qt.WindowType.WindowDoesNotAcceptFocus
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -95,26 +95,33 @@ class ToastNotification(QWidget):
         """)
        
         
-        # Get screen dimensions
-        screen = QApplication.screens()[0]
-        screen_width = screen.availableGeometry().width()
-        screen_height = screen.availableGeometry().height()
+        # Position in bottom-right corner of screen
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+        screen_x = screen_geometry.x()
+        screen_y = screen_geometry.y()
+
+        # Calculate positions - bottom right corner with margin
+        end_x = screen_x + screen_width - self.width() - 20
+        end_y = screen_y + screen_height - self.height() - 20
+        start_y = screen_y + screen_height + 50  # Start below screen
         
-        # Calculate positions
-        end_x = screen_width - self.width() - 20
-        end_y = screen_height - self.height() - 20
-        start_y = screen_height + 50  # Start below screen
+        # Define explicit start and end geometries
+        start_rect = QRect(end_x, start_y, self.width(), self.height())
+        end_rect = QRect(end_x, end_y, self.width(), self.height())
         
         # Set starting position (hidden)
-        self.setGeometry(end_x, start_y, self.width(), self.height())
+        self.setGeometry(start_rect)
         self.setWindowOpacity(1.0)
         
         # Show the toast
         self.show()
         
-        # Slide up animation
-        self.slide_animation.setStartValue(self.geometry())
-        self.slide_animation.setEndValue(self.geometry().adjusted(0, end_y - start_y, 0, end_y - start_y))
+        # Slide up animation using predefined start/end geometries
+        self.slide_animation.setStartValue(start_rect)
+        self.slide_animation.setEndValue(end_rect)
         self.slide_animation.start()
         
         # Start auto-hide timer (3 seconds)

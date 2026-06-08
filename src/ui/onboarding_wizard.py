@@ -211,8 +211,11 @@ class OnboardingWizard(QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("WATCHDOG Setup Wizard")
-        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
-        self.setMinimumSize(600, 500)
+        self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
+        self.setMinimumSize(700, 500)
+        self.setOption(QWizard.WizardOption.HaveCustomButton1, False)
+        self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage, True)
+        self.setOption(QWizard.WizardOption.NoBackButtonOnLastPage, True)
         
         # Add pages
         self.addPage(WelcomePage())
@@ -226,21 +229,74 @@ class OnboardingWizard(QWizard):
         
         # Style
         self.setStyleSheet("""
+            * {
+                color: #E0E0E0;
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            }
             QWizard {
                 background-color: #0F1318;
-                color: #E0E0E0;
             }
             QWizardPage {
                 background-color: #0F1318;
             }
+            QWizard QLabel {
+                color: #E0E0E0;
+                background-color: transparent;
+            }
+            QWizard QLineEdit {
+                color: #E0E0E0;
+                background-color: #1A1F26;
+                border: 1px solid #2A3038;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            QWizard QPushButton {
+                background-color: #00B4D8;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-size: 14px;
+                font-weight: 600;
+                min-width: 100px;
+            }
+            QWizard QPushButton:hover {
+                background-color: #0096B4;
+            }
+            QWizard QPushButton:disabled {
+                background-color: #2A3038;
+                color: #5A6070;
+            }
             QLabel {
                 color: #E0E0E0;
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            }
+            QLabel h2 {
+                color: #00B4D8;
+                font-size: 24px;
+                font-weight: 600;
+            }
+            QLabel h3 {
+                color: #FFFFFF;
+                font-size: 18px;
+                font-weight: 500;
             }
             QCheckBox {
                 color: #E0E0E0;
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
                 spacing: 10px;
+                padding: 8px 0;
+            }
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #2A3038;
+                border-radius: 4px;
+                background-color: #1A1F26;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #00B4D8;
+                border-color: #00B4D8;
             }
             QSpinBox, QComboBox {
                 background-color: #1A1F26;
@@ -248,19 +304,26 @@ class OnboardingWizard(QWizard):
                 border: 1px solid #2A3038;
                 border-radius: 6px;
                 padding: 8px;
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+                min-height: 20px;
             }
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
+            QSpinBox::up-button, QSpinBox::down-button {
+                background-color: #2A3038;
                 border: none;
-                border-radius: 6px;
-                padding: 10px 20px;
-                font-size: 13px;
-                font-weight: 500;
+                width: 20px;
             }
-            QPushButton:hover {
-                background-color: #2563EB;
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: #3A4048;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 30px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1A1F26;
+                color: #E0E0E0;
+                border: 1px solid #2A3038;
+                selection-background-color: #00B4D8;
             }
         """)
     

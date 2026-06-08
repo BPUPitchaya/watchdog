@@ -146,14 +146,14 @@ class SplashScreen(QSplashScreen):
             painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "WATCHDOG")
         
         # Title
-        painter.setPen(QColor(THEME['text_primary']))
+        painter.setPen(QColor(THEME['primary']))
         font = QFont('Segoe UI', min(width, height) // 30, QFont.Weight.Bold)
         painter.setFont(font)
         title_rect = QRect(0, center_y + min(width, height) // 4, width, 50)
         painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, "Network Security Monitoring")
-        
+
         # Subtitle
-        painter.setPen(QColor(THEME['text_secondary']))
+        painter.setPen(QColor('#FFFFFF'))
         font = QFont('Segoe UI', min(width, height) // 50)
         painter.setFont(font)
         subtitle_rect = QRect(0, center_y + min(width, height) // 4 + 40, width, 40)
@@ -2112,7 +2112,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
     def show_toast(self, title, message, type='info'):
         """Show a toast notification"""
         if not self.toast:
-            self.toast = ToastNotification(self)
+            self.toast = ToastNotification(None)  # No parent to allow screen positioning
         self.toast.show_message(title, message, type)
 
     def test_multiple_toasts(self):

@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdi
 from PyQt6.QtCore import Qt, QTimer
 
 from src.ui.theme import THEME
+from src.ui.widgets.loading_spinner import LoadingOverlay
 
 
 class ForensicAssistantPanel(QWidget):
@@ -9,6 +10,7 @@ class ForensicAssistantPanel(QWidget):
     def __init__(self, dashboard=None, parent=None):
         super().__init__(parent)
         self.dashboard = dashboard
+        self.loading_overlay = None
         self.setMinimumSize(300, 400)
         self.setup_ui()
         
@@ -125,7 +127,12 @@ class ForensicAssistantPanel(QWidget):
         settings_layout.addStretch()
         layout.addWidget(settings_widget)
         
-        # Chat area
+        # Chat area container (for overlay)
+        chat_container = QWidget()
+        chat_container_layout = QVBoxLayout(chat_container)
+        chat_container_layout.setContentsMargins(0, 0, 0, 0)
+        chat_container_layout.setSpacing(0)
+        
         self.chat_area = QTextEdit()
         self.chat_area.setReadOnly(True)
         self.chat_area.setStyleSheet(f"""
@@ -138,7 +145,14 @@ class ForensicAssistantPanel(QWidget):
                 padding: 8px;
             }}
         """)
-        layout.addWidget(self.chat_area)
+        chat_container_layout.addWidget(self.chat_area)
+        
+        # Loading overlay (hidden by default)
+        self.loading_overlay = LoadingOverlay("AI Processing...", self.chat_area)
+        self.loading_overlay.setGeometry(0, 0, self.chat_area.width(), self.chat_area.height())
+        self.loading_overlay.hide()
+        
+        layout.addWidget(chat_container)
         
         # Input area
         input_widget = QWidget()
@@ -200,8 +214,13 @@ class ForensicAssistantPanel(QWidget):
         # Use shared conversation if dashboard available
         if self.dashboard:
             self.dashboard.add_chat_message("user", text)
-            # Simulate AI response
-            QTimer.singleShot(1000, lambda: self._send_ai_response(text))
+            # Show loading overlay
+            if self.loading_overlay:
+                self.loading_overlay.setGeometry(0, 0, self.chat_area.width(), self.chat_area.height())
+                self.loading_overlay.show()
+                self.loading_overlay.raise_()
+            # Simulate AI response with delay for loading effect
+            QTimer.singleShot(100, lambda: self._send_ai_response(text))
         else:
             # Fallback: just update local chat
             self.chat_area.append(f"<b>You:</b> {text}")
@@ -212,6 +231,9 @@ class ForensicAssistantPanel(QWidget):
         if self.dashboard:
             # Use process_command to get proper response based on keywords
             response = self.dashboard.process_command(user_text)
+            # Hide loading overlay
+            if self.loading_overlay:
+                self.loading_overlay.hide()
             # Skip adding message if async AI is processing (handler will add it)
             if response != "__AI_PROCESSING__":
                 self.dashboard.add_chat_message("ai", response)

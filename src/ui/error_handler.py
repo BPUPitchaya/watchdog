@@ -48,6 +48,39 @@ class ErrorMessages:
             'message': 'Failed to analyze network traffic with ML model.',
             'solution': 'The model may need to be retrained or the data format may be incorrect.',
             'icon': QMessageBox.Icon.Warning
+        },
+        'feature_extraction_failed': {
+            'title': 'Feature Extraction Failed',
+            'message': 'Could not extract features from network packet.',
+            'solution': 'Packet format may be incompatible. Traffic monitoring will continue without ML analysis.',
+            'icon': QMessageBox.Icon.Warning
+        }
+    }
+    
+    AI_ERRORS = {
+        'ai_not_available': {
+            'title': 'AI Assistant Unavailable',
+            'message': 'The AI assistant (Ollama) could not be connected.',
+            'solution': 'AI features will be disabled. You can still use manual threat analysis. Install Ollama to enable AI features.',
+            'icon': QMessageBox.Icon.Information
+        },
+        'ai_connection_failed': {
+            'title': 'AI Connection Failed',
+            'message': 'Failed to connect to AI assistant server.',
+            'solution': 'Ensure Ollama is running with: ollama serve. AI features will be temporarily disabled.',
+            'icon': QMessageBox.Icon.Warning
+        },
+        'ai_response_timeout': {
+            'title': 'AI Response Timeout',
+            'message': 'AI assistant took too long to respond.',
+            'solution': 'The request was cancelled. Try again or use manual analysis.',
+            'icon': QMessageBox.Icon.Warning
+        },
+        'ai_model_not_found': {
+            'title': 'AI Model Not Found',
+            'message': 'The requested AI model is not available in Ollama.',
+            'solution': 'Install the model with: ollama pull <model-name>',
+            'icon': QMessageBox.Icon.Warning
         }
     }
     

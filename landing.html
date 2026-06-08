@@ -178,6 +178,24 @@
             font-size: 18px;
         }
 
+        .screenshot-container {
+            margin-bottom: 30px;
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            border-radius: 12px;
+            border: 2px solid #1C2230;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .screenshot-container p {
+            color: #5A6070;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
         /* Setup Section */
         .setup {
             padding: 80px 0;
@@ -342,14 +360,29 @@
     <section class="screenshots" id="screenshots">
         <div class="container">
             <h2>Screenshots</h2>
-            <div class="screenshot-placeholder">
-                <p>📸 Dashboard Screenshot Placeholder</p>
+            <div class="screenshot-container">
+                <img src="screenshots/dashboard.png" alt="Dashboard Screenshot" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback').style.display='block';">
+                <p>Main Dashboard - Real-time network monitoring and threat detection</p>
+                <div class="fallback" style="display: none; background: #131820; border: 2px dashed #1C2230; border-radius: 12px; padding: 60px; text-align: center;">
+                    <p style="color: #5A6070; font-size: 18px;">📸 Dashboard screenshot not found</p>
+                    <p style="color: #5A6070; font-size: 14px; margin-top: 10px;">Add: screenshots/dashboard.png</p>
+                </div>
             </div>
-            <div class="screenshot-placeholder">
-                <p>📸 Threat Analysis Screenshot Placeholder</p>
+            <div class="screenshot-container">
+                <img src="screenshots/threats.png" alt="Threat Analysis Screenshot" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback').style.display='block';">
+                <p>Threat Analysis - ML-powered threat detection and AI insights</p>
+                <div class="fallback" style="display: none; background: #131820; border: 2px dashed #1C2230; border-radius: 12px; padding: 60px; text-align: center;">
+                    <p style="color: #5A6070; font-size: 18px;">📸 Threat analysis screenshot not found</p>
+                    <p style="color: #5A6070; font-size: 14px; margin-top: 10px;">Add: screenshots/threats.png</p>
+                </div>
             </div>
-            <div class="screenshot-placeholder">
-                <p>📸 Network Topology Screenshot Placeholder</p>
+            <div class="screenshot-container">
+                <img src="screenshots/packets.png" alt="Packet Analysis Screenshot" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback').style.display='block';">
+                <p>Packet Analysis - Detailed network traffic inspection</p>
+                <div class="fallback" style="display: none; background: #131820; border: 2px dashed #1C2230; border-radius: 12px; padding: 60px; text-align: center;">
+                    <p style="color: #5A6070; font-size: 18px;">📸 Packet analysis screenshot not found</p>
+                    <p style="color: #5A6070; font-size: 14px; margin-top: 10px;">Add: screenshots/packets.png</p>
+                </div>
             </div>
         </div>
     </section>
