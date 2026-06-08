@@ -27,6 +27,11 @@ import numpy as np
 import psutil
 
 from src.ml.feature_extractor import FeatureExtractor
+from src.ui.onboarding_wizard import OnboardingWizard
+from src.ui.user_settings import SettingsManager
+from src.ui.error_handler import ErrorHandler
+from src.ui.system_tray import SystemTrayIcon
+from src.ui.notification_manager import NotificationManager
 
 
 def get_system_ram():
@@ -185,17 +190,18 @@ class SplashScreen(QSplashScreen):
         
         self.setPixmap(pixmap)
         
-        # Auto-close after 3 seconds
+        # Auto-close after 5 seconds
         self.timer = QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.close)
-        self.timer.start(3000)
+        self.timer.start(5000)
 
 
 class TermsDialog(QDialog):
     """Minimalist terms and conditions dialog."""
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, on_accept=None):
         super().__init__(parent)
+        self.on_accept = on_accept
         self.setWindowTitle("Terms & Conditions")
         self.setFixedSize(500, 400)
         self.setStyleSheet(f"""
@@ -293,10 +299,16 @@ class TermsDialog(QDialog):
         
         agree_btn = QPushButton("Agree && Continue")
         agree_btn.setObjectName("agree_btn")
-        agree_btn.clicked.connect(self.accept)
+        agree_btn.clicked.connect(self.on_agree)
         button_layout.addWidget(agree_btn)
         
         layout.addLayout(button_layout)
+
+    def on_agree(self):
+        """Handle agree button click - call callback then accept."""
+        if self.on_accept:
+            self.on_accept()
+        self.accept()
 
 
 def signal_handler(sig, frame):
@@ -334,7 +346,21 @@ class WatchdogDashboard(QMainWindow):
         super().__init__()
         self.setWindowTitle("WATCHDOG AI Dashboard")
         self.setGeometry(100, 100, 1200, 1000)
+        self.hide()  # Hide window initially
 
+        # Initialize UX components first (needed for onboarding check)
+        self.settings_manager = SettingsManager()
+        self.error_handler = ErrorHandler(self)
+        self.notification_manager = NotificationManager(self)
+        self.system_tray = SystemTrayIcon(self)
+        
+        # Connect system tray signals
+        self.system_tray.signals.show_window.connect(self.show)
+        self.system_tray.signals.hide_window.connect(self.hide)
+        self.system_tray.signals.start_monitoring.connect(self.start_sniffing)
+        self.system_tray.signals.stop_monitoring.connect(self.stop_sniffing)
+        self.system_tray.signals.quit_application.connect(self.close)
+        
         # Check for --layout-only and --no-ai flags
         import sys
         self.layout_only = False  # Force UI creation for widgets
@@ -357,10 +383,58 @@ class WatchdogDashboard(QMainWindow):
             print("Splash screen closed")
 
             # Show terms dialog after splash
-            terms_dialog = TermsDialog(self)
+            terms_dialog = TermsDialog(self, on_accept=None)
             if terms_dialog.exec() != QDialog.DialogCode.Accepted:
                 print("User declined terms. Exiting.")
                 sys.exit(0)
+
+            # Show main window after terms are accepted
+            self.show()
+        
+        # Show onboarding wizard for first-time users (outside layout-only check)
+        is_first_time = self.settings_manager.is_first_time_user()
+        print(f"DEBUG: is_first_time = {is_first_time}")
+        wizard_completed = False
+        if is_first_time:
+            try:
+                print("DEBUG: Creating onboarding wizard")
+                wizard = OnboardingWizard(self)
+                wizard.settings_saved.connect(self.apply_onboarding_settings)
+                print("DEBUG: Showing onboarding wizard")
+                result = wizard.exec()
+                print(f"DEBUG: Wizard closed with result {result}")
+                if result == QDialog.DialogCode.Accepted:
+                    wizard_completed = True
+                    print("DEBUG: Wizard completed successfully")
+                else:
+                    print("DEBUG: Wizard was cancelled or closed without completion")
+                    sys.exit(0)  # Exit if wizard not completed
+            except Exception as e:
+                print(f"DEBUG: Onboarding wizard error: {e}")
+                import traceback
+                traceback.print_exc()
+                sys.exit(0)  # Exit on error
+        else:
+            print("DEBUG: Skipping onboarding wizard (not first time)")
+        
+        # Start sniffer ONLY after onboarding wizard completes successfully
+        # Only start if not layout-only
+        if not self.layout_only and (not is_first_time or wizard_completed):
+            print("Starting packet sniffer...")
+            from src.network.basic_sniffer import BasicSniffer
+
+            class SnifferThread(QThread):
+                def __init__(self, sniffer):
+                    super().__init__()
+                    self.sniffer = sniffer
+
+                def run(self):
+                    self.sniffer.start_sniffing()
+
+            self.sniffer = BasicSniffer()
+            self.sniffer_thread = SnifferThread(self.sniffer)
+            self.sniffer_thread.start()
+            print("Packet sniffer started")
 
         # Initialize attributes
         self.model = None
@@ -382,8 +456,16 @@ class WatchdogDashboard(QMainWindow):
                 self.model = joblib.load('models/random_forest_model.pkl')
                 self.extractor = FeatureExtractor()
                 print("ML model loaded successfully")
+            except FileNotFoundError:
+                self.error_handler.handle_error(
+                    FileNotFoundError("ML model file not found"),
+                    'model_not_found',
+                    'ML_ERRORS'
+                )
+                self.model = None
+                self.extractor = None
             except Exception as e:
-                print(f"ML model loading failed: {e}")
+                self.error_handler.handle_error(e, 'prediction_failed', 'ML_ERRORS')
                 self.model = None
                 self.extractor = None
 
@@ -726,21 +808,6 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(settings_widget)
         self.settings_nav = settings_page.settings_nav
         self.settings_content = settings_page.settings_content
-
-        from src.network.basic_sniffer import BasicSniffer
-        from PyQt6.QtCore import QThread
-
-        class SnifferThread(QThread):
-            def __init__(self, sniffer):
-                super().__init__()
-                self.sniffer = sniffer
-            
-            def run(self):
-                self.sniffer.start_sniffing()
-
-        self.sniffer = BasicSniffer()
-        self.sniffer_thread = SnifferThread(self.sniffer)
-        self.sniffer_thread.start()
 
     def update_traffic_status():
         if hasattr(self, 'sniffer') and self.sniffer.is_running:
@@ -1227,14 +1294,21 @@ class WatchdogDashboard(QMainWindow):
             return
             
         reply = QMessageBox.question(
-            self, 
-            'Block IP Address', 
+            self,
+            'Block IP Address',
             f'Are you sure you want to block {ip_address}?\n\nThis will add it to the Autonomous Shield block list.',
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
+            # Add to notification system
+            self.notification_manager.add_threat_alert(
+                "IP Blocked",
+                ip_address,
+                f"User manually blocked IP {ip_address} from Forensic Vault"
+            )
+            
             # Increment manual block counter and track manual IPs FIRST
             if hasattr(self, 'manual_block_count'):
                 self.manual_block_count += 1
@@ -2255,8 +2329,53 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
             for child in widget.children():
                 if isinstance(child, QWidget):
                     self._update_widget_theme(child)
+    
+    def apply_onboarding_settings(self, settings: dict):
+        """Apply settings from onboarding wizard"""
+        self.settings_manager.update(settings)
+        self.settings_manager.mark_onboarding_complete()
+        
+        # Apply notification settings
+        if settings.get('enable_notifications'):
+            self.notification_manager.settings['enabled'] = True
+        if settings.get('system_tray'):
+            self.system_tray.show()
+        else:
+            self.system_tray.hide()
+        
+        print("Onboarding settings applied successfully")
+    
+    def start_sniffing(self):
+        """Start packet sniffing (for system tray)"""
+        if hasattr(self, 'sniffer') and hasattr(self, 'sniffer_thread'):
+            if not self.sniffer.is_running:
+                self.sniffer_thread.start()
+                self.system_tray.set_monitoring_active(True)
+                print("Packet sniffer started from system tray")
+    
+    def stop_sniffing(self):
+        """Stop packet sniffing (for system tray)"""
+        if hasattr(self, 'sniffer'):
+            self.sniffer.stop_sniffing()
+            self.system_tray.set_monitoring_active(False)
+            print("Packet sniffer stopped from system tray")
 
 if __name__ == "__main__":
+    # Enable cross-platform optimizations for better graphics performance
+    import platform
+    
+    # Hardware acceleration optimizations
+    if platform.system() == "Windows":
+        # Windows: Use OpenGL for better performance
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseDesktopOpenGL)
+    elif platform.system() == "Linux":
+        # Linux: Use OpenGL ES for better compatibility
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseOpenGLES)
+    # macOS: Uses Metal by default, no changes needed
+    
+    # Enable antialiasing for smoother graphics
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+    
     app = QApplication(sys.argv)
     window = WatchdogDashboard()
     window.show()
