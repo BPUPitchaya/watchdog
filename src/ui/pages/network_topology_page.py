@@ -82,6 +82,7 @@ class NetworkTopologyPage:
         # Creating Network Topology page...
         
         topology_page = QWidget()
+        topology_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
         topology_layout = QVBoxLayout(topology_page)
         topology_layout.setContentsMargins(20, 20, 20, 20)
         topology_layout.setSpacing(20)
@@ -209,6 +210,7 @@ class NetworkTopologyPage:
         
         # Left: Device List
         device_list_widget = QWidget()
+        device_list_widget.setStyleSheet(f"background-color: transparent;")
         device_list_layout = QVBoxLayout(device_list_widget)
         device_list_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -245,6 +247,7 @@ class NetworkTopologyPage:
         
         # Right: Device Details & Visualization
         right_panel = QWidget()
+        right_panel.setStyleSheet(f"background-color: transparent;")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
         

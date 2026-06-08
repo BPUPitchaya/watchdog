@@ -699,7 +699,7 @@ class WatchdogDashboard(QMainWindow):
         self.sidebar_collapse_timer.setSingleShot(True)
         self.sidebar_collapse_timer.timeout.connect(self._contract_sidebar)
 
-    def _add_help_button(self, page_widget, page_name):
+    def _add_help_button(self, page_widget, page_name, help_y_offset=30):
         """Add floating help button to a page widget."""
         # Create wrapper widget
         wrapper = QWidget()
@@ -730,14 +730,14 @@ class WatchdogDashboard(QMainWindow):
             }}
         """)
 
-        # Position button in top-right corner
+        # Position button in top-right corner with configurable Y offset
         help_btn.setParent(wrapper)
-        help_btn.move(wrapper.width() - 60, 30)
+        help_btn.move(wrapper.width() - 60, help_y_offset)
         help_btn.raise_()
         
         # Update position on resize
         def update_position(e=None):
-            help_btn.move(wrapper.width() - 60, 30)
+            help_btn.move(wrapper.width() - 60, help_y_offset)
             help_btn.raise_()
         wrapper.resizeEvent = lambda e: update_position()
         
@@ -754,9 +754,9 @@ class WatchdogDashboard(QMainWindow):
 
     def create_pages(self):
         """Create all dashboard pages with help buttons."""
-        # Page 0: Live Sentinel (main dashboard)
+        # Page 0: Live Sentinel (main dashboard) - move help button down to avoid blocking "live" placeholder
         live_sentinel = LiveSentinelPage(self)
-        sentinel_widget = self._add_help_button(live_sentinel.create(), "Live Sentinel")
+        sentinel_widget = self._add_help_button(live_sentinel.create(), "Live Sentinel", help_y_offset=80)
         self.page_container.addWidget(sentinel_widget)
         self.table = live_sentinel.table
         self.live_sentinel_page = live_sentinel  # Store reference for updates
@@ -775,9 +775,9 @@ class WatchdogDashboard(QMainWindow):
         self.page_container.addWidget(shield_widget)
         self.blocked_ip_table = self.shield_page.blocked_ip_table
         
-        # Page 3: AI Mentor
+        # Page 3: AI Mentor - move help button up
         self.ai_mentor_page = AIMentorPage(self)
-        mentor_widget = self._add_help_button(self.ai_mentor_page.create(), "AI Mentor")
+        mentor_widget = self._add_help_button(self.ai_mentor_page.create(), "AI Mentor", help_y_offset=20)
         self.page_container.addWidget(mentor_widget)
         
         # Page 4: Network Topology

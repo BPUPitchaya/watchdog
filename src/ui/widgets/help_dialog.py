@@ -12,11 +12,12 @@ from src.ui.theme import THEME
 
 class HelpHotspot:
     """Defines a clickable help hotspot with explanation."""
-    def __init__(self, x, y, title, description):
+    def __init__(self, x, y, title, description, percentage_based=True):
         self.x = x
         self.y = y
         self.title = title
         self.description = description
+        self.percentage_based = percentage_based
 
 
 class HelpDialog(QDialog):
@@ -92,20 +93,20 @@ class HelpDialog(QDialog):
         self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
         # Scale screenshot to fill available space (larger)
-        scaled_pixmap = self.screenshot.scaled(
+        self.scaled_pixmap = self.screenshot.scaled(
             1000, 750, 
             Qt.AspectRatioMode.KeepAspectRatio, 
             Qt.TransformationMode.SmoothTransformation
         )
         
         # Add screenshot (slightly dimmed)
-        self.pixmap_item = QGraphicsPixmapItem(scaled_pixmap)
+        self.pixmap_item = QGraphicsPixmapItem(self.scaled_pixmap)
         self.pixmap_item.setOpacity(0.6)
         self.scene.addItem(self.pixmap_item)
         
         # Scale factor for hotspot positions
-        self.scale_x = scaled_pixmap.width() / self.screenshot.width()
-        self.scale_y = scaled_pixmap.height() / self.screenshot.height()
+        self.scale_x = self.scaled_pixmap.width() / self.screenshot.width()
+        self.scale_y = self.scaled_pixmap.height() / self.screenshot.height()
         
         # Add hotspots
         self.hotspot_items = []
@@ -118,9 +119,15 @@ class HelpDialog(QDialog):
     
     def _add_hotspot(self, spot):
         """Add clickable hotspot circle to screenshot."""
-        # Scale position
-        scaled_x = spot.x * self.scale_x
-        scaled_y = spot.y * self.scale_y
+        # Calculate position based on whether it's percentage-based or absolute
+        if spot.percentage_based:
+            # Percentage-based: convert to actual coordinates
+            scaled_x = (spot.x / 100) * self.scaled_pixmap.width()
+            scaled_y = (spot.y / 100) * self.scaled_pixmap.height()
+        else:
+            # Absolute: scale with screenshot
+            scaled_x = spot.x * self.scale_x
+            scaled_y = spot.y * self.scale_y
         
         # Create circle
         circle = QGraphicsEllipseItem(
