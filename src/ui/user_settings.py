@@ -104,6 +104,10 @@ class SettingsManager:
         """Get all settings"""
         return self.settings.settings
     
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get a specific setting value"""
+        return self.settings.get(key, default)
+    
     def save_all(self) -> bool:
         """Save all settings"""
         return self.settings.save_settings()
