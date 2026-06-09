@@ -28,6 +28,7 @@ class LocalSettings:
         'theme': 'dark',
         'language': 'en',
         'font_size': 12,
+        'ml_sample_rate': 5,  # Only predict every Nth packet for performance
         'refresh_rate': 1000,
         'log_level': 'INFO'
     }

@@ -558,6 +558,9 @@ class WatchdogDashboard(QMainWindow):
         self.ai_mentor_page = None  # Will be set in create_pages()
         self.conversation_history = []  # Shared conversation history for AI chat sync
         self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
+        self._prediction_buffer = []  # Buffer for batch predictions
+        self._prediction_sample_rate = self.settings_manager.get('ml_sample_rate', 5)  # Load from settings
+        self._packet_counter = 0  # Track packet count for sampling
         self.firewall_manager = FirewallManager()  # System-level IP blocking via pfctl
         self.demo_mode = False  # Track whether demo mode is active
         
@@ -1684,11 +1687,15 @@ class WatchdogDashboard(QMainWindow):
                         packet.get('dst_port', 0),
                         packet.get('flags', '')
                     )
+                    # Sampling: Only predict every Nth packet for performance
+                    self._packet_counter += 1
+                    should_predict = (self._packet_counter % self._prediction_sample_rate == 0)
+                    
                     if cache_key in self._ml_cache:
                         # Use cached result
                         confidence, action = self._ml_cache[cache_key]
-                    else:
-                        # Compute once and cache
+                    elif should_predict:
+                        # Compute once and cache (only for sampled packets)
                         packet_data = {
                             'src_ip': packet.get('src_ip', ''),
                             'dst_ip': packet.get('dst_ip', ''),
@@ -1708,6 +1715,10 @@ class WatchdogDashboard(QMainWindow):
                         confidence = max(probabilities) * 100
                         action = "NORMAL" if prediction == 0 else "ATTACK"
                         self._ml_cache[cache_key] = (confidence, action)
+                    else:
+                        # Skip prediction for non-sampled packets, assume NORMAL
+                        confidence = 0
+                        action = "NORMAL"
                     
                     if action == "ATTACK" and confidence > 70:
                         src_ip = packet.get('src_ip', 'unknown')
