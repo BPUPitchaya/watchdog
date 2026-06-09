@@ -91,59 +91,81 @@ class HelpDialog(QDialog):
         self.view.setStyleSheet("border: none; background: transparent;")
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        self.view.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.view.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         
-        # Scale screenshot to fill available space (larger)
-        self.scaled_pixmap = self.screenshot.scaled(
-            1000, 750, 
-            Qt.AspectRatioMode.KeepAspectRatio, 
-            Qt.TransformationMode.SmoothTransformation
-        )
+        # Store original screenshot
+        self.original_screenshot = self.screenshot
         
-        # Add screenshot (slightly dimmed)
-        self.pixmap_item = QGraphicsPixmapItem(self.scaled_pixmap)
+        # Account for HiDPI/Retina display: pixmap.width() returns physical pixels,
+        # but QGraphicsPixmapItem renders at logical pixels (width / devicePixelRatio)
+        dpr = self.original_screenshot.devicePixelRatio()
+        self.logical_width = self.original_screenshot.width() / dpr
+        self.logical_height = self.original_screenshot.height() / dpr
+        
+        # Set scene size to logical (rendered) dimensions
+        self.scene.setSceneRect(0, 0, self.logical_width, self.logical_height)
+        
+        # Add screenshot (slightly dimmed) at position (0, 0)
+        self.pixmap_item = QGraphicsPixmapItem(self.original_screenshot)
+        self.pixmap_item.setPos(0, 0)
         self.pixmap_item.setOpacity(0.6)
         self.scene.addItem(self.pixmap_item)
         
-        # Scale factor for hotspot positions
-        self.scale_x = self.scaled_pixmap.width() / self.screenshot.width()
-        self.scale_y = self.scaled_pixmap.height() / self.screenshot.height()
-        
-        # Add hotspots
+        # Add hotspots using logical coordinate space
         self.hotspot_items = []
         for spot in self.hotspots:
             self._add_hotspot(spot)
         
         layout.addWidget(self.view)
         
+        # Connect resize event to handle dynamic scaling
+        self.view.viewport().installEventFilter(self)
+        
         return container
+    
+    def eventFilter(self, obj, event):
+        """Handle resize events for dynamic screenshot scaling."""
+        if obj == self.view.viewport() and event.type() == event.Type.Resize:
+            self._fit_screenshot_in_view()
+        return super().eventFilter(obj, event)
+    
+    def _fit_screenshot_in_view(self):
+        """Scale screenshot to fit the available view space dynamically."""
+        if self.pixmap_item:
+            self.view.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            
+    def showEvent(self, event):
+        """Scale screenshot as soon as dialog becomes visible."""
+        super().showEvent(event)
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(50, self._fit_screenshot_in_view)
     
     def _add_hotspot(self, spot):
         """Add clickable hotspot circle to screenshot."""
-        # Calculate position based on whether it's percentage-based or absolute
+        # Calculate position based on logical coordinate space (HiDPI-aware)
         if spot.percentage_based:
-            # Percentage-based: convert to actual coordinates
-            scaled_x = (spot.x / 100) * self.scaled_pixmap.width()
-            scaled_y = (spot.y / 100) * self.scaled_pixmap.height()
+            scaled_x = (spot.x / 100) * self.logical_width
+            scaled_y = (spot.y / 100) * self.logical_height
         else:
-            # Absolute: scale with screenshot
-            scaled_x = spot.x * self.scale_x
-            scaled_y = spot.y * self.scale_y
+            scaled_x = spot.x
+            scaled_y = spot.y
         
-        # Create circle
+        # Create circle (with constant size relative to the original screenshot coordinate system)
         circle = QGraphicsEllipseItem(
             scaled_x - 20, scaled_y - 20, 40, 40
         )
         circle.setBrush(QBrush(QColor(THEME['primary'])))
-        circle.setPen(QPen(QColor("white"), 3))
+        pen = QPen(QColor("white"), 3)
+        pen.setCosmetic(True)
+        circle.setPen(pen)
         circle.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Add glow effect
         circle.setAcceptHoverEvents(True)
         
         self.scene.addItem(circle)
-        
-        
-        # Store items for hover effects
         self.hotspot_items.append((circle, spot))
         
         # Click handler
@@ -287,8 +309,12 @@ class HelpDialog(QDialog):
             if spot_item == hotspot:
                 # Selected: Green fill, thick white border
                 circle.setBrush(QBrush(QColor(THEME['success'])))
-                circle.setPen(QPen(QColor("white"), 5))
+                pen = QPen(QColor("white"), 5)
+                pen.setCosmetic(True)
+                circle.setPen(pen)
             else:
                 # Not selected: Primary fill, thin white border
                 circle.setBrush(QBrush(QColor(THEME['primary'])))
-                circle.setPen(QPen(QColor("white"), 3))
+                pen = QPen(QColor("white"), 3)
+                pen.setCosmetic(True)
+                circle.setPen(pen)
