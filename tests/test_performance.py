@@ -41,7 +41,7 @@ class PerformanceTester:
         
         for i in range(iterations):
             features = self.extractor.extract_packet_features(packet)
-            selected = self.extractor.get_selected_features(features)
+            selected, _ = self.extractor.get_selected_features(features)
         
         end_time = time.time()
         total_time = end_time - start_time
@@ -91,7 +91,7 @@ class PerformanceTester:
             }
             
             features = self.extractor.extract_packet_features(packet)
-            selected = self.extractor.get_selected_features(features)
+            selected, _ = self.extractor.get_selected_features(features)
             packet_count += 1
             
             # Small delay to simulate real-time processing
@@ -141,7 +141,7 @@ class PerformanceTester:
             }
             
             features = self.extractor.extract_packet_features(packet)
-            selected = self.extractor.get_selected_features(features)
+            selected, _ = self.extractor.get_selected_features(features)
             packet_count += 1
             
             # Sample CPU usage

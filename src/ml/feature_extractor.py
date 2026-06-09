@@ -184,7 +184,7 @@ class FeatureExtractor:
             'dst_host_rerror_rate', 'dst_host_count'
         ]
         
-        return [features_dict.get(feat, 0) for feat in selected]
+        return [features_dict.get(feat, 0) for feat in selected], selected
 
 
 # Example usage

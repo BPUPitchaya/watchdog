@@ -132,16 +132,20 @@ class SnifferService:
         try:
             # Extract features for all packets in buffer
             features_list = []
+            feature_names = None
             for packet in self.packet_buffer:
                 features = self.extractor.extract_packet_features(packet['packet_data'])
-                selected_features = self.extractor.get_selected_features(features)
+                selected_features, names = self.extractor.get_selected_features(features)
+                if feature_names is None:
+                    feature_names = names
                 features_list.append(selected_features)
             
-            # Convert to numpy array for batch prediction
-            features_array = np.array(features_list)
+            # Convert to DataFrame with feature names for batch prediction
+            import pandas as pd
+            features_df = pd.DataFrame(features_list, columns=feature_names)
             
             # Batch prediction
-            predictions = self.model.predict(features_array)
+            predictions = self.model.predict(features_df)
             label_map = {0: 'normal', 1: 'attack'}
             
             # Process results and store packet info

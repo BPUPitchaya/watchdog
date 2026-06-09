@@ -62,10 +62,11 @@ class TestFeatureExtractor(unittest.TestCase):
         }
         
         features = self.extractor.extract_packet_features(packet)
-        selected = self.extractor.get_selected_features(features)
+        selected, feature_names = self.extractor.get_selected_features(features)
         
         # Should return 20 selected features
         self.assertEqual(len(selected), 20)
+        self.assertEqual(len(feature_names), 20)
         
         # All should be numeric
         for feature in selected:

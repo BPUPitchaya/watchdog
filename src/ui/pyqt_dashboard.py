@@ -1700,10 +1700,11 @@ class WatchdogDashboard(QMainWindow):
                             'direction': 'inbound'
                         }
                         features = self.extractor.extract_packet_features(packet_data)
-                        selected_features = self.extractor.get_selected_features(features)
-                        features_array = np.array(selected_features).reshape(1, -1)
-                        prediction = self.model.predict(features_array)[0]
-                        probabilities = self.model.predict_proba(features_array)[0]
+                        selected_features, feature_names = self.extractor.get_selected_features(features)
+                        import pandas as pd
+                        features_df = pd.DataFrame([selected_features], columns=feature_names)
+                        prediction = self.model.predict(features_df)[0]
+                        probabilities = self.model.predict_proba(features_df)[0]
                         confidence = max(probabilities) * 100
                         action = "NORMAL" if prediction == 0 else "ATTACK"
                         self._ml_cache[cache_key] = (confidence, action)
@@ -1991,9 +1992,10 @@ Auto-refresh: Every 2 seconds"""
                     'direction': 'inbound'
                 }
                 features = self.extractor.extract_packet_features(packet_data)
-                selected_features = self.extractor.get_selected_features(features)
-                features_array = np.array(selected_features).reshape(1, -1)
-                prediction = self.model.predict(features_array)[0]
+                selected_features, feature_names = self.extractor.get_selected_features(features)
+                import pandas as pd
+                features_df = pd.DataFrame([selected_features], columns=feature_names)
+                prediction = self.model.predict(features_df)[0]
                 label_map = {0: 'NORMAL', 1: 'ATTACK'}
                 return f"Prediction: {label_map.get(prediction, 'UNKNOWN')}"
             except Exception as e:
