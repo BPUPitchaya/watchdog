@@ -14,6 +14,11 @@ import json
 import os
 import sys
 
+# Import logging
+from src.utils.logger import get_logger, log_exception, get_user_message
+
+logger = get_logger('basic_sniffer')
+
 
 class BasicSniffer:
     """Basic network packet sniffer."""
@@ -32,43 +37,51 @@ class BasicSniffer:
                 with open(self.data_file, 'r') as f:
                     data = json.load(f)
                     self.packet_count = data.get('packet_count', 0)
-        except:
-            pass
+                    logger.info(f"Loaded existing packet count: {self.packet_count}")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Corrupted packet data file, starting fresh: {e}")
+        except Exception as e:
+            log_exception(logger, "loading packet data", e)
         
     def packet_callback(self, packet):
         """Callback function for each captured packet."""
-        if IP in packet:
-            self.packet_count += 1
-            
-            # Extract basic packet information
-            src_ip = packet[IP].src
-            dst_ip = packet[IP].dst
-            protocol = packet[IP].proto
-            
-            # Determine protocol name
-            if protocol == 6:  # TCP
-                protocol_name = "TCP"
-            elif protocol == 17:  # UDP
-                protocol_name = "UDP"
-            else:
-                protocol_name = f"PROTO-{protocol}"
-            
-            # Store packet info
-            packet_info = {
-                'count': self.packet_count,
-                'src_ip': src_ip,
-                'dst_ip': dst_ip,
-                'protocol': protocol_name,
-                'timestamp': time.time()
-            }
-            
-            self.captured_packets.append(packet_info)
-            
-            # Write to shared file
-            self.write_data()
-            
-            # Print packet info (for testing)
-            print(f"Packet #{self.packet_count}: {src_ip} -> {dst_ip} [{protocol_name}]")
+        try:
+            if IP in packet:
+                self.packet_count += 1
+                
+                # Extract basic packet information
+                src_ip = packet[IP].src
+                dst_ip = packet[IP].dst
+                protocol = packet[IP].proto
+                
+                # Determine protocol name
+                if protocol == 6:  # TCP
+                    protocol_name = "TCP"
+                elif protocol == 17:  # UDP
+                    protocol_name = "UDP"
+                else:
+                    protocol_name = f"PROTO-{protocol}"
+                
+                # Store packet info
+                packet_info = {
+                    'count': self.packet_count,
+                    'src_ip': src_ip,
+                    'dst_ip': dst_ip,
+                    'protocol': protocol_name,
+                    'timestamp': time.time()
+                }
+                
+                self.captured_packets.append(packet_info)
+                
+                # Write to shared file
+                self.write_data()
+                
+                # Print packet info (for testing)
+                print(f"Packet #{self.packet_count}: {src_ip} -> {dst_ip} [{protocol_name}]")
+                logger.debug(f"Captured packet #{self.packet_count}: {src_ip} -> {dst_ip} [{protocol_name}]")
+        except Exception as e:
+            log_exception(logger, "packet callback", e)
+            logger.error(f"Failed to process packet: {e}")
     
     def write_data(self):
         """Write packet data to shared file."""
@@ -84,8 +97,12 @@ class BasicSniffer:
         try:
             with open(self.data_file, 'w') as f:
                 json.dump(data, f, indent=2)
+        except PermissionError as e:
+            log_exception(logger, "writing packet data", e, get_user_message('permission_denied'))
+        except IOError as e:
+            log_exception(logger, "writing packet data", e, "Failed to write packet data to file.")
         except Exception as e:
-            print(f"Error writing data: {e}")
+            log_exception(logger, "writing packet data", e)
     
     def monitor_stop_signal(self):
         """Monitor for stop signal file and stop sniffing when detected."""
@@ -101,6 +118,7 @@ class BasicSniffer:
     def start_sniffing(self, packet_count=0, interface=None):
         """Start packet capture."""
         if self.is_running:
+            logger.warning("Sniffer is already running!")
             print("Sniffer is already running!")
             return
             
@@ -111,8 +129,10 @@ class BasicSniffer:
         
         if packet_count > 0:
             print(f"Starting packet capture (capturing {packet_count} packets, total count: {self.packet_count})...")
+            logger.info(f"Starting packet capture for {packet_count} packets")
         else:
             print(f"Starting continuous packet capture (total count: {self.packet_count})...")
+            logger.info("Starting continuous packet capture")
         self.write_data()
         
         try:
@@ -126,17 +146,31 @@ class BasicSniffer:
             )
         except KeyboardInterrupt:
             print("\nPacket capture stopped by user.")
+            logger.info("Packet capture stopped by user (KeyboardInterrupt)")
+        except PermissionError as e:
+            log_exception(logger, "packet capture", e, get_user_message('permission_denied'))
+            print(f"\n{get_user_message('permission_denied')}")
+        except OSError as e:
+            if "Operation not permitted" in str(e) or "Permission denied" in str(e):
+                log_exception(logger, "packet capture", e, get_user_message('permission_denied'))
+                print(f"\n{get_user_message('permission_denied')}")
+            else:
+                log_exception(logger, "packet capture", e, get_user_message('network_interface'))
+                print(f"\n{get_user_message('network_interface')}")
         except Exception as e:
-            print(f"Error during packet capture: {e}")
+            log_exception(logger, "packet capture", e, get_user_message('packet_capture_failed'))
+            print(f"\n{get_user_message('packet_capture_failed')}")
         finally:
             self.is_running = False
             self.write_data()
             print(f"Packet capture completed. Total packets captured: {self.packet_count}.")
+            logger.info(f"Packet capture completed. Total packets: {self.packet_count}")
     
     def stop_sniffing(self):
         """Stop packet capture."""
         self.is_running = False
         print("Stopping packet capture...")
+        logger.info("Stopping packet capture")
         # Write stopped status to file
         self.write_data()
         print("Status updated to 'stopped'")
@@ -165,7 +199,9 @@ def test_sniffer():
 if __name__ == "__main__":
     # Check if running with root privileges
     if os.geteuid() != 0:
-        print("Error: Root privileges required. Run with: sudo python basic_sniffer.py")
+        print(f"Error: {get_user_message('permission_denied')}")
+        print("Run with: sudo python basic_sniffer.py")
+        logger.error("Attempted to run without root privileges")
         sys.exit(1)
     
     sniffer = BasicSniffer()
@@ -183,6 +219,7 @@ if __name__ == "__main__":
                 
         except KeyboardInterrupt:
             print("\nStopping sniffer...")
+            logger.info("Stopping sniffer via KeyboardInterrupt")
             sniffer.stop_sniffing()
     else:
         # Run single capture

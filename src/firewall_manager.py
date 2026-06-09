@@ -8,6 +8,11 @@ import threading
 import time
 import os
 
+# Import logging
+from src.utils.logger import get_logger, log_exception, get_user_message
+
+logger = get_logger('firewall_manager')
+
 class FirewallManager:
     """Manages firewall rules for IP blocking."""
     
@@ -40,8 +45,12 @@ class FirewallManager:
             )
             # On macOS, tables are created automatically on first -T add
             # No need to explicitly create with -T create (not supported on macOS)
-        except subprocess.CalledProcessError:
+            logger.info(f"pf table {self.table_name} checked successfully")
+        except subprocess.CalledProcessError as e:
+            log_exception(logger, "checking pf table", e)
             print(f"Warning: Could not check pf table {self.table_name}")
+        except Exception as e:
+            log_exception(logger, "creating pf table", e)
     
     def _run_pfctl(self, args):
         """Run pfctl with sudo."""
@@ -50,66 +59,95 @@ class FirewallManager:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
+            log_exception(logger, "pfctl command", e, get_user_message('firewall_error'))
             print(f"pfctl error: {e}")
             print(f"stderr: {e.stderr}")
+            return None
+        except FileNotFoundError:
+            logger.error("pfctl command not found - pf firewall may not be available")
+            print("Error: pfctl command not found. pf firewall may not be available on this system.")
+            return None
+        except Exception as e:
+            log_exception(logger, "pfctl command", e)
             return None
     
     def block_ip(self, ip, timeout=None):
         """Block an IP address."""
-        if not self._is_valid_ip(ip):
-            print(f"Invalid IP: {ip}")
-            return False
-        
-        if ip in self.whitelist:
-            print(f"IP {ip} is whitelisted, not blocking")
-            return False
-        
-        if ip in self.blocked_ips:
-            print(f"IP {ip} already blocked")
-            return True
-        
-        # Add to pf table
-        result = self._run_pfctl(["-t", self.table_name, "-T", "add", ip])
-        if result is not None:
-            self.blocked_ips.add(ip)
-            print(f"Blocked IP: {ip}")
+        try:
+            if not self._is_valid_ip(ip):
+                logger.warning(f"Invalid IP address: {ip}")
+                print(f"Invalid IP: {ip}")
+                return False
             
-            # Set timeout if specified
-            if timeout:
-                timer = threading.Timer(timeout, self.unblock_ip, args=[ip])
-                timer.start()
-                self.timers[ip] = timer
-                print(f"Block timeout set for {ip}: {timeout} seconds")
+            if ip in self.whitelist:
+                logger.info(f"IP {ip} is whitelisted, not blocking")
+                print(f"IP {ip} is whitelisted, not blocking")
+                return False
             
-            return True
-        return False
+            if ip in self.blocked_ips:
+                logger.info(f"IP {ip} already blocked")
+                print(f"IP {ip} already blocked")
+                return True
+            
+            # Add to pf table
+            result = self._run_pfctl(["-t", self.table_name, "-T", "add", ip])
+            if result is not None:
+                self.blocked_ips.add(ip)
+                logger.info(f"Blocked IP: {ip}")
+                print(f"Blocked IP: {ip}")
+                
+                # Set timeout if specified
+                if timeout:
+                    timer = threading.Timer(timeout, self.unblock_ip, args=[ip])
+                    timer.start()
+                    self.timers[ip] = timer
+                    logger.info(f"Block timeout set for {ip}: {timeout} seconds")
+                    print(f"Block timeout set for {ip}: {timeout} seconds")
+                
+                return True
+            return False
+        except Exception as e:
+            log_exception(logger, "blocking IP", e, get_user_message('firewall_error'))
+            return False
     
     def unblock_ip(self, ip):
         """Unblock an IP address."""
-        if ip not in self.blocked_ips:
-            print(f"IP {ip} not blocked")
+        try:
+            if ip not in self.blocked_ips:
+                logger.info(f"IP {ip} not blocked")
+                print(f"IP {ip} not blocked")
+                return False
+            
+            # Remove from pf table
+            result = self._run_pfctl(["-t", self.table_name, "-T", "delete", ip])
+            if result is not None:
+                self.blocked_ips.discard(ip)
+                logger.info(f"Unblocked IP: {ip}")
+                print(f"Unblocked IP: {ip}")
+                
+                # Cancel timer if exists
+                if ip in self.timers:
+                    self.timers[ip].cancel()
+                    del self.timers[ip]
+                
+                return True
             return False
-        
-        # Remove from pf table
-        result = self._run_pfctl(["-t", self.table_name, "-T", "delete", ip])
-        if result is not None:
-            self.blocked_ips.discard(ip)
-            print(f"Unblocked IP: {ip}")
-            
-            # Cancel timer if exists
-            if ip in self.timers:
-                self.timers[ip].cancel()
-                del self.timers[ip]
-            
-            return True
-        return False
+        except Exception as e:
+            log_exception(logger, "unblocking IP", e, get_user_message('firewall_error'))
+            return False
     
     def get_blocked_ips(self):
         """Get list of currently blocked IPs."""
-        result = self._run_pfctl(["-t", self.table_name, "-T", "show"])
-        if result:
-            return result.split('\n')
-        return []
+        try:
+            result = self._run_pfctl(["-t", self.table_name, "-T", "show"])
+            if result:
+                ips = result.split('\n')
+                logger.debug(f"Retrieved {len(ips)} blocked IPs")
+                return ips
+            return []
+        except Exception as e:
+            log_exception(logger, "getting blocked IPs", e)
+            return []
     
     def _is_valid_ip(self, ip):
         """Basic IP validation."""
@@ -127,13 +165,21 @@ class FirewallManager:
     
     def add_to_whitelist(self, ip):
         """Add IP to whitelist."""
-        self.whitelist.add(ip)
-        print(f"Added {ip} to whitelist")
+        try:
+            self.whitelist.add(ip)
+            logger.info(f"Added {ip} to whitelist")
+            print(f"Added {ip} to whitelist")
+        except Exception as e:
+            log_exception(logger, "adding to whitelist", e)
     
     def remove_from_whitelist(self, ip):
         """Remove IP from whitelist."""
-        self.whitelist.discard(ip)
-        print(f"Removed {ip} from whitelist")
+        try:
+            self.whitelist.discard(ip)
+            logger.info(f"Removed {ip} from whitelist")
+            print(f"Removed {ip} from whitelist")
+        except Exception as e:
+            log_exception(logger, "removing from whitelist", e)
 
 def main():
     """Test the firewall manager."""

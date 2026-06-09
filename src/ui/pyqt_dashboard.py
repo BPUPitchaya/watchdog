@@ -10,6 +10,11 @@ import threading
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Import logging
+from src.utils.logger import get_logger, log_exception, get_user_message
+
+logger = get_logger('pyqt_dashboard')
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QFrame, QStackedWidget, QScrollArea, QSplitter,
@@ -946,10 +951,9 @@ class WatchdogDashboard(QMainWindow):
             topology_widget = self._add_help_button(self.network_topology.create(), "Network Topology")
             self.page_container.addWidget(topology_widget)
         except Exception as e:
+            log_exception(logger, "creating network topology page", e, get_user_message('ui_error'))
             import traceback
-            # Create a placeholder page instead
-            from src.ui.pages import PlaceholderPage
-            placeholder = PlaceholderPage(self)
+            logger.error(f"Network topology page creation failed: {traceback.format_exc()}")
             # Create a placeholder page instead
             from src.ui.pages import PlaceholderPage
             placeholder = PlaceholderPage(self)
@@ -1133,64 +1137,75 @@ class WatchdogDashboard(QMainWindow):
             text_label.setVisible(True)
 
     def toggle_ai(self, checked):
-        if checked:
-            # Enable AI
-            if not self.ai_client:
-                try:
-                    # Check if Ollama is installed and running
-                    installer = OllamaInstaller(model=self.model)
-                    
-                    if not installer.is_ollama_installed():
+        try:
+            if checked:
+                # Enable AI
+                if not self.ai_client:
+                    try:
+                        # Check if Ollama is installed and running
+                        installer = OllamaInstaller(model=self.model)
+                        
+                        if not installer.is_ollama_installed():
+                            log_exception(logger, "Ollama not installed", Exception("Ollama not found"), get_user_message('ollama_not_installed'))
+                            from PyQt6.QtWidgets import QMessageBox
+                            QMessageBox.warning(
+                                self,
+                                "Ollama Not Found",
+                                f"{get_user_message('ollama_not_installed')}\n\n"
+                                "To enable AI features:\n"
+                                "1. Run: python src/ai/ollama_installer.py --auto-install\n"
+                                "2. Or download from https://ollama.ai/download"
+                            )
+                            self.ai_toggle_btn.setChecked(False)
+                            return
+                        elif not installer.is_ollama_running():
+                            log_exception(logger, "Ollama not running", Exception("Ollama not running"), get_user_message('ollama_not_running'))
+                            from PyQt6.QtWidgets import QMessageBox
+                            QMessageBox.warning(
+                                self,
+                                "Ollama Not Running",
+                                f"{get_user_message('ollama_not_running')}\n\n"
+                                "Please start the Ollama application:\n"
+                                "- macOS: Open Ollama from Applications\n"
+                                "- Windows: Start Ollama from Start Menu\n"
+                                "- Linux: Run 'ollama serve' in terminal"
+                            )
+                            self.ai_toggle_btn.setChecked(False)
+                            return
+                        elif not installer.is_model_available():
+                            logger.info(f"Model {self.model} not found. Pulling it now...")
+                            print(f"Model {self.model} not found. Pulling it now...")
+                            installer.pull_model()
+                            self.ai_client = OllamaClient(model=self.model)
+                            logger.info(f"AI enabled with model: {self.model}")
+                        else:
+                            self.ai_client = OllamaClient(model=self.model)
+                            logger.info(f"AI enabled with model: {self.model}")
+                            print(f"AI enabled with model: {self.model}")
+                    except Exception as e:
+                        log_exception(logger, "initializing AI", e, get_user_message('ui_error'))
                         from PyQt6.QtWidgets import QMessageBox
-                        QMessageBox.warning(
+                        QMessageBox.critical(
                             self,
-                            "Ollama Not Found",
-                            "Ollama is not installed on your system.\n\n"
-                            "To enable AI features:\n"
-                            "1. Run: python src/ai/ollama_installer.py --auto-install\n"
-                            "2. Or download from https://ollama.ai/download"
+                            "AI Error",
+                            f"{get_user_message('ui_error')}\n\nDetails: {str(e)}"
                         )
                         self.ai_toggle_btn.setChecked(False)
                         return
-                    elif not installer.is_ollama_running():
-                        from PyQt6.QtWidgets import QMessageBox
-                        QMessageBox.warning(
-                            self,
-                            "Ollama Not Running",
-                            "Ollama is installed but not running.\n\n"
-                            "Please start the Ollama application:\n"
-                            "- macOS: Open Ollama from Applications\n"
-                            "- Windows: Start Ollama from Start Menu\n"
-                            "- Linux: Run 'ollama serve' in terminal"
-                        )
-                        self.ai_toggle_btn.setChecked(False)
-                        return
-                    elif not installer.is_model_available():
-                        print(f"Model {self.model} not found. Pulling it now...")
-                        installer.pull_model()
-                        self.ai_client = OllamaClient(model=self.model)
-                    else:
-                        self.ai_client = OllamaClient(model=self.model)
-                        print(f"AI enabled with model: {self.model}")
-                except Exception as e:
-                    from PyQt6.QtWidgets import QMessageBox
-                    QMessageBox.critical(
-                        self,
-                        "AI Error",
-                        f"Failed to initialize AI: {str(e)}"
-                    )
-                    self.ai_toggle_btn.setChecked(False)
-                    return
-        else:
-            # Disable AI
-            self.ai_client = None
-        
-        # Update button text and style
-        self.ai_toggle_btn.setText("AI: ON" if checked else "AI: OFF")
-        
-        # Refresh forensic vault to update AI availability
-        if hasattr(self, 'vault_table'):
-            self.load_flagged_incidents()
+            else:
+                # Disable AI
+                self.ai_client = None
+                logger.info("AI disabled")
+            
+            # Update button text and style
+            self.ai_toggle_btn.setText("AI: ON" if checked else "AI: OFF")
+            
+            # Refresh forensic vault to update AI availability
+            if hasattr(self, 'vault_table'):
+                self.load_flagged_incidents()
+        except Exception as e:
+            log_exception(logger, "toggling AI", e)
+            logger.error(f"Failed to toggle AI: {e}")
 
     def switch_page(self, index):
         # Update active navigation styling
