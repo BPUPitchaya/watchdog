@@ -161,19 +161,21 @@ class LiveTrafficWidget(QWidget):
             if threat_type in self.threat_counts:
                 self.threat_counts[threat_type] += 1
         
-        # Calculate detection accuracy (simplified)
-        # In a real implementation, this would compare predictions against ground truth
-        # For now, we'll use a confidence-based metric
-        high_confidence_packets = [p for p in packets if p.get('confidence', 0) > 70]
+        # Calculate detection accuracy based on confidence distribution
+        # Use average confidence as a proxy for detection quality
         if len(packets) > 0:
-            self.detection_accuracy = (len(high_confidence_packets) / len(packets)) * 100
+            confidences = [p.get('confidence', 0) for p in packets]
+            avg_confidence = sum(confidences) / len(confidences)
+            # Map average confidence to accuracy percentage
+            # 0-50 confidence = 0-50% accuracy, 50-100 confidence = 50-100% accuracy
+            self.detection_accuracy = min(100, max(0, avg_confidence))
         else:
             self.detection_accuracy = 0
     
     def _draw_statistics_panel(self, painter, rect):
-        """Draw real-time statistics panel at the top of the widget."""
+        """Draw real-time statistics panel at the bottom of the widget."""
         panel_height = 30
-        panel_top = rect.top() + 5
+        panel_top = rect.bottom() - panel_height - 5
         
         # Background for statistics panel
         painter.setBrush(QBrush(QColor(26, 31, 38)))
@@ -215,23 +217,23 @@ class LiveTrafficWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect()
         
-        # Define chart area with margins for axes and statistics
+        # Define chart area with margins for axes
         chart_left = rect.left() + 50
-        chart_top = rect.top() + 40  # More space for statistics at top
+        chart_top = rect.top() + 20
         chart_right = rect.right() - 20
-        chart_bottom = rect.bottom() - 50
+        chart_bottom = rect.bottom() - 50  # Space for statistics at bottom
         chart_rect = QRectF(chart_left, chart_top, chart_right - chart_left, chart_bottom - chart_top)
         width = chart_rect.width()
         height = chart_rect.height()
 
-        # Draw statistics panel at top
+        # Draw statistics panel at bottom
         self._draw_statistics_panel(painter, rect)
         
         status_color = QColor(76, 175, 80) if self.network_status == "Connected" else QColor(255, 107, 107)
         painter.setPen(QPen(status_color))
         painter.setFont(QFont(THEME['font_mono'].strip('"'), 10))
         status_text = f"Status: {self.network_status}"
-        painter.drawText(int(chart_rect.left() + 100), int(chart_rect.top() - 10), status_text)
+        painter.drawText(int(chart_rect.left() + 100), int(chart_rect.top() - 5), status_text)
         
         # Y-Axis
         painter.setPen(QPen(QColor(100, 100, 100)))
