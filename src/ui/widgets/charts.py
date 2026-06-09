@@ -20,6 +20,20 @@ class LiveTrafficWidget(QWidget):
         self.setMinimumSize(300, 200)
         self.setMouseTracking(True)
         
+        # Statistics tracking
+        self.cpu_usage = 0
+        self.memory_usage = 0
+        self.detection_accuracy = 0
+        self.threat_counts = {
+            'DDoS': 0,
+            'Port Scanning': 0,
+            'Malware': 0,
+            'Phishing': 0,
+            'Brute Force': 0
+        }
+        self.total_predictions = 0
+        self.correct_predictions = 0
+        
         # Set up timer for updates
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_data)
@@ -66,6 +80,9 @@ class LiveTrafficWidget(QWidget):
                 self.scan_timer = 0
                 
             self.previous_packets = current_packets
+            
+            # Update statistics
+            self._update_statistics(packets)
                 
         except (FileNotFoundError, json.JSONDecodeError) as e:
             # Only disconnect on actual file errors, not temporary issues
@@ -113,27 +130,108 @@ class LiveTrafficWidget(QWidget):
     def set_network_status(self, status):
         """Update network connection status."""
         self.network_status = status
-        self.update() 
+        self.update()
+    
+    def _update_statistics(self, packets):
+        """Update real-time statistics from packet data."""
+        try:
+            import psutil
+            
+            # Update CPU and memory usage
+            self.cpu_usage = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            self.memory_usage = memory.percent
+            
+        except ImportError:
+            # Fallback if psutil not available
+            self.cpu_usage = 0
+            self.memory_usage = 0
+        
+        # Update threat counts from packet data
+        self.threat_counts = {
+            'DDoS': 0,
+            'Port Scanning': 0,
+            'Malware': 0,
+            'Phishing': 0,
+            'Brute Force': 0
+        }
+        
+        for packet in packets:
+            threat_type = packet.get('threat_type', '')
+            if threat_type in self.threat_counts:
+                self.threat_counts[threat_type] += 1
+        
+        # Calculate detection accuracy (simplified)
+        # In a real implementation, this would compare predictions against ground truth
+        # For now, we'll use a confidence-based metric
+        high_confidence_packets = [p for p in packets if p.get('confidence', 0) > 70]
+        if len(packets) > 0:
+            self.detection_accuracy = (len(high_confidence_packets) / len(packets)) * 100
+        else:
+            self.detection_accuracy = 0
+    
+    def _draw_statistics_panel(self, painter, rect):
+        """Draw real-time statistics panel at the top of the widget."""
+        panel_height = 30
+        panel_top = rect.top() + 5
+        
+        # Background for statistics panel
+        painter.setBrush(QBrush(QColor(26, 31, 38)))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRect(int(rect.left() + 5), int(panel_top), int(rect.width() - 10), panel_height)
+        
+        # Calculate current PPS from data
+        current_pps = self.data[-1] if self.data else 0
+        
+        # Draw statistics in a grid layout
+        stats = [
+            (f"{current_pps} pps", "Packets/sec"),
+            (f"{self.cpu_usage:.1f}%", "CPU"),
+            (f"{self.memory_usage:.1f}%", "Memory"),
+            (f"{self.detection_accuracy:.0f}%", "Accuracy")
+        ]
+        
+        # Draw stats
+        stat_width = (rect.width() - 20) / 4
+        font_small = QFont(THEME['font_mono'].strip("'"), 8)
+        font_large = QFont(THEME['font_mono'].strip("'"), 10, QFont.Weight.Bold)
+        
+        for i, (value, label) in enumerate(stats):
+            x = int(rect.left() + 10 + i * stat_width)
+            y_center = int(panel_top + panel_height / 2)
+            
+            # Value
+            painter.setPen(QPen(QColor(THEME['primary'])))
+            painter.setFont(font_large)
+            painter.drawText(x, y_center - 3, value)
+            
+            # Label
+            painter.setPen(QPen(QColor(THEME['text_secondary'])))
+            painter.setFont(font_small)
+            painter.drawText(x, y_center + 8, label) 
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect()
         
-        # Define chart area with margins for axes
+        # Define chart area with margins for axes and statistics
         chart_left = rect.left() + 50
-        chart_top = rect.top() + 20
+        chart_top = rect.top() + 40  # More space for statistics at top
         chart_right = rect.right() - 20
         chart_bottom = rect.bottom() - 50
         chart_rect = QRectF(chart_left, chart_top, chart_right - chart_left, chart_bottom - chart_top)
         width = chart_rect.width()
         height = chart_rect.height()
 
+        # Draw statistics panel at top
+        self._draw_statistics_panel(painter, rect)
+        
         status_color = QColor(76, 175, 80) if self.network_status == "Connected" else QColor(255, 107, 107)
         painter.setPen(QPen(status_color))
         painter.setFont(QFont(THEME['font_mono'].strip('"'), 10))
         status_text = f"Status: {self.network_status}"
-        painter.drawText(int(chart_rect.left() + 100), int(chart_rect.top()), status_text)
+        painter.drawText(int(chart_rect.left() + 100), int(chart_rect.top() - 10), status_text)
         
         # Y-Axis
         painter.setPen(QPen(QColor(100, 100, 100)))
