@@ -26,6 +26,7 @@ SELECTED_FEATURES = [
 
 # NSL-KDD dataset URLs (from UNB repository)
 KDD_TRAIN_URL = "https://unb.ca/cic/datasets/nsl-kdd.zip"
+KDD_TEST_URL = "https://raw.githubusercontent.com/defcom17/NSL_KDD/master/KDDTest%2B.txt"
 
 # Column names for NSL-KDD dataset
 COLUMN_NAMES = [
@@ -279,11 +280,11 @@ def main():
     print("=" * 60)
     
     # Create data directory
-    data_dir = 'data'
+    data_dir = 'models'
     os.makedirs(data_dir, exist_ok=True)
     
     # Try to download datasets
-    train_file = os.path.join(data_dir, 'KDDTrain+_20Percent.txt')
+    train_file = os.path.join(data_dir, 'KDDTrain+.txt')
     test_file = os.path.join(data_dir, 'KDDTest+.txt')
     
     use_synthetic = False
