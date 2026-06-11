@@ -1,5 +1,5 @@
 """
-NSL-KDD Model Training Script - FIXED
+NSL-KDD Model Training Script - FIXED WITH CROSS-VALIDATION
 Trains a Random Forest classifier on the actual NSL-KDD text dataset.
 """
 
@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score 
 import joblib
 
 # Selected features (must match feature_extractor.py and test script)
@@ -103,7 +104,7 @@ def main():
     X_train, y_train, encoders, scaler = preprocess_data(train_df, fit=True)
     X_test, y_test, _, _ = preprocess_data(test_df, encoders=encoders, scaler=scaler, fit=False)
     
-    print("Training Random Forest classifier on real data...")
+    # Define the model template
     model = RandomForestClassifier(
         n_estimators=100,
         max_depth=20,
@@ -113,6 +114,14 @@ def main():
         n_jobs=-1,
         class_weight='balanced'
     )
+    
+    # Calculate 5-Fold Cross-Validation Accuracy using the training data split
+    print("\n[INFO] Calculating 5-Fold Cross-Validation Accuracy...")
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy', n_jobs=-1)
+    print(f"-> All Fold Scores: {cv_scores}")
+    print(f"-> Mean Cross-Validation Accuracy: {cv_scores.mean() * 100:.2f}%\n")
+    
+    print("Training Random Forest classifier on real data...")
     model.fit(X_train, y_train)
     
     # Verify performance immediately before saving
