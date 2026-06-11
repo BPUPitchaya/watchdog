@@ -44,10 +44,10 @@ def run_throughput_benchmark():
         if packet_count % 500 == 0:
             start_mitigation = time.perf_counter()
             
-            # 1. Classify Threat
+            # Classify Threat
             prediction = model.predict(df.values)
             
-            # 2. Trigger System Rule (pfctl or iptables)
+            # Trigger System Rule (pfctl or iptables)
             firewall.block_ip('203.0.113.50')
             
             end_mitigation = time.perf_counter()
