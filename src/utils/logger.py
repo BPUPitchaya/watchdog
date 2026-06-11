@@ -51,21 +51,27 @@ class WatchdogLogger:
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         
-        # File handler for all logs
-        log_file = self.log_dir / f"{self.app_name}_{datetime.now().strftime('%Y%m%d')}.log"
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(detailed_formatter)
-        self.logger.addHandler(file_handler)
+        # File handler for all logs (with error handling)
+        try:
+            log_file = self.log_dir / f"{self.app_name}_{datetime.now().strftime('%Y%m%d')}.log"
+            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(detailed_formatter)
+            self.logger.addHandler(file_handler)
+        except (PermissionError, OSError) as e:
+            print(f"Warning: Could not create log file: {e}. Using console-only logging.")
         
-        # File handler for errors only
-        error_file = self.log_dir / f"{self.app_name}_errors_{datetime.now().strftime('%Y%m%d')}.log"
-        error_handler = logging.FileHandler(error_file, encoding='utf-8')
-        error_handler.setLevel(logging.ERROR)
-        error_handler.setFormatter(detailed_formatter)
-        self.logger.addHandler(error_handler)
+        # File handler for errors only (with error handling)
+        try:
+            error_file = self.log_dir / f"{self.app_name}_errors_{datetime.now().strftime('%Y%m%d')}.log"
+            error_handler = logging.FileHandler(error_file, encoding='utf-8')
+            error_handler.setLevel(logging.ERROR)
+            error_handler.setFormatter(detailed_formatter)
+            self.logger.addHandler(error_handler)
+        except (PermissionError, OSError) as e:
+            print(f"Warning: Could not create error log file: {e}. Using console-only logging.")
         
-        # Console handler
+        # Console handler (always available)
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(simple_formatter)
