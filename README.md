@@ -195,6 +195,11 @@ watchdog/
 │   ├── correlation_matrix.png
 │   ├── dst_bytes_distribution.png
 │   └── ... (other plot images)
+├── experiments/                # Experimental code and research
+│   ├── README.md              # Experiments documentation
+│   ├── active/                # Currently active experiments
+│   │   └── throughput_test.py # System throughput testing
+│   └── archive/               # Archived experiments
 ├── src/                        # Source code directory
 │   ├── __init__.py
 │   ├── firewall_manager.py     # Manages firewall rules
@@ -211,7 +216,8 @@ watchdog/
 │   │   ├── feature_extractor.py # Extracts features from network data
 │   │   ├── feature_selection.py # Selects relevant features
 │   │   ├── integration_testing.py # ML integration tests
-│   │   └── model_training.py   # Trains the ML model
+│   │   ├── model_training.py   # Trains the ML model
+│   │   └── train_with_extractor.py # Training with feature extractor
 │   ├── network/                # Network monitoring components
 │   │   ├── __init__.py
 │   │   ├── basic_sniffer.py    # Basic packet sniffer
@@ -248,11 +254,48 @@ watchdog/
 │   │       ├── network_topology.py # Network topology visualization widget
 │   │       └── toast.py        # Notification toast widget
 │   └── utils/                  # General utility functions
-│       └── __init__.py
+│       ├── __init__.py
+│       └── logger.py           # Centralized logging configuration
 ├── tests/                      # Test files
+│   ├── test_core.py           # Core functionality tests
+│   ├── test_performance.py    # Performance tests
+│   ├── test_accuracy.py       # ML model accuracy tests
+│   └── test_ui.py             # UI component and integration tests
 ├── docs/                       # Documentation
 └── watchdog_env/               # Virtual environment
 ```
+
+## Branch Organization
+
+This project uses a hybrid branch organization approach to balance stability with research experimentation:
+
+### Main Branch (Production)
+- **Purpose**: Production-ready, stable code for presentations and deployment
+- **Contents**: Full application, comprehensive test suite, production model
+- **Status**: Always stable, tested, and ready for use
+- **Updates**: Merged from research branch when experiments prove successful
+
+### Primary_Research Branch (Experimental)
+- **Purpose**: Active research and development of new features
+- **Contents**: Experimental code, performance tests, new algorithms
+- **Status**: May be unstable, for research purposes only
+- **Workflow**: Successful experiments are merged to main branch
+
+### Experiments Directory
+- **experiments/active/**: Currently active experiments being tested
+- **experiments/archive/**: Archived experiments (successful merged to main, or discontinued)
+- **Workflow**: 
+  1. New experiments go in `experiments/active/`
+  2. When successful, merge to main branch
+  3. Move to `experiments/archive/` with documentation
+  4. Failed experiments also go to archive with failure analysis
+
+### Workflow
+1. Develop new features in `primary_research` branch or `experiments/active/`
+2. Test thoroughly and validate results
+3. Merge successful experiments to `main` branch
+4. Archive completed experiments with documentation
+5. Keep `main` branch always stable and presentation-ready
 
 ## Development Phases
 
