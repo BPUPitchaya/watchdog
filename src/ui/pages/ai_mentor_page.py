@@ -1,10 +1,19 @@
 """AI Mentor page implementation."""
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QScrollArea, QFrame, QTextEdit, QComboBox
-)
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from src.ui.theme import THEME
 from src.ui.widgets.loading_spinner import LoadingOverlay
@@ -12,14 +21,14 @@ from src.ui.widgets.loading_spinner import LoadingOverlay
 
 class AIMentorPage:
     """AI Mentor page as a Forensic Analysis Hub."""
-    
+
     def __init__(self, dashboard):
         self.dashboard = dashboard
         self.mentor_chat_area = None
         self.mentor_chat_layout = None
         self.mentor_input = None
         self.loading_overlay = None
-        
+
     def create(self):
         """Create and return the AI mentor page widget."""
         mentor_page = QWidget()
@@ -34,12 +43,12 @@ class AIMentorPage:
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         page_title = QLabel("AI Assistant")
-        page_title.setFont(QFont(THEME['font_mono'].strip("'"), 16))
+        page_title.setFont(QFont(THEME["font_mono"].strip("'"), 16))
         page_title.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
         header_layout.addWidget(page_title)
 
         page_subtitle = QLabel("Forensic Analysis Hub")
-        page_subtitle.setFont(QFont(THEME['font_mono'].strip("'"), 11))
+        page_subtitle.setFont(QFont(THEME["font_mono"].strip("'"), 11))
         page_subtitle.setStyleSheet(f"color: {THEME['text_secondary']};")
         page_subtitle.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         header_layout.addWidget(page_subtitle)
@@ -70,7 +79,7 @@ class AIMentorPage:
         """)
         status_layout = QHBoxLayout(status_bar)
         status_layout.setContentsMargins(15, 5, 15, 5)
-        
+
         # Sentinel Pulse Icon
         pulse_icon = QLabel("●")
         pulse_icon.setStyleSheet(f"""
@@ -80,7 +89,7 @@ class AIMentorPage:
             }}
         """)
         status_layout.addWidget(pulse_icon)
-        
+
         # Status Text
         status_text = QLabel("SYSTEM STATUS: MONITORING | AGENT: LLAMA 4 SCOUT")
         status_text.setStyleSheet(f"""
@@ -92,9 +101,11 @@ class AIMentorPage:
         """)
         status_layout.addWidget(status_text)
         status_layout.addStretch()
-        
+
         # AI Toggle Button
-        self.ai_toggle_btn = QPushButton("ON" if self.dashboard and self.dashboard.ai_client else "OFF")
+        self.ai_toggle_btn = QPushButton(
+            "ON" if self.dashboard and self.dashboard.ai_client else "OFF"
+        )
         self.ai_toggle_btn.setFixedSize(40, 22)
         self.ai_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.ai_toggle_btn.setStyleSheet(f"""
@@ -113,7 +124,7 @@ class AIMentorPage:
         """)
         self.ai_toggle_btn.clicked.connect(self._toggle_ai)
         status_layout.addWidget(self.ai_toggle_btn)
-        
+
         chat_layout.addWidget(status_bar)
 
         # AI Model Selector
@@ -125,18 +136,20 @@ class AIMentorPage:
             background-color: {THEME['bg_card']};
             border-radius: 6px;
         """)
-        
+
         model_label = QLabel("AI Model:")
         model_label.setStyleSheet(f"color: {THEME['text_secondary']}; font-size: 11px;")
         model_layout.addWidget(model_label)
-        
+
         self.model_selector = QComboBox()
-        self.model_selector.addItems([
-            "llama3.2:1b (~1GB RAM - 8GB Macs)",
-            "llama3.2:3b (~2GB RAM - 8-16GB Macs)",
-            "llama3:8b (~4-5GB RAM - 16GB+ Macs)",
-            "phi4 (~6GB RAM - Best Quality)"
-        ])
+        self.model_selector.addItems(
+            [
+                "llama3.2:1b (~1GB RAM - 8GB Macs)",
+                "llama3.2:3b (~2GB RAM - 8-16GB Macs)",
+                "llama3:8b (~4-5GB RAM - 16GB+ Macs)",
+                "phi4 (~6GB RAM - Best Quality)",
+            ]
+        )
         self.model_selector.setCurrentIndex(1)  # Default to 3b
         self.model_selector.setStyleSheet(f"""
             QComboBox {{
@@ -154,19 +167,21 @@ class AIMentorPage:
         """)
         self.model_selector.currentIndexChanged.connect(self._on_model_changed)
         model_layout.addWidget(self.model_selector)
-        
+
         # RAM indicator
         self.ram_label = QLabel(" 8GB+")
         self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
         model_layout.addWidget(self.ram_label)
-        
+
         # Help link
-        help_label = QLabel("<a href='#' style='color: #2DD4BF; text-decoration: underline; font-size: 11px;'>How to find the best AI Model</a>")
+        help_label = QLabel(
+            "<a href='#' style='color: #2DD4BF; text-decoration: underline; font-size: 11px;'>How to find the best AI Model</a>"
+        )
         help_label.setStyleSheet("color: {THEME['primary']};")
         help_label.setToolTip("Click for AI model selection guide")
         help_label.mousePressEvent = lambda e: self._show_model_help()
         model_layout.addWidget(help_label)
-        
+
         model_layout.addStretch()
         chat_layout.addWidget(model_widget)
 
@@ -174,12 +189,12 @@ class AIMentorPage:
         self.mentor_chat_area = QScrollArea()
         self.mentor_chat_area.setWidgetResizable(True)
         self.mentor_chat_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.mentor_chat_area.setStyleSheet(f"""
-            QScrollArea {{
+        self.mentor_chat_area.setStyleSheet("""
+            QScrollArea {
                 background-color: transparent;
-            }}
+            }
         """)
-        
+
         # Chat content widget
         chat_content = QWidget()
         self.mentor_chat_layout = QVBoxLayout(chat_content)
@@ -187,10 +202,12 @@ class AIMentorPage:
         self.mentor_chat_layout.setSpacing(10)
         self.mentor_chat_area.setWidget(chat_content)
         chat_layout.addWidget(self.mentor_chat_area)
-        
+
         # Loading overlay (hidden by default)
         self.loading_overlay = LoadingOverlay("AI Processing...", self.mentor_chat_area)
-        self.loading_overlay.setGeometry(0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height())
+        self.loading_overlay.setGeometry(
+            0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height()
+        )
         self.loading_overlay.hide()
 
         # Input area
@@ -203,7 +220,7 @@ class AIMentorPage:
         """)
         input_layout = QHBoxLayout(input_container)
         input_layout.setContentsMargins(8, 6, 8, 6)
-        
+
         self.mentor_input = QLineEdit()
         self.mentor_input.setPlaceholderText("Ask the AI Mentor about security analysis...")
         self.mentor_input.setStyleSheet(f"""
@@ -222,7 +239,7 @@ class AIMentorPage:
         """)
         self.mentor_input.returnPressed.connect(self._send_mentor_message)
         input_layout.addWidget(self.mentor_input)
-        
+
         send_btn = QPushButton("Send")
         send_btn.setFixedWidth(64)
         send_btn.setMinimumHeight(34)
@@ -243,9 +260,9 @@ class AIMentorPage:
         """)
         send_btn.clicked.connect(self._send_mentor_message)
         input_layout.addWidget(send_btn)
-        
+
         chat_layout.addWidget(input_container)
-        
+
         main_layout.addWidget(chat_container, stretch=7)
 
         # RIGHT SIDE - Diagnostics Panel (30%)
@@ -258,13 +275,13 @@ class AIMentorPage:
         """)
         diagnostics_layout = QVBoxLayout(diagnostics_container)
         diagnostics_layout.setContentsMargins(12, 12, 12, 12)
-        
+
         # Diagnostics Header
         diag_header = QLabel("Diagnostics")
-        diag_header.setFont(QFont(THEME['font_mono'].strip("'"), 12))
+        diag_header.setFont(QFont(THEME["font_mono"].strip("'"), 12))
         diag_header.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
         diagnostics_layout.addWidget(diag_header)
-        
+
         # Diagnostics content
         diag_content = QTextEdit()
         diag_content.setReadOnly(True)
@@ -289,13 +306,15 @@ Last Scan: 2 minutes ago
 Blocked Today: 4 IPs
 Analyzed: 1,247 packets""")
         diagnostics_layout.addWidget(diag_content)
-        
+
         # Quick Actions
         actions_header = QLabel("Quick Actions")
-        actions_header.setFont(QFont(THEME['font_mono'].strip("'"), 11))
-        actions_header.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600; margin-top: 8px;")
+        actions_header.setFont(QFont(THEME["font_mono"].strip("'"), 11))
+        actions_header.setStyleSheet(
+            f"color: {THEME['text_secondary']}; font-weight: 600; margin-top: 8px;"
+        )
         diagnostics_layout.addWidget(actions_header)
-        
+
         # Action buttons
         for action_text in ["Analyze Last Threat", "Generate Report", "Export Logs"]:
             btn = QPushButton(action_text)
@@ -317,46 +336,48 @@ Analyzed: 1,247 packets""")
                 }}
             """)
             diagnostics_layout.addWidget(btn)
-        
+
         diagnostics_layout.addStretch()
         main_layout.addWidget(diagnostics_container, stretch=3)
 
         return mentor_page
-        
+
     def _send_mentor_message(self):
         """Send a message in the AI mentor chat."""
         msg = self.mentor_input.text().strip()
         if not msg:
             return
-        
+
         # Clear input first
         self.mentor_input.clear()
-        
+
         # Add to shared conversation history (this syncs both chats)
         self.dashboard.add_chat_message("user", msg)
-        
+
         # Show loading overlay
         if self.loading_overlay:
-            self.loading_overlay.setGeometry(0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height())
+            self.loading_overlay.setGeometry(
+                0, 0, self.mentor_chat_area.width(), self.mentor_chat_area.height()
+            )
             self.loading_overlay.show()
             self.loading_overlay.raise_()
-        
+
         # Use process_command to get proper response
         ai_response = self.dashboard.process_command(msg)
-        
+
         # Hide loading overlay
         if self.loading_overlay:
             self.loading_overlay.hide()
-        
+
         # Add AI response to shared history (skip if async processing)
         if ai_response != "__AI_PROCESSING__":
             self.dashboard.add_chat_message("ai", ai_response)
-        
+
         # Scroll to bottom
         self.mentor_chat_area.verticalScrollBar().setValue(
             self.mentor_chat_area.verticalScrollBar().maximum()
         )
-        
+
     def _add_ai_response(self, text):
         """Add an AI response bubble to the chat."""
         ai_bubble = QLabel(text)
@@ -370,7 +391,7 @@ Analyzed: 1,247 packets""")
         """)
         ai_bubble.setWordWrap(True)
         self.mentor_chat_layout.addWidget(ai_bubble)
-        
+
     def sync_message(self, sender, message):
         """Sync a message from the shared conversation history to this chat."""
         if sender == "user":
@@ -399,25 +420,25 @@ Analyzed: 1,247 packets""")
             """)
             ai_bubble.setWordWrap(True)
             self.mentor_chat_layout.addWidget(ai_bubble)
-        
+
         # Scroll to bottom
         self.mentor_chat_area.verticalScrollBar().setValue(
             self.mentor_chat_area.verticalScrollBar().maximum()
         )
-    
+
     def _on_model_changed(self, index):
         """Handle AI model selection change."""
         models = ["llama3.2:1b", "llama3.2:3b", "llama3:8b", "phi4"]
         selected_model = models[index]
-        
+
         # Update RAM indicator
         ram_labels = ["8GB", "8GB+", "16GB+", "16GB++"]
-        colors = [THEME['success'], THEME['success'], THEME['warning'], THEME['danger']]
+        colors = [THEME["success"], THEME["success"], THEME["warning"], THEME["danger"]]
         self.ram_label.setText(ram_labels[index])
         self.ram_label.setStyleSheet(f"color: {colors[index]}; font-size: 10px;")
-        
+
         # Notify dashboard to update model and sync forensic panel
-        if self.dashboard and hasattr(self.dashboard, 'update_ai_model'):
+        if self.dashboard and hasattr(self.dashboard, "update_ai_model"):
             self.dashboard.update_ai_model(selected_model)
             # Add system message to chat
             system_msg = QLabel(f"System: AI model switched to {selected_model}")
@@ -432,7 +453,7 @@ Analyzed: 1,247 packets""")
                 self.mentor_chat_area.verticalScrollBar().maximum()
             )
             # Sync forensic panel if available
-            if hasattr(self.dashboard, 'forensic_panel') and self.dashboard.forensic_panel:
+            if hasattr(self.dashboard, "forensic_panel") and self.dashboard.forensic_panel:
                 self.dashboard.forensic_panel.set_model(index)
 
     def set_model(self, index):
@@ -445,9 +466,9 @@ Analyzed: 1,247 packets""")
     def apply_theme(self):
         """Re-apply current theme to AI mentor page components."""
         from src.ui.theme import THEME
-        
+
         # Update model selector
-        if hasattr(self, 'model_selector'):
+        if hasattr(self, "model_selector"):
             self.model_selector.setStyleSheet(f"""
                 QComboBox {{
                     background-color: {THEME['bg_card']};
@@ -459,13 +480,13 @@ Analyzed: 1,247 packets""")
                     font-size: 12px;
                 }}
             """)
-        
+
         # Update RAM indicator
-        if hasattr(self, 'ram_label'):
+        if hasattr(self, "ram_label"):
             self.ram_label.setStyleSheet(f"color: {THEME['success']}; font-size: 10px;")
-        
+
         # Update mentor chat area
-        if hasattr(self, 'mentor_chat_area'):
+        if hasattr(self, "mentor_chat_area"):
             self.mentor_chat_area.setStyleSheet(f"""
                 QScrollArea {{
                     background-color: {THEME['bg_dark']};
@@ -476,8 +497,8 @@ Analyzed: 1,247 packets""")
 
     def _show_model_help(self):
         """Show help dialog for selecting the best AI model based on RAM."""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
-        
+        from PyQt6.QtWidgets import QDialog, QPushButton, QTextEdit, QVBoxLayout
+
         dialog = QDialog(self.dashboard)
         dialog.setWindowTitle("AI Model Selection Guide")
         dialog.setFixedSize(450, 500)
@@ -486,10 +507,10 @@ Analyzed: 1,247 packets""")
                 background-color: {THEME['bg_dark']};
             }}
         """)
-        
+
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(15, 15, 15, 15)
-        
+
         help_text = QTextEdit()
         help_text.setReadOnly(True)
         help_text.setStyleSheet(f"""
@@ -503,7 +524,7 @@ Analyzed: 1,247 packets""")
                 padding: 10px;
             }}
         """)
-        
+
         help_content = """<h2 style='color: #2DD4BF;'> AI Model Selection Guide</h2>
 
 <h3 style='color: #F97316;'> How to Check Your RAM</h3>
@@ -530,10 +551,10 @@ Analyzed: 1,247 packets""")
 
 <p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>Tip: Start with 3b and only go higher if responses are fast enough.</i></p>
 <p style='color: #6B7280; font-size: 11px; margin-top: 20px;'><i>Tip: If you are using a 8GB Mac/PC, use 1b for speed or 3b if you close other apps.</i></p>"""
-        
+
         help_text.setHtml(help_content)
         layout.addWidget(help_text)
-        
+
         close_btn = QPushButton("Got it!")
         close_btn.setStyleSheet(f"""
             QPushButton {{
@@ -550,14 +571,14 @@ Analyzed: 1,247 packets""")
         """)
         close_btn.clicked.connect(dialog.accept)
         layout.addWidget(close_btn)
-        
+
         dialog.exec()
 
     def _toggle_ai(self):
         """Toggle AI on/off."""
         if not self.dashboard:
             return
-        
+
         if self.dashboard.ai_client:
             # Disable AI
             self.dashboard.ai_client = None
@@ -582,6 +603,7 @@ Analyzed: 1,247 packets""")
             # Enable AI
             try:
                 from src.ai.ollama_client import OllamaClient
+
                 self.dashboard.ai_client = OllamaClient()
                 self.ai_toggle_btn.setText("ON")
                 self.ai_toggle_btn.setStyleSheet(f"""
@@ -605,6 +627,7 @@ Analyzed: 1,247 packets""")
     def _add_system_message(self, message):
         """Add a system message to the mentor chat."""
         from PyQt6.QtWidgets import QLabel
+
         sys_label = QLabel(f"System: {message}")
         sys_label.setStyleSheet(f"""
             color: {THEME['text_secondary']};

@@ -1,8 +1,9 @@
 import math
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
-from PyQt6.QtCore import Qt, QTimer, QByteArray, QRect
-from PyQt6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QRadialGradient
+
+from PyQt6.QtCore import QByteArray, QRect, QRectF, Qt, QTimer
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen
 from PyQt6.QtSvgWidgets import QSvgWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from src.ui.theme import THEME
 
@@ -31,11 +32,11 @@ class ThreatGauge(QWidget):
         shadow_color = QColor(0, 0, 0, 30)
         painter.setPen(QPen(shadow_color, 4))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawArc(rect.adjusted(2, 2, -2, -2), 0, 180*16)
+        painter.drawArc(rect.adjusted(2, 2, -2, -2), 0, 180 * 16)
 
         # Thin semi-circular track with gradient
         painter.setPen(QPen(Qt.GlobalColor.white, 2))  # base
-        painter.drawArc(rect.adjusted(5, 5, -5, -5), 0, 180*16)
+        painter.drawArc(rect.adjusted(5, 5, -5, -5), 0, 180 * 16)
 
         # Gradient segments: from teal to amber to crimson
         teal = QColor(45, 212, 191)  # #2DD4BF
@@ -51,7 +52,7 @@ class ThreatGauge(QWidget):
             else:
                 color = crimson
             painter.setPen(QPen(color, 2))
-            painter.drawArc(rect.adjusted(5, 5, -5, -5), angle_start*16, 10*16)
+            painter.drawArc(rect.adjusted(5, 5, -5, -5), angle_start * 16, 10 * 16)
 
         # Tick marks every 10%
         painter.setPen(QPen(Qt.GlobalColor.white, 1))
@@ -71,8 +72,8 @@ class ThreatGauge(QWidget):
 
         # Needle
         angle_rad = self.threat_level * math.pi
-        needle_x = center.x() + radius * math.cos(angle_rad - math.pi/2)
-        needle_y = center.y() + radius * math.sin(angle_rad - math.pi/2)
+        needle_x = center.x() + radius * math.cos(angle_rad - math.pi / 2)
+        needle_y = center.y() + radius * math.sin(angle_rad - math.pi / 2)
         painter.setPen(QPen(Qt.GlobalColor.white, 1))
         painter.drawLine(int(center.x()), int(center.y()), int(needle_x), int(needle_y))
 
@@ -134,43 +135,54 @@ class StatusCore(QWidget):
         font = QFont("Arial", 14)
         font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 2)
         painter.setFont(font)
-        painter.drawText(QRectF(rect.left(), center.y() + 30, rect.width(), 30), Qt.AlignmentFlag.AlignCenter, "SYSTEM SAFE")
+        painter.drawText(
+            QRectF(rect.left(), center.y() + 30, rect.width(), 30),
+            Qt.AlignmentFlag.AlignCenter,
+            "SYSTEM SAFE",
+        )
 
 
 class SystemHealthGauge(QWidget):
     """Circular gauge showing system health percentage"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.health_value = 0  # Start with 0, will be updated immediately
         self.setMinimumSize(180, 180)
-        
+
     def set_health(self, value):
         self.health_value = max(0, min(100, value))
         self.update()
-        
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         rect = self.rect()
         center = rect.center()
         radius = min(rect.width(), rect.height()) // 2 - 20
-        
+
         # Background ring
-        painter.setPen(QPen(QColor(THEME['gauge_bg']), 8))
+        painter.setPen(QPen(QColor(THEME["gauge_bg"]), 8))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(center, radius, radius)
-        
+
         # Active arc (health percentage)
         angle = int(self.health_value * 3.6 * 16)  # Convert to 1/16 degrees
-        pen = QPen(QColor(THEME['gauge_active']), 8)
+        pen = QPen(QColor(THEME["gauge_active"]), 8)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
-        painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
-                       int(radius * 2), int(radius * 2), 90 * 16, -angle)
-        
+        painter.drawArc(
+            int(center.x() - radius),
+            int(center.y() - radius),
+            int(radius * 2),
+            int(radius * 2),
+            90 * 16,
+            -angle,
+        )
+
         # Center text
-        painter.setPen(QPen(QColor(THEME['gauge_active'])))
+        painter.setPen(QPen(QColor(THEME["gauge_active"])))
         painter.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         text = f"{self.health_value}%"
         text_rect = QRect(center.x() - 50, center.y() - 20, 100, 40)
@@ -179,38 +191,45 @@ class SystemHealthGauge(QWidget):
 
 class RiskAnalysisGauge(QWidget):
     """Circular gauge showing risk percentage"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.risk_value = 0  # Start with 0, will be updated immediately
         self.setMinimumSize(180, 180)
-        
+
     def set_risk(self, value):
         self.risk_value = max(0, min(100, value))
         self.update()
-        
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         rect = self.rect()
         center = rect.center()
         radius = min(rect.width(), rect.height()) // 2 - 20
-        
+
         # Background ring
-        painter.setPen(QPen(QColor(THEME['gauge_bg']), 8))
+        painter.setPen(QPen(QColor(THEME["gauge_bg"]), 8))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(center, radius, radius)
-        
+
         # Active arc (risk percentage)
         angle = int(self.risk_value * 3.6 * 16)
         # Use green for low risk, red for high
-        color = THEME['risk_low'] if self.risk_value < 50 else THEME['risk_high']
+        color = THEME["risk_low"] if self.risk_value < 50 else THEME["risk_high"]
         pen = QPen(QColor(color), 8)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
-        painter.drawArc(int(center.x() - radius), int(center.y() - radius), 
-                       int(radius * 2), int(radius * 2), 90 * 16, -angle)
-        
+        painter.drawArc(
+            int(center.x() - radius),
+            int(center.y() - radius),
+            int(radius * 2),
+            int(radius * 2),
+            90 * 16,
+            -angle,
+        )
+
         # Center text
         painter.setPen(QPen(QColor(color)))
         painter.setFont(QFont("Arial", 22, QFont.Weight.Bold))
@@ -242,13 +261,13 @@ class CircularGaugeWidget(QWidget):
         circumference = 2 * 3.14159 * 80  # radius 80
         dash_length = (self.smoothed_score / 100) * circumference
         color = self.get_color()
-        svg = f'''
+        svg = f"""
 <svg width="200" height="200" viewBox="0 0 200 200">
 <circle cx="100" cy="100" r="80" fill="none" stroke="#333333" stroke-width="10" stroke-opacity="0.3" />
 <circle cx="100" cy="100" r="80" fill="none" stroke="{color}" stroke-width="10" stroke-dasharray="{dash_length},{circumference}" />
 <text x="100" y="110" text-anchor="middle" font-family="Monospace" font-size="18" fill="{color}">{self.smoothed_score:.0f}% Risk</text>
 </svg>
-'''
+"""
         self.svg_widget.load(QByteArray(svg.encode()))
 
     def get_color(self):
