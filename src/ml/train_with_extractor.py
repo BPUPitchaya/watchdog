@@ -66,18 +66,18 @@ def generate_training_data(n_samples=10000):
 
 
 def train_model(X_train, y_train):
-    """Train Random Forest classifier with parameters optimized for recall."""
+    """Train Random Forest classifier with parameters optimized for balanced performance."""
     print("Training Random Forest classifier...")
     
-    # Use class_weight to prioritize attack detection (recall)
+    # Use balanced class weights for better precision/recall balance
     model = RandomForestClassifier(
-        n_estimators=150,  # More trees for better performance
-        max_depth=25,  # Slightly deeper for better attack detection
-        min_samples_split=5,  # Lower threshold for splitting
-        min_samples_leaf=2,  # Lower threshold for leaf nodes
+        n_estimators=200,  # More trees for better performance
+        max_depth=20,  # Controlled depth to prevent overfitting
+        min_samples_split=10,  # Higher threshold for better generalization
+        min_samples_leaf=5,  # Higher threshold for better generalization
         random_state=42,
         n_jobs=-1,
-        class_weight={0: 1, 1: 2}  # Weight attacks 2x more to improve recall
+        class_weight='balanced'  # Balanced weights for both classes
     )
     
     model.fit(X_train, y_train)
