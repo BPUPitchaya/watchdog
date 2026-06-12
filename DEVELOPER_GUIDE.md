@@ -132,7 +132,8 @@ Watchdog/
   - `block_ip(ip_address)` - Block an IP address
   - `unblock_ip(ip_address)` - Unblock an IP address
   - `get_blocked_ips()` - Get list of blocked IPs
-- **Usage**: Called when threat is detected
+  - `clear_all_blocked_ips()` - Remove all blocked IPs from firewall
+- **Usage**: Called when threat is detected or for bulk IP management
 
 #### WatchdogDashboard
 - **Purpose**: Main application window and controller

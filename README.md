@@ -18,6 +18,9 @@ Watchdog is a comprehensive network security solution that monitors network traf
 - **Progress Tracking**: Real-time statistics and progress indicators for simulations
 - **Quick Start Guide**: Built-in onboarding for new users
 - **Pause/Resume**: Full control over simulation execution
+- **Analyze Last Threat**: AI-powered analysis of detected threats with SME-friendly explanations
+- **Test Threat**: Create mock threats for testing threat analysis features
+- **Clear All Blocked IPs**: Bulk removal of all blocked IPs from firewall with double confirmation
 
 ## Technology Stack
 
@@ -186,6 +189,21 @@ Watchdog is a comprehensive network security solution that monitors network traf
    - Watch real-time packet injection with plain English explanations
    - Use Pause/Resume to control simulation flow
    - View progress bar and statistics (packets/sec, threat level)
+
+6. **AI Mentor Features**:
+   - **Analyze Last Threat**: Click to get AI analysis of the most recent detected threat
+     - AI provides SME-friendly explanations of attack types
+     - Includes business impact assessment and mitigation steps
+     - Shows "AI is thinking..." while processing
+   - **Test Threat**: Create a mock threat for testing the analysis feature
+     - Useful for testing when no real threats are detected
+     - Creates a sample DDoS attack scenario
+
+7. **Firewall Management**:
+   - **Clear All Blocked IPs**: Navigate to Settings → Security tab
+     - Click "Clear All Blocked IPs" button (red styling)
+     - Requires double confirmation to prevent accidental clearing
+     - Removes all IPs from the pf table and cancels timers
 
 ## Project Structure
 

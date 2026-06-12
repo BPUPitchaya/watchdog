@@ -170,6 +170,11 @@ Double-click `launch_watchdog.bat`
 - Firewall status
 - Manual IP blocking
 - Block history
+- **Clear All Blocked IPs**: Bulk removal of all blocked IPs
+  - Navigate to Settings → Security tab
+  - Click "Clear All Blocked IPs" button (red styling)
+  - Requires double confirmation to prevent accidental clearing
+  - Removes all IPs from the pf table and cancels timers
 
 ### Forensic Vault
 - Security incidents
@@ -182,6 +187,15 @@ Double-click `launch_watchdog.bat`
 - Threat explanations
 - Best practices
 - System health
+- **Analyze Last Threat**: Get AI analysis of the most recent detected threat
+  - Click "Analyze Last Threat" in Quick Actions
+  - AI provides SME-friendly explanations
+  - Includes business impact and mitigation steps
+  - Shows "AI is thinking..." while processing
+- **Test Threat**: Create mock threats for testing
+  - Click "Test Threat" in Quick Actions
+  - Creates a sample DDoS attack scenario
+  - Useful for testing when no real threats are detected
 
 ---
 
