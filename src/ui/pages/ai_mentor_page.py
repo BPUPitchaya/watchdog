@@ -1,13 +1,21 @@
 """AI Mentor page implementation."""
 
+import os
+import shutil
+from datetime import datetime
+from pathlib import Path
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QTextEdit,
@@ -316,7 +324,7 @@ Analyzed: 1,247 packets""")
         diagnostics_layout.addWidget(actions_header)
 
         # Action buttons
-        for action_text in ["Analyze Last Threat", "Generate Report", "Export Logs"]:
+        for action_text in ["Analyze Last Threat", "Generate Report", "Export Logs", "Decrypt Logs"]:
             btn = QPushButton(action_text)
             btn.setStyleSheet(f"""
                 QPushButton {{
@@ -335,6 +343,19 @@ Analyzed: 1,247 packets""")
                     color: {THEME['text_primary']};
                 }}
             """)
+            # Add tooltips to clarify workflow
+            if action_text == "Export Logs":
+                btn.setToolTip("Step 1: Export encrypted log files to a folder (optionally include encryption key)")
+                btn.clicked.connect(self._export_logs)
+            elif action_text == "Decrypt Logs":
+                btn.setToolTip("Step 2: Decrypt exported logs using the encryption key (requires key file)")
+                btn.clicked.connect(self._decrypt_logs)
+            elif action_text == "Analyze Last Threat":
+                btn.setToolTip("Analyze the most recent detected threat (coming soon)")
+                btn.clicked.connect(self._analyze_last_threat)
+            elif action_text == "Generate Report":
+                btn.setToolTip("Generate a security report (coming soon)")
+                btn.clicked.connect(self._generate_report)
             diagnostics_layout.addWidget(btn)
 
         diagnostics_layout.addStretch()
@@ -641,3 +662,215 @@ Analyzed: 1,247 packets""")
         self.mentor_chat_area.verticalScrollBar().setValue(
             self.mentor_chat_area.verticalScrollBar().maximum()
         )
+
+    def _export_logs(self):
+        """Export log files to user-selected directory."""
+        try:
+            # Get log directory
+            log_dir = Path("logs")
+            if not log_dir.exists():
+                QMessageBox.warning(
+                    self.dashboard,
+                    "No Logs Found",
+                    "No log directory found. Logs may not have been generated yet."
+                )
+                return
+
+            # Get all log files
+            log_files = list(log_dir.glob("*.log"))
+            if not log_files:
+                QMessageBox.warning(
+                    self.dashboard,
+                    "No Logs Found",
+                    "No log files found in the logs directory."
+                )
+                return
+
+            # Ask user for export directory
+            export_dir = QFileDialog.getExistingDirectory(
+                self.dashboard,
+                "Select Export Directory",
+                str(Path.home())
+            )
+
+            if not export_dir:
+                return  # User cancelled
+
+            # Ask about including encryption key
+            key_file = Path(".packet_encryption_key")
+            include_key = False
+            
+            if key_file.exists():
+                # Create dialog with checkbox
+                dialog = QMessageBox(self.dashboard)
+                dialog.setWindowTitle("Export Options")
+                dialog.setText("Log files are encrypted. Would you like to include the encryption key?")
+                dialog.setInformativeText("⚠️ WARNING: Including the encryption key allows anyone with access to decrypt the logs. Only include if you trust the destination.")
+                dialog.setIcon(QMessageBox.Icon.Warning)
+                
+                # Add checkbox
+                checkbox = QCheckBox("Include encryption key in export")
+                checkbox.setStyleSheet("margin-top: 10px;")
+                dialog.setCheckBox(checkbox)
+                
+                dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                dialog.setDefaultButton(QMessageBox.StandardButton.No)
+                
+                result = dialog.exec()
+                include_key = (result == QMessageBox.StandardButton.Yes and checkbox.isChecked())
+
+            # Create export subdirectory with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            export_subdir = Path(export_dir) / f"watchdog_logs_{timestamp}"
+            export_subdir.mkdir(exist_ok=True)
+
+            # Copy log files
+            copied_count = 0
+            for log_file in log_files:
+                try:
+                    shutil.copy2(log_file, export_subdir / log_file.name)
+                    copied_count += 1
+                except Exception as e:
+                    print(f"Failed to copy {log_file.name}: {e}")
+
+            # Copy encryption key if requested
+            key_copied = False
+            if include_key and key_file.exists():
+                try:
+                    shutil.copy2(key_file, export_subdir / key_file.name)
+                    key_copied = True
+                except Exception as e:
+                    print(f"Failed to copy encryption key: {e}")
+
+            # Show success message
+            message = f"Successfully exported {copied_count} log file(s) to:\n{export_subdir}"
+            if key_copied:
+                message += f"\n\n✓ Encryption key included"
+            else:
+                message += f"\n\n⚠ Logs are encrypted - you will need the encryption key to read them"
+            
+            QMessageBox.information(
+                self.dashboard,
+                "Export Complete",
+                message
+            )
+
+            # Add system message to chat
+            self._add_system_message(f"Exported {copied_count} log file(s) to {export_subdir}" + 
+                                    (f" with encryption key" if key_copied else " (encrypted)"))
+
+        except Exception as e:
+            QMessageBox.critical(
+                self.dashboard,
+                "Export Failed",
+                f"Failed to export logs: {str(e)}"
+            )
+
+    def _analyze_last_threat(self):
+        """Analyze the last detected threat (placeholder)."""
+        self._add_system_message("Analyze Last Threat feature coming soon")
+
+    def _generate_report(self):
+        """Generate security report (placeholder)."""
+        self._add_system_message("Generate Report feature coming soon")
+
+    def _decrypt_logs(self):
+        """Decrypt exported log files using the encryption key."""
+        try:
+            # Ask user to select directory with encrypted logs
+            log_dir = QFileDialog.getExistingDirectory(
+                self.dashboard,
+                "Select Directory with Encrypted Logs",
+                str(Path.home())
+            )
+
+            if not log_dir:
+                return  # User cancelled
+
+            log_dir = Path(log_dir)
+
+            # Check for encryption key file
+            key_file = log_dir / ".packet_encryption_key"
+            if not key_file.exists():
+                QMessageBox.warning(
+                    self.dashboard,
+                    "Key File Not Found",
+                    "Encryption key file (.packet_encryption_key) not found in the selected directory.\n\nPlease select a directory that contains the exported logs with the encryption key included."
+                )
+                return
+
+            # Load encryption key
+            with open(key_file, 'rb') as f:
+                key = f.read()
+
+            from cryptography.fernet import Fernet
+            cipher = Fernet(key)
+
+            # Find all encrypted log files
+            log_files = list(log_dir.glob("*.log"))
+            if not log_files:
+                QMessageBox.warning(
+                    self.dashboard,
+                    "No Log Files Found",
+                    "No .log files found in the selected directory."
+                )
+                return
+
+            # Decrypt each log file
+            decrypted_count = 0
+            failed_count = 0
+
+            for log_file in log_files:
+                try:
+                    # Read encrypted content
+                    with open(log_file, 'rb') as f:
+                        encrypted_lines = f.readlines()
+
+                    # Decrypt each line
+                    decrypted_lines = []
+                    for line in encrypted_lines:
+                        line = line.strip()
+                        if line:
+                            try:
+                                decrypted = cipher.decrypt(line)
+                                decrypted_lines.append(decrypted.decode('utf-8'))
+                            except Exception:
+                                # If decryption fails, keep original line
+                                decrypted_lines.append(line.decode('utf-8', errors='ignore'))
+
+                    # Save decrypted version
+                    output_file = log_file.parent / f"{log_file.stem}_decrypted{log_file.suffix}"
+                    with open(output_file, 'w') as f:
+                        f.write('\n'.join(decrypted_lines))
+
+                    decrypted_count += 1
+
+                except Exception as e:
+                    print(f"Failed to decrypt {log_file.name}: {e}")
+                    failed_count += 1
+
+            # Show result message
+            if decrypted_count > 0:
+                message = f"Successfully decrypted {decrypted_count} log file(s).\n\n"
+                if failed_count > 0:
+                    message += f"Failed to decrypt {failed_count} file(s).\n\n"
+                message += "Decrypted files saved with '_decrypted' suffix."
+                QMessageBox.information(
+                    self.dashboard,
+                    "Decryption Complete",
+                    message
+                )
+                self._add_system_message(f"Decrypted {decrypted_count} log file(s)")
+            else:
+                QMessageBox.warning(
+                    self.dashboard,
+                    "Decryption Failed",
+                    "Failed to decrypt any log files. The encryption key may not match these logs."
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self.dashboard,
+                "Decryption Failed",
+                f"Failed to decrypt logs: {str(e)}"
+            )

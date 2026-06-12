@@ -242,6 +242,34 @@ PAGE_HELP_CONTENT = {
             "3. Request examples - 'Give me an example'\n\n"
             "POWER USER TIP: Paste threat details from the Traffic Table for instant analysis!",
         ),
+        HelpHotspot(
+            85,
+            45,
+            "Quick Actions - Export & Decrypt Logs",
+            "Security tools for managing your encrypted log files. Logs are automatically encrypted for your protection.\n\n"
+            "HOW IT WORKS (TWO-STEP PROCESS):\n\n"
+            "STEP 1: Export Logs\n"
+            "• Click 'Export Logs' button\n"
+            "• Choose where to save the logs\n"
+            "• Select if you want to include the encryption key\n"
+            "• ⚠️ WARNING: Only include the key if you trust the destination\n"
+            "• Logs are saved as encrypted files (unreadable without key)\n\n"
+            "STEP 2: Decrypt Logs (if you included the key)\n"
+            "• Click 'Decrypt Logs' button\n"
+            "• Select the folder with your exported logs\n"
+            "• The folder must contain the encryption key file\n"
+            "• Decrypted files are saved with '_decrypted' suffix\n"
+            "• Open the '_decrypted.log' files to read them\n\n"
+            "SECURITY NOTES:\n"
+            "• Logs are encrypted by default for privacy\n"
+            "• The encryption key is like a password - keep it safe\n"
+            "• Without the key, logs cannot be read\n"
+            "• Never share the key with untrusted sources\n\n"
+            "WHY ENCRYPT?\n"
+            "• Protects sensitive network data\n"
+            "• Prevents unauthorized access to your logs\n"
+            "• Keeps your browsing history private",
+        ),
     ],
     "Network Topology": [
         HelpHotspot(
