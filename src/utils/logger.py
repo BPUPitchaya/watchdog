@@ -5,9 +5,13 @@ Provides structured logging to files and console with user-friendly error messag
 
 import logging
 import os
+import re
+import stat
 import sys
 from datetime import datetime
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
+from cryptography.fernet import Fernet
 
 # Redirection for stdout/stderr when running without a console
 if sys.stdout is None:
@@ -32,16 +36,93 @@ if sys.stderr is None:
     sys.stderr = DummyWriter()
 
 
+class SanitizingFormatter(logging.Formatter):
+    """Custom formatter that redacts sensitive data from log messages"""
+    
+    # Patterns to redact
+    IP_PATTERN = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
+    IPV6_PATTERN = re.compile(r'\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b')
+    MAC_PATTERN = re.compile(r'\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b')
+    PORT_PATTERN = re.compile(r':(\d{1,5})\b')
+    
+    def __init__(self, fmt=None, datefmt=None, style='%'):
+        super().__init__(fmt, datefmt, style)
+    
+    def format(self, record):
+        message = super().format(record)
+        # Redact IPs
+        message = self.IP_PATTERN.sub('[REDACTED_IP]', message)
+        message = self.IPV6_PATTERN.sub('[REDACTED_IPV6]', message)
+        # Redact MAC addresses
+        message = self.MAC_PATTERN.sub('[REDACTED_MAC]', message)
+        # Redact ports (keep common ones, redact others)
+        def redact_port(match):
+            port = int(match.group(1))
+            if port in [80, 443, 22, 53, 21, 25, 110, 143, 993, 995]:
+                return match.group(0)  # Keep common ports
+            return f':[REDACTED_PORT]'
+        message = self.PORT_PATTERN.sub(redact_port, message)
+        return message
+
+
+class EncryptedFileHandler(RotatingFileHandler):
+    """File handler that encrypts log entries before writing"""
+    
+    def __init__(self, filename, key, mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False):
+        super().__init__(filename, mode, maxBytes, backupCount, encoding, delay)
+        self.cipher = Fernet(key)
+    
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            # Encrypt the message
+            encrypted_msg = self.cipher.encrypt(msg.encode(self.encoding))
+            # Write to file with newline
+            self.stream.write(encrypted_msg.decode('ascii') + '\n')
+            self.stream.flush()
+        except Exception:
+            self.handleError(record)
+
+
+class KeyManager:
+    """Manages encryption key generation and storage"""
+    
+    def __init__(self, key_dir: str = "logs"):
+        self.key_dir = Path(key_dir)
+        self.key_file = self.key_dir / ".log_encryption_key"
+        self._ensure_key()
+    
+    def _ensure_key(self):
+        """Generate or load encryption key"""
+        self.key_dir.mkdir(parents=True, exist_ok=True)
+        
+        if self.key_file.exists():
+            with open(self.key_file, 'rb') as f:
+                self.key = f.read()
+        else:
+            self.key = Fernet.generate_key()
+            with open(self.key_file, 'wb') as f:
+                f.write(self.key)
+            # Restrict key file permissions
+            os.chmod(self.key_file, stat.S_IRUSR | stat.S_IWUSR)
+    
+    def get_key(self) -> bytes:
+        """Get the encryption key"""
+        return self.key
+
+
 class WatchdogLogger:
     """Centralized logging configuration for WATCHDOG application"""
 
-    def __init__(self, log_dir: str = "logs", app_name: str = "watchdog"):
+    def __init__(self, log_dir: str = "logs", app_name: str = "watchdog", enable_encryption: bool = True, enable_sanitization: bool = True):
         """
         Initialize logger with file and console handlers
 
         Args:
             log_dir: Directory to store log files
             app_name: Name of the application for log file naming
+            enable_encryption: Whether to encrypt log files
+            enable_sanitization: Whether to sanitize sensitive data from logs
         """
         # Use user-specific logs directory on macOS if frozen or if CWD is /
         if log_dir == "logs":
@@ -51,10 +132,16 @@ class WatchdogLogger:
 
         self.log_dir = Path(log_dir)
         self.app_name = app_name
+        self.enable_encryption = enable_encryption
+        self.enable_sanitization = enable_sanitization
         self.logger = None
 
         # Create log directory if it doesn't exist
         self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Initialize key manager if encryption is enabled
+        if self.enable_encryption:
+            self.key_manager = KeyManager(str(self.log_dir))
 
         # Setup logger
         self._setup_logger()
@@ -69,34 +156,72 @@ class WatchdogLogger:
             return
 
         # Create formatters
-        detailed_formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
+        if self.enable_sanitization:
+            detailed_formatter = SanitizingFormatter(
+                "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        else:
+            detailed_formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
 
         simple_formatter = logging.Formatter(
             "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
 
-        # File handler for all logs (with error handling)
+        # File handler for all logs with rotation (with error handling)
         try:
             log_file = self.log_dir / f"{self.app_name}_{datetime.now().strftime('%Y%m%d')}.log"
-            file_handler = logging.FileHandler(log_file, encoding="utf-8")
+            if self.enable_encryption:
+                file_handler = EncryptedFileHandler(
+                    log_file,
+                    key=self.key_manager.get_key(),
+                    maxBytes=10 * 1024 * 1024,  # 10 MB
+                    backupCount=5,
+                    encoding="utf-8"
+                )
+            else:
+                file_handler = RotatingFileHandler(
+                    log_file,
+                    maxBytes=10 * 1024 * 1024,  # 10 MB
+                    backupCount=5,
+                    encoding="utf-8"
+                )
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(detailed_formatter)
             self.logger.addHandler(file_handler)
+            # Restrict file permissions to owner-only
+            os.chmod(log_file, stat.S_IRUSR | stat.S_IWUSR)
         except (PermissionError, OSError) as e:
             print(f"Warning: Could not create log file: {e}. Using console-only logging.")
 
-        # File handler for errors only (with error handling)
+        # File handler for errors only with rotation (with error handling)
         try:
             error_file = (
                 self.log_dir / f"{self.app_name}_errors_{datetime.now().strftime('%Y%m%d')}.log"
             )
-            error_handler = logging.FileHandler(error_file, encoding="utf-8")
+            if self.enable_encryption:
+                error_handler = EncryptedFileHandler(
+                    error_file,
+                    key=self.key_manager.get_key(),
+                    maxBytes=5 * 1024 * 1024,  # 5 MB
+                    backupCount=3,
+                    encoding="utf-8"
+                )
+            else:
+                error_handler = RotatingFileHandler(
+                    error_file,
+                    maxBytes=5 * 1024 * 1024,  # 5 MB
+                    backupCount=3,
+                    encoding="utf-8"
+                )
             error_handler.setLevel(logging.ERROR)
             error_handler.setFormatter(detailed_formatter)
             self.logger.addHandler(error_handler)
+            # Restrict file permissions to owner-only
+            os.chmod(error_file, stat.S_IRUSR | stat.S_IWUSR)
         except (PermissionError, OSError) as e:
             print(f"Warning: Could not create error log file: {e}. Using console-only logging.")
 

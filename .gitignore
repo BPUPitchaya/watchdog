@@ -176,3 +176,4 @@ packet_data.json
 eda_plots/
 ollama_storage/
 data/
+.log_encryption_key
