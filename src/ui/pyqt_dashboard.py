@@ -10,8 +10,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 # Import logging
 from src.utils.logger import get_logger, get_user_message, log_exception
+from src.utils.crypto_utils import get_crypto
 
 logger = get_logger("pyqt_dashboard")
+crypto = get_crypto()
 
 
 # Function to get resource path for frozen executables
@@ -1366,9 +1368,8 @@ class WatchdogDashboard(QMainWindow):
     def load_flagged_incidents(self):
         # Load flagged incidents from packet_data.json
         try:
-            with open("packet_data.json") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+            data = crypto.read_encrypted_file("packet_data.json")
+        except (FileNotFoundError, Exception):
             data = {"packets": []}
 
         packets = data.get("packets", [])
@@ -1811,10 +1812,9 @@ class WatchdogDashboard(QMainWindow):
             # Use real network data in live mode
             current_packets = 0
             try:
-                with open("packet_data.json") as f:
-                    data = json.load(f)
+                data = crypto.read_encrypted_file("packet_data.json")
                 current_packets = data.get("packet_count", 0)
-            except (FileNotFoundError, json.JSONDecodeError):
+            except (FileNotFoundError, Exception):
                 data = {"packets": []}
 
         # Update LiveSentinelPage widgets
@@ -2263,10 +2263,9 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
 
         # Get packet count from file (fast)
         try:
-            with open("packet_data.json") as f:
-                data = json.load(f)
+            data = crypto.read_encrypted_file("packet_data.json")
             context["total_packets"] = data.get("packet_count", 0)
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, Exception):
             pass
 
         # Count attacks from table widget (fast, already calculated)

@@ -21,6 +21,9 @@ from src.ui.widgets import (
     RiskAnalysisGauge,
     SystemHealthGauge,
 )
+from src.utils.crypto_utils import get_crypto
+
+crypto = get_crypto()
 
 
 def get_system_ram():
@@ -78,11 +81,8 @@ class LiveSentinelPage(QWidget):
     def update_risk_analysis(self):
         """Update risk analysis with real packet data."""
         try:
-            import json
-
             # Read packet data for risk analysis
-            with open("packet_data.json") as f:
-                packet_data = json.load(f)
+            packet_data = crypto.read_encrypted_file("packet_data.json")
 
             packets = packet_data.get("packets", [])
             total_packets = packet_data.get("packet_count", 0)

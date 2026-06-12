@@ -15,8 +15,10 @@ from src.ml.feature_extractor import FeatureExtractor
 
 # Import logging
 from src.utils.logger import get_logger, get_user_message, log_exception
+from src.utils.crypto_utils import get_crypto
 
 logger = get_logger("sniffer_service")
+crypto = get_crypto()
 
 
 class SnifferService:
@@ -38,15 +40,13 @@ class SnifferService:
 
         # Load existing packet count if file exists
         try:
-            if os.path.exists(self.data_file):
-                with open(self.data_file) as f:
-                    data = json.load(f)
-                    self.packet_count = data.get("packet_count", 0)
-                    logger.info(f"Loaded existing packet count: {self.packet_count}")
-        except json.JSONDecodeError as e:
-            logger.warning(f"Corrupted packet data file, starting fresh: {e}")
+            if crypto.file_exists(self.data_file):
+                data = crypto.read_encrypted_file(self.data_file)
+                self.packet_count = data.get("packet_count", 0)
+                logger.info(f"Loaded existing packet count: {self.packet_count}")
         except Exception as e:
             log_exception(logger, "loading packet data", e)
+            logger.warning("Could not load encrypted packet data, starting fresh")
 
     def packet_callback(self, packet):
         """Callback function for each captured packet."""
@@ -237,8 +237,7 @@ class SnifferService:
         }
 
         try:
-            with open(self.data_file, "w") as f:
-                json.dump(data, f, indent=2)
+            crypto.write_encrypted_file(data, self.data_file)
         except PermissionError as e:
             log_exception(logger, "writing packet data", e, get_user_message("permission_denied"))
         except OSError as e:

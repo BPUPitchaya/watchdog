@@ -5,6 +5,9 @@ from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPaint
 from PyQt6.QtWidgets import QWidget
 
 from src.ui.theme import THEME
+from src.utils.crypto_utils import get_crypto
+
+crypto = get_crypto()
 
 
 class LiveTrafficWidget(QWidget):
@@ -47,8 +50,7 @@ class LiveTrafficWidget(QWidget):
         current_packets = 0
         packets = []
         try:
-            with open("packet_data.json") as f:
-                packet_data = json.load(f)
+            packet_data = crypto.read_encrypted_file("packet_data.json")
             current_packets = packet_data.get("packet_count", 0)
             packets = packet_data.get("packets", [])[-500:]
 

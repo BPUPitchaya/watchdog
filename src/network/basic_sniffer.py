@@ -18,8 +18,10 @@ from scapy.all import IP, sniff
 
 # Import logging
 from src.utils.logger import get_logger, get_user_message, log_exception
+from src.utils.crypto_utils import get_crypto
 
 logger = get_logger("basic_sniffer")
+crypto = get_crypto()
 
 
 class BasicSniffer:
@@ -35,15 +37,13 @@ class BasicSniffer:
 
         # Load existing packet count if file exists
         try:
-            if os.path.exists(self.data_file):
-                with open(self.data_file) as f:
-                    data = json.load(f)
-                    self.packet_count = data.get("packet_count", 0)
-                    logger.info(f"Loaded existing packet count: {self.packet_count}")
-        except json.JSONDecodeError as e:
-            logger.warning(f"Corrupted packet data file, starting fresh: {e}")
+            if crypto.file_exists(self.data_file):
+                data = crypto.read_encrypted_file(self.data_file)
+                self.packet_count = data.get("packet_count", 0)
+                logger.info(f"Loaded existing packet count: {self.packet_count}")
         except Exception as e:
             log_exception(logger, "loading packet data", e)
+            logger.warning("Could not load encrypted packet data, starting fresh")
 
     def packet_callback(self, packet) -> None:
         """Callback function for each captured packet."""
@@ -88,7 +88,7 @@ class BasicSniffer:
             logger.error(f"Failed to process packet: {e}")
 
     def write_data(self) -> None:
-        """Write packet data to shared file."""
+        """Write packet data to shared file with encryption."""
         # Keep only the last 100 packets in memory to avoid memory issues
         packets_to_save = (
             self.captured_packets[-100:]
@@ -103,8 +103,7 @@ class BasicSniffer:
         }
 
         try:
-            with open(self.data_file, "w") as f:
-                json.dump(data, f, indent=2)
+            crypto.write_encrypted_file(data, self.data_file)
         except PermissionError as e:
             log_exception(logger, "writing packet data", e, get_user_message("permission_denied"))
         except OSError as e:
