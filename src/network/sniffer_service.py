@@ -159,13 +159,13 @@ class SnifferService:
                     feature_names = names
                 features_list.append(selected_features)
 
-            # Convert to DataFrame with feature names for batch prediction
-            import pandas as pd
+            # Convert to numpy array without feature names to avoid sklearn warning
+            import numpy as np
 
-            features_df = pd.DataFrame(features_list, columns=feature_names)
+            features_array = np.array(features_list)
 
             # Batch prediction
-            predictions = self.model.predict(features_df)
+            predictions = self.model.predict(features_array)
             label_map = {0: "normal", 1: "attack"}
 
             # Process results and store packet info

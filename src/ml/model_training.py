@@ -276,7 +276,7 @@ def train_model(X_train, y_train):
         min_samples_split=10,
         min_samples_leaf=5,
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,  # Single-threaded to avoid multiprocessing semaphore leaks
         class_weight="balanced",
     )
 

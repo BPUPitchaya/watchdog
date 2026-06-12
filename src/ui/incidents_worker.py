@@ -27,11 +27,12 @@ class IncidentsWorker(QThread):
                 }
                 features = self.extractor.extract_packet_features(packet_data)
                 selected_features, feature_names = self.extractor.get_selected_features(features)
-                import pandas as pd
+                import numpy as np
 
-                features_df = pd.DataFrame([selected_features], columns=feature_names)
-                prediction = self.model.predict(features_df)[0]
-                probabilities = self.model.predict_proba(features_df)[0]
+                # Use numpy array without feature names to avoid sklearn warning
+                features_array = np.array([selected_features])
+                prediction = self.model.predict(features_array)[0]
+                probabilities = self.model.predict_proba(features_array)[0]
                 confidence = max(probabilities) * 100
 
                 # Flag if ATTACK prediction OR low confidence (< 60%)

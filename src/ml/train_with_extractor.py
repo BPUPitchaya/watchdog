@@ -86,7 +86,7 @@ def train_model(X_train, y_train):
         min_samples_split=10,  # Higher threshold for better generalization
         min_samples_leaf=5,  # Higher threshold for better generalization
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,  # Single-threaded to avoid multiprocessing semaphore leaks
         class_weight="balanced",  # Balanced weights for both classes
     )
 
