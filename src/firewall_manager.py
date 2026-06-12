@@ -152,6 +152,24 @@ class FirewallManager:
             log_exception(logger, "getting blocked IPs", e)
             return []
 
+    def clear_all_blocked_ips(self) -> bool:
+        """Clear all blocked IPs from the pf table."""
+        try:
+            result = self._run_pfctl(["-t", self.table_name, "-T", "flush"])
+            if result is not None:
+                self.blocked_ips.clear()
+                # Cancel all timers
+                for timer in self.timers.values():
+                    timer.cancel()
+                self.timers.clear()
+                logger.info("Cleared all blocked IPs")
+                print("Cleared all blocked IPs")
+                return True
+            return False
+        except Exception as e:
+            log_exception(logger, "clearing blocked IPs", e)
+            return False
+
     def _is_valid_ip(self, ip: str) -> bool:
         """Basic IP validation."""
         parts = ip.split(".")

@@ -158,7 +158,7 @@ class AIMentorPage:
                 "phi4 (~6GB RAM - Best Quality)",
             ]
         )
-        self.model_selector.setCurrentIndex(1)  # Default to 3b
+        self.model_selector.setCurrentIndex(0)  # Default to 1b for stability
         self.model_selector.setStyleSheet(f"""
             QComboBox {{
                 background-color: {THEME['bg_dark']};
@@ -324,7 +324,7 @@ Analyzed: 1,247 packets""")
         diagnostics_layout.addWidget(actions_header)
 
         # Action buttons
-        for action_text in ["Analyze Last Threat", "Generate Report", "Export Logs", "Decrypt Logs"]:
+        for action_text in ["Analyze Last Threat", "Generate Report", "Export Logs", "Decrypt Logs", "Test Threat"]:
             btn = QPushButton(action_text)
             btn.setStyleSheet(f"""
                 QPushButton {{
@@ -351,11 +351,14 @@ Analyzed: 1,247 packets""")
                 btn.setToolTip("Step 2: Decrypt exported logs using the encryption key (requires key file)")
                 btn.clicked.connect(self._decrypt_logs)
             elif action_text == "Analyze Last Threat":
-                btn.setToolTip("Analyze the most recent detected threat (coming soon)")
+                btn.setToolTip("Analyze the most recent detected threat using AI for detailed explanation")
                 btn.clicked.connect(self._analyze_last_threat)
             elif action_text == "Generate Report":
-                btn.setToolTip("Generate a security report (coming soon)")
+                btn.setToolTip("Generate a text security report with packet stats, incidents, and blocked IPs")
                 btn.clicked.connect(self._generate_report)
+            elif action_text == "Test Threat":
+                btn.setToolTip("Create a mock threat for testing the analyze feature (development only)")
+                btn.clicked.connect(self._create_test_threat)
             diagnostics_layout.addWidget(btn)
 
         diagnostics_layout.addStretch()
@@ -393,6 +396,9 @@ Analyzed: 1,247 packets""")
         # Add AI response to shared history (skip if async processing)
         if ai_response != "__AI_PROCESSING__":
             self.dashboard.add_chat_message("ai", ai_response)
+        else:
+            # Add "AI is thinking..." message for async processing
+            self._add_system_message("AI is thinking...")
 
         # Scroll to bottom
         self.mentor_chat_area.verticalScrollBar().setValue(
@@ -767,12 +773,192 @@ Analyzed: 1,247 packets""")
             )
 
     def _analyze_last_threat(self):
-        """Analyze the last detected threat (placeholder)."""
-        self._add_system_message("Analyze Last Threat feature coming soon")
+        """Analyze the last detected threat using AI."""
+        try:
+            # Check if AI client is available
+            if not hasattr(self.dashboard, 'ai_client') or not self.dashboard.ai_client:
+                self._add_system_message("AI client not available. Make sure Ollama is running on port 11434.")
+                return
+
+            # Check if there are any flagged incidents
+            if not hasattr(self.dashboard, 'flagged_incidents') or not self.dashboard.flagged_incidents:
+                self._add_system_message("No threats have been detected yet. Click 'Test Threat' to create a mock threat for testing.")
+                return
+
+            # Send simple message to AI - let AI retrieve and describe the threat
+            self.mentor_input.setText("Analyze Last Threat")
+            self._send_mentor_message()
+
+        except Exception as e:
+            self._add_system_message(f"Failed to analyze last threat: {str(e)}")
+            print(f"[ERROR] Analyze threat failed: {e}")
+
+    def _create_test_threat(self):
+        """Create a mock threat for testing the analyze feature."""
+        try:
+            from datetime import datetime
+
+            # Create a mock threat
+            test_threat = {
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'attack_type': 'DDoS Attack',
+                'source_ip': '192.0.2.100',
+                'destination_ip': '172.16.40.116',
+                'protocol': 'TCP',
+                'confidence': 85,
+                'action': 'Blocked',
+                'description': 'High volume of SYN packets detected from single source'
+            }
+
+            # Add to dashboard's flagged incidents
+            if not hasattr(self.dashboard, 'flagged_incidents'):
+                self.dashboard.flagged_incidents = []
+            
+            self.dashboard.flagged_incidents.insert(0, test_threat)  # Add at beginning
+
+            self._add_system_message(f"Test threat created: {test_threat['attack_type']} from {test_threat['source_ip']}")
+            self._add_system_message("Click 'Analyze Last Threat' to analyze this test threat with AI.")
+
+        except Exception as e:
+            self._add_system_message(f"Failed to create test threat: {str(e)}")
 
     def _generate_report(self):
-        """Generate security report (placeholder)."""
-        self._add_system_message("Generate Report feature coming soon")
+        """Generate a simple text security report."""
+        try:
+            from datetime import datetime
+            from src.utils.crypto_utils import PacketDataCrypto
+
+            # Ask user where to save the report
+            report_path, _ = QFileDialog.getSaveFileName(
+                self.dashboard,
+                "Save Security Report",
+                str(Path.home() / f"watchdog_security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"),
+                "Text Files (*.txt)"
+            )
+
+            if not report_path:
+                return  # User cancelled
+
+            # Generate report content
+            report_lines = []
+            report_lines.append("=" * 60)
+            report_lines.append("WATCHDOG SECURITY REPORT")
+            report_lines.append("=" * 60)
+            report_lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            report_lines.append("")
+
+            # Packet statistics
+            report_lines.append("-" * 60)
+            report_lines.append("PACKET STATISTICS")
+            report_lines.append("-" * 60)
+            try:
+                crypto = PacketDataCrypto()
+                if crypto.file_exists("packet_data.json"):
+                    packet_data = crypto.read_encrypted_file("packet_data.json")
+                    if packet_data:
+                        total_packets = packet_data.get("total_packets", 0)
+                        report_lines.append(f"Total Packets Captured: {total_packets}")
+                        
+                        # Get recent packets
+                        packets = packet_data.get("packets", [])
+                        report_lines.append(f"Logged Packets in Database: {len(packets)}")
+                        
+                        # Protocol breakdown
+                        protocols = {}
+                        for pkt in packets:
+                            protocol = pkt.get("protocol", "UNKNOWN")
+                            protocols[protocol] = protocols.get(protocol, 0) + 1
+                        
+                        report_lines.append("")
+                        report_lines.append("Protocol Breakdown:")
+                        for protocol, count in sorted(protocols.items(), key=lambda x: x[1], reverse=True):
+                            report_lines.append(f"  {protocol}: {count}")
+                    else:
+                        report_lines.append("No packet data available")
+                else:
+                    report_lines.append("No packet data file found")
+            except Exception as e:
+                report_lines.append(f"Error loading packet data: {e}")
+            
+            report_lines.append("")
+
+            # Flagged incidents
+            report_lines.append("-" * 60)
+            report_lines.append("FLAGGED INCIDENTS")
+            report_lines.append("-" * 60)
+            try:
+                if hasattr(self.dashboard, 'flagged_incidents'):
+                    incidents = self.dashboard.flagged_incidents
+                    report_lines.append(f"Total Flagged Incidents: {len(incidents)}")
+                    
+                    if incidents:
+                        report_lines.append("")
+                        report_lines.append("Recent Incidents (Last 10):")
+                        for i, incident in enumerate(incidents[:10], 1):
+                            report_lines.append(f"  {i}. {incident.get('timestamp', 'N/A')} - {incident.get('attack_type', 'Unknown')}")
+                            report_lines.append(f"     Source: {incident.get('source_ip', 'N/A')}")
+                            report_lines.append(f"     Confidence: {incident.get('confidence', 0)}%")
+                            report_lines.append("")
+                    else:
+                        report_lines.append("No flagged incidents recorded")
+                else:
+                    report_lines.append("Incident data not available")
+            except Exception as e:
+                report_lines.append(f"Error loading incident data: {e}")
+            
+            report_lines.append("")
+
+            # Blocked IPs
+            report_lines.append("-" * 60)
+            report_lines.append("BLOCKED IPs")
+            report_lines.append("-" * 60)
+            try:
+                if hasattr(self.dashboard, 'firewall_manager'):
+                    blocked_ips = self.dashboard.firewall_manager.get_blocked_ips()
+                    report_lines.append(f"Total Blocked IPs: {len(blocked_ips)}")
+                    
+                    if blocked_ips:
+                        report_lines.append("")
+                        report_lines.append("Blocked IP List:")
+                        for i, ip_info in enumerate(blocked_ips, 1):
+                            # Handle both string IPs and dictionary objects
+                            if isinstance(ip_info, str):
+                                report_lines.append(f"  {i}. {ip_info}")
+                            elif isinstance(ip_info, dict):
+                                report_lines.append(f"  {i}. {ip_info.get('ip', 'N/A')} - Blocked {ip_info.get('block_count', 0)} times")
+                            else:
+                                report_lines.append(f"  {i}. {str(ip_info)}")
+                    else:
+                        report_lines.append("No IPs currently blocked")
+                else:
+                    report_lines.append("Firewall data not available")
+            except Exception as e:
+                report_lines.append(f"Error loading firewall data: {e}")
+            
+            report_lines.append("")
+            report_lines.append("=" * 60)
+            report_lines.append("END OF REPORT")
+            report_lines.append("=" * 60)
+
+            # Write report to file
+            with open(report_path, 'w') as f:
+                f.write('\n'.join(report_lines))
+
+            # Show success message
+            QMessageBox.information(
+                self.dashboard,
+                "Report Generated",
+                f"Security report saved to:\n{report_path}"
+            )
+
+            self._add_system_message(f"Generated security report: {Path(report_path).name}")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self.dashboard,
+                "Report Generation Failed",
+                f"Failed to generate report: {str(e)}"
+            )
 
     def _decrypt_logs(self):
         """Decrypt exported log files using the encryption key."""

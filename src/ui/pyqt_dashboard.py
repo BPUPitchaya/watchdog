@@ -638,7 +638,8 @@ class WatchdogDashboard(QMainWindow):
             print("Packet sniffer started")
 
         # Initialize attributes
-        self.model = None
+        self.model = None  # ML model (RandomForestClassifier)
+        self.ai_model_name = "llama3.2:1b"  # Ollama model name
         self.extractor = None
         self.ai_client = None
         self.previous_packets = 0
@@ -678,7 +679,7 @@ class WatchdogDashboard(QMainWindow):
             if not self.no_ai:
                 try:
                     # Check if Ollama is installed and running
-                    installer = OllamaInstaller(model=self.model)
+                    installer = OllamaInstaller(model=self.ai_model_name)
 
                     if not installer.is_ollama_installed():
                         print("Ollama not found. AI features will be disabled.")
@@ -689,12 +690,12 @@ class WatchdogDashboard(QMainWindow):
                         print("Please start Ollama application/service.")
                         self.ai_client = None
                     elif not installer.is_model_available():
-                        print(f"Model {self.model} not found. Pulling it now...")
+                        print(f"Model {self.ai_model_name} not found. Pulling it now...")
                         installer.pull_model()
-                        self.ai_client = OllamaClient(model=self.model)
+                        self.ai_client = OllamaClient(model=self.ai_model_name)
                     else:
-                        self.ai_client = OllamaClient(model=self.model)
-                        print(f"AI initialized with model: {self.model}")
+                        self.ai_client = OllamaClient(model=self.ai_model_name)
+                        print(f"AI initialized with model: {self.ai_model_name}")
                 except Exception as e:
                     print(f"AI initialization failed: {e}")
                     self.ai_client = None
@@ -1281,7 +1282,7 @@ class WatchdogDashboard(QMainWindow):
                 if not self.ai_client:
                     try:
                         # Check if Ollama is installed and running
-                        installer = OllamaInstaller(model=self.model)
+                        installer = OllamaInstaller(model=self.ai_model_name)
 
                         if not installer.is_ollama_installed():
                             log_exception(
@@ -1323,15 +1324,15 @@ class WatchdogDashboard(QMainWindow):
                             self.ai_toggle_btn.setChecked(False)
                             return
                         elif not installer.is_model_available():
-                            logger.info(f"Model {self.model} not found. Pulling it now...")
-                            print(f"Model {self.model} not found. Pulling it now...")
+                            logger.info(f"Model {self.ai_model_name} not found. Pulling it now...")
+                            print(f"Model {self.ai_model_name} not found. Pulling it now...")
                             installer.pull_model()
-                            self.ai_client = OllamaClient(model=self.model)
-                            logger.info(f"AI enabled with model: {self.model}")
+                            self.ai_client = OllamaClient(model=self.ai_model_name)
+                            logger.info(f"AI enabled with model: {self.ai_model_name}")
                         else:
-                            self.ai_client = OllamaClient(model=self.model)
-                            logger.info(f"AI enabled with model: {self.model}")
-                            print(f"AI enabled with model: {self.model}")
+                            self.ai_client = OllamaClient(model=self.ai_model_name)
+                            logger.info(f"AI enabled with model: {self.ai_model_name}")
+                            print(f"AI enabled with model: {self.ai_model_name}")
                     except Exception as e:
                         log_exception(logger, "initializing AI", e, get_user_message("ui_error"))
                         from PyQt6.QtWidgets import QMessageBox
@@ -2218,6 +2219,75 @@ Auto-refresh: Every 2 seconds"""
             except Exception as e:
                 return f"Error processing log: {str(e)}"
 
+        elif "analyze last threat" in msg_lower:
+            # Handle "Analyze Last Threat" command
+            if not hasattr(self, 'flagged_incidents') or not self.flagged_incidents:
+                return "No threats have been detected yet. Click 'Test Threat' in AI Mentor to create a mock threat for testing."
+            
+            # Get the most recent threat
+            last_threat = self.flagged_incidents[0]
+            
+            # Debug: print what keys are in the threat
+            print(f"[DEBUG] Threat keys: {list(last_threat.keys()) if isinstance(last_threat, dict) else 'Not a dict'}")
+            
+            # Safely extract only serializable data
+            def safe_str(value, default='N/A'):
+                try:
+                    if value is None:
+                        return default
+                    # Skip complex objects
+                    if hasattr(value, '__class__') and 'RandomForest' in str(type(value)):
+                        return default
+                    return str(value)
+                except:
+                    return default
+            
+            def safe_int(value, default=0):
+                try:
+                    if value is None:
+                        return default
+                    if isinstance(value, (int, float)):
+                        return int(value)
+                    return default
+                except:
+                    return default
+            
+            timestamp = safe_str(last_threat.get('timestamp'))
+            attack_type = safe_str(last_threat.get('attack_type', 'Unknown'))
+            source_ip = safe_str(last_threat.get('source_ip'))
+            destination_ip = safe_str(last_threat.get('destination_ip'))
+            protocol = safe_str(last_threat.get('protocol'))
+            confidence = safe_int(last_threat.get('confidence'))
+            action = safe_str(last_threat.get('action'))
+            description = safe_str(last_threat.get('description'))
+            
+            # Format threat details for AI
+            threat_details = f"""
+Last Detected Threat:
+- Timestamp: {timestamp}
+- Attack Type: {attack_type}
+- Source IP: {source_ip}
+- Destination IP: {destination_ip}
+- Protocol: {protocol}
+- Confidence Score: {confidence}%
+- Action Taken: {action}
+- Description: {description}
+
+Please analyze this threat for a business owner or manager (non-technical audience). Your response should:
+
+1. Explain what happened in simple, non-technical language
+2. Describe the potential business impact (data loss, downtime, reputation, etc.)
+3. Provide clear, actionable steps they can take to protect their business
+4. Explain whether this is a serious threat or something minor
+5. Use plain English - avoid technical jargon, acronyms, or complex terminology
+6. Format with bullet points and clear headings for easy reading
+
+Keep the tone helpful, reassuring, and practical. Focus on what matters most to running a business safely.
+"""
+            
+            self._start_ai_query(threat_details)
+            return "__AI_PROCESSING__"
+
         # Catch-all for general security questions (works without AI)
         elif any(word in msg_lower for word in ["how", "what", "why", "can", "should", "do i"]):
             return """I can help with security topics. Try these commands:
@@ -2379,6 +2449,7 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
 
     def update_ai_model(self, model_name):
         """Update AI model used by OllamaClient."""
+        self.ai_model_name = model_name  # Store for future AI client initialization
         if self.ai_client:
             self.ai_client.model = model_name
         else:

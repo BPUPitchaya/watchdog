@@ -12,7 +12,7 @@ class AIWidget(QWidget):
     def __init__(self, dashboard):
         super().__init__()
         self.dashboard = dashboard
-        self.current_model = "llama3.2:3b"  # Default model
+        self.current_model = "llama3.2:1b"  # Default model for stability
         self.setup_ui()
 
     def setup_ui(self):

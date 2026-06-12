@@ -392,7 +392,7 @@ class SettingsPage:
 
         self.model_combo = QComboBox()
         self.model_combo.addItems(["Llama 3.2 (1B)", "Llama 3.2 (3B)", "Llama 3 (8B)", "Phi-4"])
-        self.model_combo.setCurrentIndex(1)  # Default to 3B
+        self.model_combo.setCurrentIndex(0)  # Default to 1B for stability
         self.model_combo.setMinimumHeight(35)
         self.model_combo.setStyleSheet(f"""
             QComboBox {{
@@ -979,6 +979,50 @@ class SettingsPage:
         """)
         autoblock_layout.addWidget(autoblock_toggle)
         security_layout.addWidget(autoblock_container)
+
+        # Clear Blocked IPs button
+        clear_ips_container = QWidget()
+        clear_ips_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
+        clear_ips_layout = QVBoxLayout(clear_ips_container)
+        clear_ips_layout.setSpacing(8)
+
+        clear_ips_label = QLabel("Firewall Management")
+        clear_ips_label.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+        clear_ips_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        clear_ips_layout.addWidget(clear_ips_label)
+
+        clear_ips_hint = QLabel("Clear all blocked IP addresses from the firewall")
+        clear_ips_hint.setFont(QFont(THEME["font_mono"].strip("'"), 9))
+        clear_ips_hint.setStyleSheet(f"color: {THEME['text_secondary']};")
+        clear_ips_layout.addWidget(clear_ips_hint)
+
+        clear_ips_btn = QPushButton("Clear All Blocked IPs")
+        clear_ips_btn.setMinimumHeight(40)
+        clear_ips_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['danger']};
+                border: none;
+                border-radius: 6px;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: #c0392b;
+            }}
+        """)
+        clear_ips_btn.clicked.connect(self._on_clear_blocked_ips)
+        clear_ips_layout.addWidget(clear_ips_btn)
+
+        security_layout.addWidget(clear_ips_container)
         security_layout.addStretch()
 
         return security_tab
@@ -1214,6 +1258,110 @@ class SettingsPage:
         shortcuts_layout.addWidget(scroll_area)
 
         return shortcuts_tab
+
+    def _on_clear_blocked_ips(self):
+        """Handle Clear Blocked IPs button click with double confirmation."""
+        try:
+            # First confirmation
+            confirm1 = QMessageBox(self.dashboard)
+            confirm1.setWindowTitle("Clear All Blocked IPs")
+            confirm1.setText("Are you sure you want to clear all blocked IP addresses?")
+            confirm1.setInformativeText("This will remove all IPs from the firewall block list. This action cannot be undone.")
+            confirm1.setIcon(QMessageBox.Icon.Warning)
+            confirm1.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            confirm1.setDefaultButton(QMessageBox.StandardButton.No)
+            confirm1.setStyleSheet(f"""
+                QMessageBox {{
+                    background-color: {THEME['bg_dark']};
+                }}
+                QLabel {{
+                    color: {THEME['text_primary']};
+                    font-size: 13px;
+                }}
+                QPushButton {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['secondary']};
+                }}
+            """)
+            
+            result1 = confirm1.exec()
+            
+            if result1 != QMessageBox.StandardButton.Yes:
+                return  # User cancelled
+            
+            # Second confirmation
+            confirm2 = QMessageBox(self.dashboard)
+            confirm2.setWindowTitle("CONFIRM: Clear All Blocked IPs")
+            confirm2.setText("This is your last chance to cancel!")
+            confirm2.setInformativeText("All blocked IPs will be permanently removed from the firewall. Type 'YES' to confirm.")
+            confirm2.setIcon(QMessageBox.Icon.Critical)
+            confirm2.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            confirm2.setDefaultButton(QMessageBox.StandardButton.No)
+            confirm2.setStyleSheet(f"""
+                QMessageBox {{
+                    background-color: {THEME['bg_dark']};
+                }}
+                QLabel {{
+                    color: {THEME['text_primary']};
+                    font-size: 13px;
+                }}
+                QPushButton {{
+                    background-color: {THEME['danger']};
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #c0392b;
+                }}
+            """)
+            
+            result2 = confirm2.exec()
+            
+            if result2 != QMessageBox.StandardButton.Yes:
+                return  # User cancelled
+            
+            # Actually clear the IPs
+            if hasattr(self.dashboard, 'firewall_manager'):
+                success = self.dashboard.firewall_manager.clear_all_blocked_ips()
+                if success:
+                    QMessageBox.information(
+                        self.dashboard,
+                        "Success",
+                        "All blocked IPs have been cleared from the firewall."
+                    )
+                else:
+                    QMessageBox.critical(
+                        self.dashboard,
+                        "Error",
+                        "Failed to clear blocked IPs. Check console for details."
+                    )
+            else:
+                QMessageBox.warning(
+                    self.dashboard,
+                    "Not Available",
+                    "Firewall manager is not available."
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self.dashboard,
+                "Error",
+                f"An error occurred: {str(e)}"
+            )
 
     def _on_model_changed(self, index=None):
         """Handle AI model selection change."""

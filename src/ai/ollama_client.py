@@ -7,7 +7,7 @@ import requests
 class OllamaClient:
     def __init__(
         self,
-        model: str = "llama3.2:3b",
+        model: str = "llama3.2:1b",
         base_url: str = "http://localhost:11434",
         keep_alive: int = 30,
         context_window: int = 1024,

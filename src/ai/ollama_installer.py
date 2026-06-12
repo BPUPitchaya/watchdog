@@ -12,7 +12,7 @@ import urllib.request
 class OllamaInstaller:
     """Handles automatic Ollama installation and setup."""
 
-    def __init__(self, model="llama3.2:3b"):
+    def __init__(self, model="llama3.2:1b"):
         self.model = model
         self.platform = platform.system()
         self.arch = platform.machine()

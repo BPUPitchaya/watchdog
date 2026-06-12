@@ -99,7 +99,7 @@ class ForensicAssistantPanel(QWidget):
                 "phi4 (~6GB RAM - Best Quality)",
             ]
         )
-        self.model_selector.setCurrentIndex(1)  # Default to 3b
+        self.model_selector.setCurrentIndex(0)  # Default to 1b for stability
         self.model_selector.setStyleSheet(f"""
             QComboBox {{
                 background-color: {THEME['bg_dark']};
