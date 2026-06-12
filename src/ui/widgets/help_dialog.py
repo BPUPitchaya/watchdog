@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -224,7 +225,31 @@ class HelpDialog(QDialog):
 
         layout.addSpacing(10)
 
-        # Explanation content area
+        # Explanation content area with scroll
+        scroll_area = QScrollArea()
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+            }}
+            QScrollBar:vertical {{
+                background-color: {THEME['bg_card']};
+                width: 10px;
+                border-radius: 5px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {THEME['border']};
+                border-radius: 5px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {THEME['text_secondary']};
+            }}
+        """)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
         content_widget = QWidget()
         content_widget.setStyleSheet(f"""
             background-color: {THEME['bg_dark']};
@@ -258,7 +283,9 @@ class HelpDialog(QDialog):
         self.explanation_text.setWordWrap(True)
         content_layout.addWidget(self.explanation_text)
 
-        layout.addWidget(content_widget)
+        content_layout.addStretch()
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area, stretch=1)
 
         layout.addStretch()
 
