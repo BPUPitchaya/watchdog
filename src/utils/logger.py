@@ -9,8 +9,9 @@ import re
 import stat
 import sys
 from datetime import datetime
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
 from cryptography.fernet import Fernet
 
 # Redirection for stdout/stderr when running without a console
@@ -38,47 +39,51 @@ if sys.stderr is None:
 
 class SanitizingFormatter(logging.Formatter):
     """Custom formatter that redacts sensitive data from log messages"""
-    
+
     # Patterns to redact
-    IP_PATTERN = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
-    IPV6_PATTERN = re.compile(r'\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b')
-    MAC_PATTERN = re.compile(r'\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b')
-    PORT_PATTERN = re.compile(r':(\d{1,5})\b')
-    
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+    IPV6_PATTERN = re.compile(r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b")
+    MAC_PATTERN = re.compile(r"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b")
+    PORT_PATTERN = re.compile(r":(\d{1,5})\b")
+
+    def __init__(self, fmt=None, datefmt=None, style="%"):
         super().__init__(fmt, datefmt, style)
-    
+
     def format(self, record):
         message = super().format(record)
         # Redact IPs
-        message = self.IP_PATTERN.sub('[REDACTED_IP]', message)
-        message = self.IPV6_PATTERN.sub('[REDACTED_IPV6]', message)
+        message = self.IP_PATTERN.sub("[REDACTED_IP]", message)
+        message = self.IPV6_PATTERN.sub("[REDACTED_IPV6]", message)
         # Redact MAC addresses
-        message = self.MAC_PATTERN.sub('[REDACTED_MAC]', message)
+        message = self.MAC_PATTERN.sub("[REDACTED_MAC]", message)
+
         # Redact ports (keep common ones, redact others)
         def redact_port(match):
             port = int(match.group(1))
             if port in [80, 443, 22, 53, 21, 25, 110, 143, 993, 995]:
                 return match.group(0)  # Keep common ports
-            return f':[REDACTED_PORT]'
+            return ":[REDACTED_PORT]"
+
         message = self.PORT_PATTERN.sub(redact_port, message)
         return message
 
 
 class EncryptedFileHandler(RotatingFileHandler):
     """File handler that encrypts log entries before writing"""
-    
-    def __init__(self, filename, key, mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False):
+
+    def __init__(
+        self, filename, key, mode="a", maxBytes=0, backupCount=0, encoding=None, delay=False
+    ):
         super().__init__(filename, mode, maxBytes, backupCount, encoding, delay)
         self.cipher = Fernet(key)
-    
+
     def emit(self, record):
         try:
             msg = self.format(record)
             # Encrypt the message
             encrypted_msg = self.cipher.encrypt(msg.encode(self.encoding))
             # Write to file with newline
-            self.stream.write(encrypted_msg.decode('ascii') + '\n')
+            self.stream.write(encrypted_msg.decode("ascii") + "\n")
             self.stream.flush()
         except Exception:
             self.handleError(record)
@@ -86,26 +91,26 @@ class EncryptedFileHandler(RotatingFileHandler):
 
 class KeyManager:
     """Manages encryption key generation and storage"""
-    
+
     def __init__(self, key_dir: str = "logs"):
         self.key_dir = Path(key_dir)
         self.key_file = self.key_dir / ".log_encryption_key"
         self._ensure_key()
-    
+
     def _ensure_key(self):
         """Generate or load encryption key"""
         self.key_dir.mkdir(parents=True, exist_ok=True)
-        
+
         if self.key_file.exists():
-            with open(self.key_file, 'rb') as f:
+            with open(self.key_file, "rb") as f:
                 self.key = f.read()
         else:
             self.key = Fernet.generate_key()
-            with open(self.key_file, 'wb') as f:
+            with open(self.key_file, "wb") as f:
                 f.write(self.key)
             # Restrict key file permissions
             os.chmod(self.key_file, stat.S_IRUSR | stat.S_IWUSR)
-    
+
     def get_key(self) -> bytes:
         """Get the encryption key"""
         return self.key
@@ -114,7 +119,13 @@ class KeyManager:
 class WatchdogLogger:
     """Centralized logging configuration for WATCHDOG application"""
 
-    def __init__(self, log_dir: str = "logs", app_name: str = "watchdog", enable_encryption: bool = True, enable_sanitization: bool = True):
+    def __init__(
+        self,
+        log_dir: str = "logs",
+        app_name: str = "watchdog",
+        enable_encryption: bool = True,
+        enable_sanitization: bool = True,
+    ):
         """
         Initialize logger with file and console handlers
 
@@ -180,14 +191,11 @@ class WatchdogLogger:
                     key=self.key_manager.get_key(),
                     maxBytes=10 * 1024 * 1024,  # 10 MB
                     backupCount=5,
-                    encoding="utf-8"
+                    encoding="utf-8",
                 )
             else:
                 file_handler = RotatingFileHandler(
-                    log_file,
-                    maxBytes=10 * 1024 * 1024,  # 10 MB
-                    backupCount=5,
-                    encoding="utf-8"
+                    log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10 MB
                 )
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(detailed_formatter)
@@ -208,14 +216,11 @@ class WatchdogLogger:
                     key=self.key_manager.get_key(),
                     maxBytes=5 * 1024 * 1024,  # 5 MB
                     backupCount=3,
-                    encoding="utf-8"
+                    encoding="utf-8",
                 )
             else:
                 error_handler = RotatingFileHandler(
-                    error_file,
-                    maxBytes=5 * 1024 * 1024,  # 5 MB
-                    backupCount=3,
-                    encoding="utf-8"
+                    error_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"  # 5 MB
                 )
             error_handler.setLevel(logging.ERROR)
             error_handler.setFormatter(detailed_formatter)

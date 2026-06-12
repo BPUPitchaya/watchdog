@@ -510,7 +510,7 @@ class SimulationController(QWidget):
         self.lbl_rate.setStyleSheet("color: #76D7EA; font-weight: bold; font-size: 12px;")
         self.lbl_threat = QLabel("Threat: None")
         self.lbl_threat.setStyleSheet("color: #FF4C4C; font-weight: bold; font-size: 12px;")
-        
+
         stats_layout.addWidget(self.lbl_packets)
         stats_layout.addSpacing(20)
         stats_layout.addWidget(self.lbl_rate)
@@ -521,6 +521,7 @@ class SimulationController(QWidget):
 
         # Progress bar
         from PyQt6.QtWidgets import QProgressBar
+
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet("""
             QProgressBar {
@@ -541,13 +542,13 @@ class SimulationController(QWidget):
 
         # Split log display into technical and plain English
         log_split = QHBoxLayout()
-        
+
         # Technical log
         tech_container = QVBoxLayout()
         tech_label = QLabel("Technical Log")
         tech_label.setStyleSheet("color: #9B59B6; font-size: 12px; font-weight: bold;")
         tech_container.addWidget(tech_label)
-        
+
         self.packet_log = QTextEdit()
         self.packet_log.setObjectName("LogDisplay")
         self.packet_log.setReadOnly(True)
@@ -555,13 +556,13 @@ class SimulationController(QWidget):
             "Attack packets will appear here in real-time when simulation starts..."
         )
         tech_container.addWidget(self.packet_log)
-        
+
         # Plain English summary
         summary_container = QVBoxLayout()
         summary_label = QLabel("Plain English Summary")
         summary_label.setStyleSheet("color: #22C55E; font-size: 12px; font-weight: bold;")
         summary_container.addWidget(summary_label)
-        
+
         self.summary_log = QTextEdit()
         self.summary_log.setObjectName("LogDisplay")
         self.summary_log.setReadOnly(True)
@@ -570,7 +571,7 @@ class SimulationController(QWidget):
         )
         self.summary_log.setMaximumHeight(200)
         summary_container.addWidget(self.summary_log)
-        
+
         log_split.addLayout(tech_container, 2)
         log_split.addLayout(summary_container, 1)
         content_layout.addLayout(log_split)
@@ -611,9 +612,9 @@ class SimulationController(QWidget):
             packet_count = len(template.get("packets", []))
             interval = template.get("interval", 100)
             duration = (packet_count * interval) / 1000  # in seconds
-            
+
             from PyQt6.QtWidgets import QMessageBox
-            
+
             msg = QMessageBox(self)
             msg.setWindowTitle("Simulation Preview")
             msg.setIcon(QMessageBox.Icon.Information)
@@ -630,8 +631,10 @@ class SimulationController(QWidget):
 This will simulate a {threat_name} attack in a safe environment.
 No real harm will occur to your system.
             """)
-            msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-            
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+            )
+
             if msg.exec() == QMessageBox.StandardButton.Ok:
                 self.engine.start_simulation(threat_name)
                 # Show quick start guide on first use
@@ -655,8 +658,8 @@ No real harm will occur to your system.
 
     def _show_quick_start_guide(self):
         """Show quick start guide overlay."""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame
-        
+        from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
+
         guide = QDialog(self)
         guide.setWindowTitle("Quick Start Guide")
         guide.setFixedSize(500, 400)
@@ -680,14 +683,14 @@ No real harm will occur to your system.
                 background-color: #5BA4B3;
             }
         """)
-        
+
         layout = QVBoxLayout(guide)
         layout.setSpacing(15)
-        
+
         title = QLabel("🎯 Security Sandbox Quick Start")
         title.setStyleSheet("color: #76D7EA; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
-        
+
         steps = QLabel("""
 <strong>How to use the Simulation Sandbox:</strong>
 
@@ -713,11 +716,11 @@ No real harm will occur to your system.
         """)
         steps.setWordWrap(True)
         layout.addWidget(steps)
-        
+
         btn = QPushButton("Got it, let's start!")
         btn.clicked.connect(guide.accept)
         layout.addWidget(btn)
-        
+
         guide.exec()
 
     def _stop_attack(self):
@@ -735,26 +738,26 @@ No real harm will occur to your system.
         self.btn_pause.setEnabled(True)
         self.packet_log.clear()
         self.summary_log.clear()
-        
+
         # Reset stats
         self.packet_count = 0
         self.start_time = None
         self.packets_per_sec = 0
         self.last_update_time = None
-        
+
         # Setup progress bar
         template = self.engine.templates.get(threat_name, {})
         total_packets = len(template.get("packets", []))
         self.progress_bar.setMaximum(total_packets)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
-        
+
         self.packet_log.append(f"{'='*50}")
         self.packet_log.append(f"STARTING: {threat_name} Attack Simulation")
         self.packet_log.append(f"Description: {desc}")
         self.packet_log.append(f"Total packets: {total_packets}")
         self.packet_log.append(f"{'='*50}\n")
-        
+
         self.summary_log.append(f"{'='*50}")
         self.summary_log.append(f"Starting {threat_name} simulation")
         self.summary_log.append(f"{'='*50}\n")
@@ -770,17 +773,17 @@ No real harm will occur to your system.
         self.btn_pause.setText("⏸Pause")
         self.is_paused = False
         self.progress_bar.setVisible(False)
-        
+
         self.packet_log.append(f"\n{'='*50}")
         self.packet_log.append(f"SIMULATION ENDED: {threat_name}")
         self.packet_log.append(f"Total packets injected: {self.packet_count}")
         self.packet_log.append(f"{'='*50}\n")
-        
+
         self.summary_log.append(f"\n{'='*50}")
         self.summary_log.append(f"Simulation complete: {threat_name}")
         self.summary_log.append(f"Total threats detected: {self.packet_count}")
         self.summary_log.append(f"{'='*50}\n")
-        
+
         # Flash dashboard alert
         if self.dashboard and hasattr(self.dashboard, "show_toast"):
             self.dashboard.show_toast(
@@ -796,42 +799,42 @@ No real harm will occur to your system.
         proto = packet.get("protocol", "UNKNOWN")
         threat = packet.get("threat_type", "UNKNOWN")
         port = packet.get("port", "-")
-        
+
         # Update stats
         self.packet_count += 1
         if self.start_time is None:
             self.start_time = datetime.now()
         current_time = datetime.now()
-        
+
         # Calculate packets per second
         if self.last_update_time:
             time_diff = (current_time - self.last_update_time).total_seconds()
             if time_diff > 0:
                 self.packets_per_sec = 1 / time_diff
         self.last_update_time = current_time
-        
+
         # Update UI stats
         self.lbl_packets.setText(f"Packets: {self.packet_count}")
         self.lbl_rate.setText(f"Rate: {self.packets_per_sec:.1f} pkt/s")
         self.lbl_threat.setText(f"Threat: {threat}")
-        
+
         # Update progress bar
         if self.progress_bar.isVisible():
             self.progress_bar.setValue(self.packet_count)
-        
+
         # Technical log entry
         log_entry = f"[{threat}] {proto}:{port} | {src} → {dst}"
         self.packet_log.append(log_entry)
-        
+
         # Plain English summary
         summary = self._get_plain_english_summary(packet)
         self.summary_log.append(summary)
-        
+
         # Auto-scroll to bottom
         for log in [self.packet_log, self.summary_log]:
             scrollbar = log.verticalScrollBar()
             scrollbar.setValue(scrollbar.maximum())
-        
+
         # Flash visual feedback in dashboard
         if self.dashboard and hasattr(self.dashboard, "show_toast") and self.packet_count % 10 == 0:
             self.dashboard.show_toast(
@@ -845,9 +848,8 @@ No real harm will occur to your system.
         threat = packet.get("threat_type", "UNKNOWN")
         src = packet.get("src_ip", "unknown")
         dst = packet.get("dst_ip", "unknown")
-        proto = packet.get("protocol", "UNKNOWN")
         port = packet.get("port", "-")
-        
+
         summaries = {
             "PHISHING": f"📧 Suspicious email traffic detected from {src} attempting to reach {dst}",
             "MALWARE_C2": f"🦠 Malware command & control communication from {src} to {dst}",
@@ -859,7 +861,7 @@ No real harm will occur to your system.
             "BRUTE_FORCE": f"🔐 Brute force password attack from {src} targeting {dst}:{port}",
             "CREDENTIAL_STUFFING": f"👤 Credential stuffing attack from {src} using stolen passwords against {dst}",
         }
-        
+
         return summaries.get(threat, f"⚠️ Unknown threat ({threat}) detected from {src} to {dst}")
 
     def closeEvent(self, event):
@@ -1464,7 +1466,9 @@ class ThreatEncyclopediaPage:
     def show_sandbox(self):
         """Show the simulation sandbox window."""
         if not self.simulation_controller:
-            self.simulation_controller = SimulationController(self.simulation_engine, self.dashboard)
+            self.simulation_controller = SimulationController(
+                self.simulation_engine, self.dashboard
+            )
 
         # Center window on screen
         screen = self.dashboard.screen() if hasattr(self.dashboard, "screen") else None

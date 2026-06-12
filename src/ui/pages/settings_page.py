@@ -1266,7 +1266,9 @@ class SettingsPage:
             confirm1 = QMessageBox(self.dashboard)
             confirm1.setWindowTitle("Clear All Blocked IPs")
             confirm1.setText("Are you sure you want to clear all blocked IP addresses?")
-            confirm1.setInformativeText("This will remove all IPs from the firewall block list. This action cannot be undone.")
+            confirm1.setInformativeText(
+                "This will remove all IPs from the firewall block list. This action cannot be undone."
+            )
             confirm1.setIcon(QMessageBox.Icon.Warning)
             confirm1.setStandardButtons(
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
@@ -1292,17 +1294,19 @@ class SettingsPage:
                     background-color: {THEME['secondary']};
                 }}
             """)
-            
+
             result1 = confirm1.exec()
-            
+
             if result1 != QMessageBox.StandardButton.Yes:
                 return  # User cancelled
-            
+
             # Second confirmation
             confirm2 = QMessageBox(self.dashboard)
             confirm2.setWindowTitle("CONFIRM: Clear All Blocked IPs")
             confirm2.setText("This is your last chance to cancel!")
-            confirm2.setInformativeText("All blocked IPs will be permanently removed from the firewall. Type 'YES' to confirm.")
+            confirm2.setInformativeText(
+                "All blocked IPs will be permanently removed from the firewall. Type 'YES' to confirm."
+            )
             confirm2.setIcon(QMessageBox.Icon.Critical)
             confirm2.setStandardButtons(
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
@@ -1328,40 +1332,34 @@ class SettingsPage:
                     background-color: #c0392b;
                 }}
             """)
-            
+
             result2 = confirm2.exec()
-            
+
             if result2 != QMessageBox.StandardButton.Yes:
                 return  # User cancelled
-            
+
             # Actually clear the IPs
-            if hasattr(self.dashboard, 'firewall_manager'):
+            if hasattr(self.dashboard, "firewall_manager"):
                 success = self.dashboard.firewall_manager.clear_all_blocked_ips()
                 if success:
                     QMessageBox.information(
                         self.dashboard,
                         "Success",
-                        "All blocked IPs have been cleared from the firewall."
+                        "All blocked IPs have been cleared from the firewall.",
                     )
                 else:
                     QMessageBox.critical(
                         self.dashboard,
                         "Error",
-                        "Failed to clear blocked IPs. Check console for details."
+                        "Failed to clear blocked IPs. Check console for details.",
                     )
             else:
                 QMessageBox.warning(
-                    self.dashboard,
-                    "Not Available",
-                    "Firewall manager is not available."
+                    self.dashboard, "Not Available", "Firewall manager is not available."
                 )
-                
+
         except Exception as e:
-            QMessageBox.critical(
-                self.dashboard,
-                "Error",
-                f"An error occurred: {str(e)}"
-            )
+            QMessageBox.critical(self.dashboard, "Error", f"An error occurred: {str(e)}")
 
     def _on_model_changed(self, index=None):
         """Handle AI model selection change."""

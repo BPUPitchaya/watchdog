@@ -9,8 +9,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import logging
-from src.utils.logger import get_logger, get_user_message, log_exception
 from src.utils.crypto_utils import get_crypto
+from src.utils.logger import get_logger, get_user_message, log_exception
 
 logger = get_logger("pyqt_dashboard")
 crypto = get_crypto()
@@ -25,13 +25,15 @@ def resource_path(relative_path):
     except Exception:
         # For development, handle different resource locations
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         # If it's an asset file, use src/ui directory
         if relative_path.startswith("assets/"):
             base_path = current_dir
         # If it's a model file, use project root
         elif relative_path.startswith("models/"):
-            base_path = os.path.dirname(os.path.dirname(current_dir))  # Go up two levels from src/ui
+            base_path = os.path.dirname(
+                os.path.dirname(current_dir)
+            )  # Go up two levels from src/ui
         else:
             # Default to src/ui directory
             base_path = current_dir
@@ -1869,7 +1871,6 @@ class WatchdogDashboard(QMainWindow):
                         selected_features, feature_names = self.extractor.get_selected_features(
                             features
                         )
-                        import pandas as pd
                         import numpy as np
 
                         # Use numpy array without feature names to avoid sklearn warning
@@ -2224,27 +2225,29 @@ Auto-refresh: Every 2 seconds"""
 
         elif "analyze last threat" in msg_lower:
             # Handle "Analyze Last Threat" command
-            if not hasattr(self, 'flagged_incidents') or not self.flagged_incidents:
+            if not hasattr(self, "flagged_incidents") or not self.flagged_incidents:
                 return "No threats have been detected yet. Click 'Test Threat' in AI Mentor to create a mock threat for testing."
-            
+
             # Get the most recent threat
             last_threat = self.flagged_incidents[0]
-            
+
             # Debug: print what keys are in the threat
-            print(f"[DEBUG] Threat keys: {list(last_threat.keys()) if isinstance(last_threat, dict) else 'Not a dict'}")
-            
+            print(
+                f"[DEBUG] Threat keys: {list(last_threat.keys()) if isinstance(last_threat, dict) else 'Not a dict'}"
+            )
+
             # Safely extract only serializable data
-            def safe_str(value, default='N/A'):
+            def safe_str(value, default="N/A"):
                 try:
                     if value is None:
                         return default
                     # Skip complex objects
-                    if hasattr(value, '__class__') and 'RandomForest' in str(type(value)):
+                    if hasattr(value, "__class__") and "RandomForest" in str(type(value)):
                         return default
                     return str(value)
                 except:
                     return default
-            
+
             def safe_int(value, default=0):
                 try:
                     if value is None:
@@ -2254,16 +2257,16 @@ Auto-refresh: Every 2 seconds"""
                     return default
                 except:
                     return default
-            
-            timestamp = safe_str(last_threat.get('timestamp'))
-            attack_type = safe_str(last_threat.get('attack_type', 'Unknown'))
-            source_ip = safe_str(last_threat.get('source_ip'))
-            destination_ip = safe_str(last_threat.get('destination_ip'))
-            protocol = safe_str(last_threat.get('protocol'))
-            confidence = safe_int(last_threat.get('confidence'))
-            action = safe_str(last_threat.get('action'))
-            description = safe_str(last_threat.get('description'))
-            
+
+            timestamp = safe_str(last_threat.get("timestamp"))
+            attack_type = safe_str(last_threat.get("attack_type", "Unknown"))
+            source_ip = safe_str(last_threat.get("source_ip"))
+            destination_ip = safe_str(last_threat.get("destination_ip"))
+            protocol = safe_str(last_threat.get("protocol"))
+            confidence = safe_int(last_threat.get("confidence"))
+            action = safe_str(last_threat.get("action"))
+            description = safe_str(last_threat.get("description"))
+
             # Format threat details for AI
             threat_details = f"""
 Last Detected Threat:
@@ -2287,7 +2290,7 @@ Please analyze this threat for a business owner or manager (non-technical audien
 
 Keep the tone helpful, reassuring, and practical. Focus on what matters most to running a business safely.
 """
-            
+
             self._start_ai_query(threat_details)
             return "__AI_PROCESSING__"
 
