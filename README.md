@@ -14,6 +14,10 @@ Watchdog is a comprehensive network security solution that monitors network traf
 - **AI Assistant**: Llama 3 integration for intelligent log analysis and explanation
 - **Automated Response**: Firewall automation for threat mitigation
 - **Cross-platform**: Works on macOS, Linux, and Windows
+- **Threat Simulation**: Interactive attack simulation with plain English explanations
+- **Progress Tracking**: Real-time statistics and progress indicators for simulations
+- **Quick Start Guide**: Built-in onboarding for new users
+- **Pause/Resume**: Full control over simulation execution
 
 ## Technology Stack
 
@@ -176,6 +180,12 @@ Watchdog is a comprehensive network security solution that monitors network traf
 2. **View Captured Packets**: Real-time display in the packet list
 3. **Stop Monitoring**: Click "Stop Sniffing" to halt packet capture
 4. **View Statistics**: Packet count and status displayed in real-time
+5. **Threat Simulation**: Navigate to Threat Encyclopedia page to test attack simulations
+   - Click "Simulator" on any threat card
+   - Review the "What to Expect" modal before starting
+   - Watch real-time packet injection with plain English explanations
+   - Use Pause/Resume to control simulation flow
+   - View progress bar and statistics (packets/sec, threat level)
 
 ## Project Structure
 
