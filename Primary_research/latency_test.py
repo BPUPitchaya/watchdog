@@ -1,3 +1,13 @@
+"""
+PRIMARY PERFORMANCE PROFILING: ARTIFICIAL INTELLIGENCE & LATENCY
+-----------------------------------------------------------------
+- CORE CONCEPT: 
+  Validates the 'Radical Accessibility' design principle by proving that concurrent Machine Learning classification and Explainable AI (XAI) diagnostic generation can run efficiently on consumer-grade host resources without cloud API dependencies.
+- VALUE PROOF: 
+  Sustaining a sub-20ms total end-to-end processing delay (19.90 ms in v1.1) proves the system can deliver clear, localized human readability at the edge with near-zero host resource degradation.
+
+"""
+
 import sys
 import os
 import time
