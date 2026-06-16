@@ -722,6 +722,9 @@ class WatchdogDashboard(QMainWindow):
         # Load chat history on startup
         self._load_chat_history()
 
+        # Clean up old logs based on retention setting
+        self._cleanup_old_logs()
+
     def _setup_keyboard_shortcuts(self):
         """Setup keyboard shortcuts for quick access."""
         # Ctrl+Q: Quit application
@@ -1893,6 +1896,12 @@ class WatchdogDashboard(QMainWindow):
                         src_ip = packet.get("src_ip", "unknown")
                         dst_ip = packet.get("dst_ip", "unknown")
 
+                        # Check sensitivity threshold (0-100, default 75)
+                        sensitivity = getattr(self, "settings", {}).get("detection_sensitivity", 75)
+                        if confidence < sensitivity:
+                            # Skip alert if confidence is below sensitivity threshold
+                            continue
+
                         # Check if this is a simulated attack
                         is_simulation = packet.get("simulated", False)
                         toast_type = "simulation" if is_simulation else "block"
@@ -1904,11 +1913,14 @@ class WatchdogDashboard(QMainWindow):
                             toast_type,
                         )
 
-                        # Block the IP at firewall level
-                        self.firewall_manager.block_ip(src_ip)
+                        # Check if auto-block is enabled
+                        auto_block = getattr(self, "settings", {}).get("auto_block", True)
+                        if auto_block:
+                            # Block the IP at firewall level
+                            self.firewall_manager.block_ip(src_ip)
 
-                        # Add to dashboard's blocked_ips set for UI display
-                        self.blocked_ips.add(src_ip)
+                            # Add to dashboard's blocked_ips set for UI display
+                            self.blocked_ips.add(src_ip)
 
                         # Update shield page to show the newly blocked IP
                         if hasattr(self, "shield_page") and self.shield_page:
@@ -2016,6 +2028,37 @@ class WatchdogDashboard(QMainWindow):
             # Sync with AI Mentor page if available
             if self.ai_mentor_page:
                 self.ai_mentor_page.sync_message(sender, message)
+
+    def _cleanup_old_logs(self):
+        """Clean up old log files based on retention setting."""
+        try:
+            import os
+            from datetime import datetime, timedelta
+
+            # Get retention days from settings (default 30)
+            retention_days = getattr(self, "settings", {}).get("log_retention_days", 30)
+
+            logs_dir = "logs"
+            if not os.path.exists(logs_dir):
+                return
+
+            # Calculate cutoff date
+            cutoff_date = datetime.now() - timedelta(days=retention_days)
+
+            # Clean up old log files
+            for filename in os.listdir(logs_dir):
+                if filename.endswith(".log") or filename.endswith(".enc"):
+                    filepath = os.path.join(logs_dir, filename)
+                    file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
+
+                    if file_mtime < cutoff_date:
+                        try:
+                            os.remove(filepath)
+                            print(f"Deleted old log file: {filename}")
+                        except Exception as e:
+                            print(f"Failed to delete {filename}: {e}")
+        except Exception as e:
+            print(f"Error cleaning up old logs: {e}")
 
     def process_command(self, msg):
         """Process user commands and return appropriate responses."""
@@ -2703,9 +2746,47 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
 
     def show_toast(self, title, message, type="info"):
         """Show a toast notification"""
+        # Check if sound alerts are enabled
+        sound_enabled = getattr(self, "settings", {}).get("sound_alerts", True)
+
+        # Check if animations are enabled
+        animations_enabled = getattr(self, "settings", {}).get("animations", True)
+
         if not self.toast:
             self.toast = ToastNotification(None)  # No parent to allow screen positioning
+
+        # Update animation setting
+        self.toast.set_animations_enabled(animations_enabled)
+
         self.toast.show_message(title, message, type)
+
+        # Play sound if enabled
+        if sound_enabled:
+            self._play_alert_sound(type)
+
+    def _play_alert_sound(self, alert_type):
+        """Play alert sound based on type"""
+        try:
+            from PyQt6.QtMultimedia import QSoundEffect
+            from PyQt6.QtCore import QUrl
+
+            # Create sound effect
+            sound = QSoundEffect(self)
+
+            # Different sounds for different alert types
+            if alert_type == "block":
+                # Critical threat - use system beep
+                from PyQt6.QtWidgets import QApplication
+                QApplication.beep()
+            elif alert_type == "simulation":
+                # Simulation - softer sound
+                QApplication.beep()
+            else:
+                # Info - minimal sound
+                pass
+
+        except Exception as e:
+            print(f"Error playing alert sound: {e}")
 
     def test_multiple_toasts(self):
         """Test showing multiple toast notifications"""

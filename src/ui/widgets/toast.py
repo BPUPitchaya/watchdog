@@ -49,6 +49,11 @@ class ToastNotification(QWidget):
         self.hide_timer.timeout.connect(self.hide_toast)
 
         self.current_border_color = THEME["primary"]
+        self.animations_enabled = True  # Default to enabled
+
+    def set_animations_enabled(self, enabled):
+        """Enable or disable animations"""
+        self.animations_enabled = enabled
 
     def show_message(self, title, message, type="info"):
         """Display a toast notification
@@ -119,19 +124,27 @@ class ToastNotification(QWidget):
         self.show()
 
         # Slide up animation using predefined start/end geometries
-        self.slide_animation.setStartValue(start_rect)
-        self.slide_animation.setEndValue(end_rect)
-        self.slide_animation.start()
+        if self.animations_enabled:
+            self.slide_animation.setStartValue(start_rect)
+            self.slide_animation.setEndValue(end_rect)
+            self.slide_animation.start()
+        else:
+            # Skip animation, show directly at end position
+            self.setGeometry(end_rect)
 
         # Start auto-hide timer (3 seconds)
         self.hide_timer.start(5000)
 
     def hide_toast(self):
         """Fade out and hide the toast"""
-        self.fade_animation.setStartValue(1.0)
-        self.fade_animation.setEndValue(0.0)
-        self.fade_animation.finished.connect(self.close)
-        self.fade_animation.start()
+        if self.animations_enabled:
+            self.fade_animation.setStartValue(1.0)
+            self.fade_animation.setEndValue(0.0)
+            self.fade_animation.finished.connect(self.close)
+            self.fade_animation.start()
+        else:
+            # Skip animation, close immediately
+            self.close()
 
     def mousePressEvent(self, event):
         """Allow clicking to dismiss"""

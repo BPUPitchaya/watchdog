@@ -189,6 +189,7 @@ class SettingsPage:
                 min-width: 200px;
             }}
         """)
+        interface_combo.currentTextChanged.connect(self._on_interface_changed)
         interface_layout.addWidget(interface_combo)
         scroll_layout.addWidget(interface_container)
 
@@ -227,6 +228,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        promiscuous_toggle.stateChanged.connect(self._on_promiscuous_changed)
         promiscuous_layout.addWidget(promiscuous_toggle)
         scroll_layout.addWidget(promiscuous_container)
 
@@ -570,6 +572,7 @@ class SettingsPage:
                 margin: -4px 0;
             }}
         """)
+        explanation_slider.valueChanged.connect(self._on_explanation_changed)
         explanation_layout.addWidget(explanation_slider)
         scroll_layout.addWidget(explanation_container)
 
@@ -608,6 +611,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        local_model_toggle.stateChanged.connect(self._on_local_model_changed)
         local_model_layout.addWidget(local_model_toggle)
         scroll_layout.addWidget(local_model_container)
 
@@ -797,6 +801,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        sound_toggle.stateChanged.connect(self._on_sound_alerts_changed)
         sound_layout.addWidget(sound_toggle)
         scroll_layout.addWidget(sound_container)
 
@@ -832,6 +837,7 @@ class SettingsPage:
                 font-size: 11px;
             }}
         """)
+        retention_input.textChanged.connect(self._on_log_retention_changed)
         retention_layout.addWidget(retention_input)
 
         retention_hint = QLabel("Old packets will be automatically deleted after this period")
@@ -910,6 +916,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        gpu_toggle.stateChanged.connect(self._on_gpu_changed)
         gpu_layout.addWidget(gpu_toggle)
         scroll_layout.addWidget(gpu_container)
 
@@ -948,6 +955,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        theme_toggle.stateChanged.connect(self._on_theme_changed)
         theme_layout.addWidget(theme_toggle)
         scroll_layout.addWidget(theme_container)
         scroll_layout.addStretch()
@@ -1007,6 +1015,7 @@ class SettingsPage:
                 margin: -5px 0;
             }}
         """)
+        sensitivity_slider.valueChanged.connect(self._on_sensitivity_changed)
         sensitivity_layout.addWidget(sensitivity_slider)
         security_layout.addWidget(sensitivity_container)
 
@@ -1043,6 +1052,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        autoblock_toggle.stateChanged.connect(self._on_autoblock_changed)
         autoblock_layout.addWidget(autoblock_toggle)
         security_layout.addWidget(autoblock_container)
 
@@ -1114,6 +1124,44 @@ class SettingsPage:
         privacy_info.setStyleSheet(f"color: {THEME['text_secondary']};")
         privacy_info.setWordWrap(True)
         privacy_layout.addWidget(privacy_info)
+
+        # View Terms & Conditions button
+        tnc_container = QWidget()
+        tnc_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
+        tnc_layout = QVBoxLayout(tnc_container)
+
+        tnc_label = QLabel("Terms & Conditions")
+        tnc_label.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+        tnc_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        tnc_layout.addWidget(tnc_label)
+
+        view_tnc_btn = QPushButton("View Terms & Conditions")
+        view_tnc_btn.setMinimumHeight(35)
+        view_tnc_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-family: {THEME['font_mono']};
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['primary_hover']};
+            }}
+        """)
+        view_tnc_btn.clicked.connect(self._view_terms_and_conditions)
+        tnc_layout.addWidget(view_tnc_btn)
+
+        privacy_layout.addWidget(tnc_container)
         privacy_layout.addStretch()
 
         return privacy_tab
@@ -1171,6 +1219,7 @@ class SettingsPage:
                 margin: -5px 0;
             }}
         """)
+        font_slider.valueChanged.connect(self._on_interface_scale_changed)
         font_layout.addWidget(font_slider)
         appearance_layout.addWidget(font_container)
 
@@ -1207,6 +1256,7 @@ class SettingsPage:
                 border: 2px solid {THEME['primary']};
             }}
         """)
+        anim_toggle.stateChanged.connect(self._on_animations_changed)
         anim_layout.addWidget(anim_toggle)
         appearance_layout.addWidget(anim_container)
 
@@ -1638,6 +1688,234 @@ class SettingsPage:
             )
         except Exception as e:
             QMessageBox.critical(self.dashboard, "Error", f"Failed to export chat history: {str(e)}")
+
+    def _on_interface_changed(self, interface):
+        """Handle network interface change."""
+        try:
+            if hasattr(self.dashboard, "sniffer_service") and self.dashboard.sniffer_service:
+                print(f"Network interface changed to: {interface}")
+                # Note: Restarting sniffer requires admin privileges
+                # This is a placeholder for future implementation
+        except Exception as e:
+            print(f"Error changing interface: {e}")
+
+    def _on_promiscuous_changed(self, state):
+        """Handle promiscuous mode toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Promiscuous mode: {'enabled' if enabled else 'disabled'}")
+            # Note: Requires sniffer restart with admin privileges
+        except Exception as e:
+            print(f"Error toggling promiscuous mode: {e}")
+
+    def _on_explanation_changed(self, value):
+        """Handle explanation detail slider change."""
+        try:
+            levels = ["Minimal", "Basic", "Standard", "Detailed", "Comprehensive"]
+            print(f"Explanation detail: {levels[value - 1]}")
+            # Update AI client with new detail level
+            if hasattr(self.dashboard, "ai_client") and self.dashboard.ai_client:
+                self.dashboard.ai_client.set_explanation_detail(value)
+            # Store in dashboard settings
+            if hasattr(self.dashboard, "settings"):
+                self.dashboard.settings["explanation_detail"] = value
+        except Exception as e:
+            print(f"Error changing explanation detail: {e}")
+
+    def _on_local_model_changed(self, state):
+        """Handle local model toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Local model: {'enabled' if enabled else 'disabled'}")
+            # Note: This would require reconfiguring the AI client
+        except Exception as e:
+            print(f"Error toggling local model: {e}")
+
+    def _on_sound_alerts_changed(self, state):
+        """Handle sound alerts toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Sound alerts: {'enabled' if enabled else 'disabled'}")
+            # Store in dashboard settings
+            if hasattr(self.dashboard, "settings"):
+                self.dashboard.settings["sound_alerts"] = enabled
+        except Exception as e:
+            print(f"Error toggling sound alerts: {e}")
+
+    def _on_log_retention_changed(self, text):
+        """Handle log retention input change."""
+        try:
+            try:
+                days = int(text)
+                if days < 1:
+                    days = 1
+                print(f"Log retention: {days} days")
+                # Store in dashboard settings
+                if hasattr(self.dashboard, "settings"):
+                    self.dashboard.settings["log_retention_days"] = days
+            except ValueError:
+                print("Invalid log retention value")
+        except Exception as e:
+            print(f"Error changing log retention: {e}")
+
+    def _on_gpu_changed(self, state):
+        """Handle GPU acceleration toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"GPU acceleration: {'enabled' if enabled else 'disabled'}")
+            # Note: Would require ML model reconfiguration
+        except Exception as e:
+            print(f"Error toggling GPU acceleration: {e}")
+
+    def _on_theme_changed(self, state):
+        """Handle theme toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Theme: {'High Contrast' if enabled else 'Midnight'}")
+            # Note: Would require theme reload
+        except Exception as e:
+            print(f"Error changing theme: {e}")
+
+    def _on_sensitivity_changed(self, value):
+        """Handle detection sensitivity slider change."""
+        try:
+            print(f"Detection sensitivity: {value}%")
+            # Store in dashboard settings
+            if hasattr(self.dashboard, "settings"):
+                self.dashboard.settings["detection_sensitivity"] = value
+        except Exception as e:
+            print(f"Error changing sensitivity: {e}")
+
+    def _on_autoblock_changed(self, state):
+        """Handle auto-block toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Auto-block threats: {'enabled' if enabled else 'disabled'}")
+            # Store in dashboard settings
+            if hasattr(self.dashboard, "settings"):
+                self.dashboard.settings["auto_block"] = enabled
+        except Exception as e:
+            print(f"Error toggling auto-block: {e}")
+
+    def _on_interface_scale_changed(self, value):
+        """Handle interface scale slider change."""
+        try:
+            scale = value / 100.0
+            print(f"Interface scale: {scale:.0%}")
+            # Note: Would require UI scaling
+        except Exception as e:
+            print(f"Error changing interface scale: {e}")
+
+    def _on_animations_changed(self, state):
+        """Handle animations toggle."""
+        try:
+            enabled = state == 2  # Qt.Checked
+            print(f"Animations: {'enabled' if enabled else 'disabled'}")
+            # Store in dashboard settings
+            if hasattr(self.dashboard, "settings"):
+                self.dashboard.settings["animations"] = enabled
+        except Exception as e:
+            print(f"Error toggling animations: {e}")
+
+    def _view_terms_and_conditions(self):
+        """Show Terms & Conditions dialog."""
+        try:
+            from PyQt6.QtWidgets import QDialog, QTextEdit, QVBoxLayout
+
+            dialog = QDialog(self.dashboard)
+            dialog.setWindowTitle("Terms & Conditions")
+            dialog.setMinimumSize(600, 500)
+
+            layout = QVBoxLayout(dialog)
+
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            text_edit.setStyleSheet(f"""
+                QTextEdit {{
+                    background-color: {THEME['bg_card']};
+                    color: {THEME['text_primary']};
+                    border: none;
+                    border-radius: 8px;
+                    padding: 12px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+            """)
+
+            tnc_text = """WATCHDOG AI Dashboard - Terms & Conditions
+
+1. ACCEPTANCE OF TERMS
+By using WATCHDOG AI Dashboard, you agree to these Terms & Conditions. If you do not agree, please do not use this software.
+
+2. LICENSE
+WATCHDOG AI Dashboard is provided for personal and educational use. You may:
+- Use the software for network monitoring and security analysis
+- Modify the software for your own use
+- Distribute the software under the same license terms
+
+3. PRIVACY & DATA COLLECTION
+- All data is processed locally on your device
+- No data is transmitted to external servers
+- Network traffic analysis is performed entirely on your machine
+- You retain full control of your data at all times
+
+4. NETWORK MONITORING
+- This software monitors network traffic for security purposes
+- It may capture and analyze network packets
+- Use responsibly and in compliance with applicable laws
+- Do not use to monitor networks you do not own or have permission to monitor
+
+5. DISCLAIMER OF WARRANTIES
+WATCHDOG AI Dashboard is provided "as is" without warranties of any kind. We disclaim all warranties, whether express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
+
+6. LIMITATION OF LIABILITY
+In no event shall we be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of this software.
+
+7. SECURITY NOTIFICATIONS
+- This software provides security alerts and threat detection
+- Alerts are based on machine learning models and may produce false positives
+- Always verify threats before taking action
+- We are not responsible for any actions taken based on alerts
+
+8. COMPLIANCE
+You agree to use this software in compliance with all applicable laws and regulations, including but not limited to privacy laws, computer fraud laws, and network monitoring regulations.
+
+9. MODIFICATIONS
+We reserve the right to modify these terms at any time. Continued use of the software constitutes acceptance of modified terms.
+
+10. CONTACT
+For questions about these terms, please refer to the project documentation or contact the development team.
+
+---
+Last Updated: June 2026
+Version: 1.0"""
+
+            text_edit.setPlainText(tnc_text)
+            layout.addWidget(text_edit)
+
+            close_btn = QPushButton("Close")
+            close_btn.setMinimumHeight(35)
+            close_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['primary_hover']};
+                }}
+            """)
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn)
+
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Error showing Terms & Conditions: {e}")
 
     def apply_theme(self):
         """Re-apply current theme to settings page components."""

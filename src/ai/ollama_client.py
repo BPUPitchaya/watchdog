@@ -11,11 +11,13 @@ class OllamaClient:
         base_url: str = "http://localhost:11434",
         keep_alive: int = 30,
         context_window: int = 1024,
+        explanation_detail: int = 3,
     ) -> None:
         self.model = model
         self.base_url = base_url
         self.keep_alive = keep_alive  # minutes
         self.context_window = context_window  # tokens
+        self.explanation_detail = explanation_detail  # 1-5 scale
         self._last_query_time = None
         self._keepalive_timer = None
 
@@ -23,9 +25,14 @@ class OllamaClient:
         """Non-streaming query - returns full response."""
         self._update_last_query()
         url = f"{self.base_url}/api/chat"
+
+        # Add detail instruction to prompt
+        detail_instruction = self._get_detail_instruction()
+        enhanced_prompt = f"{detail_instruction}\n\n{prompt}"
+
         payload = {
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{"role": "user", "content": enhanced_prompt}],
             "stream": False,
             "options": {"num_ctx": self.context_window, "keep_alive": f"{self.keep_alive}m"},
         }
@@ -41,9 +48,14 @@ class OllamaClient:
         """Streaming query - calls callback with each chunk as it arrives."""
         self._update_last_query()
         url = f"{self.base_url}/api/chat"
+
+        # Add detail instruction to prompt
+        detail_instruction = self._get_detail_instruction()
+        enhanced_prompt = f"{detail_instruction}\n\n{prompt}"
+
         payload = {
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{"role": "user", "content": enhanced_prompt}],
             "stream": True,
             "options": {"num_ctx": self.context_window, "keep_alive": f"{self.keep_alive}m"},
         }
@@ -90,3 +102,19 @@ class OllamaClient:
         """Update the AI model."""
         self.model = model
         print(f"AI model updated to {model}")
+
+    def set_explanation_detail(self, detail: int) -> None:
+        """Update the explanation detail level (1-5)."""
+        self.explanation_detail = detail
+        print(f"Explanation detail updated to {detail}")
+
+    def _get_detail_instruction(self) -> str:
+        """Get instruction string based on detail level."""
+        instructions = {
+            1: "Provide a brief, one-sentence explanation.",
+            2: "Provide a concise explanation in 2-3 sentences.",
+            3: "Provide a standard explanation with key details.",
+            4: "Provide a detailed explanation with examples.",
+            5: "Provide a comprehensive explanation with all relevant details.",
+        }
+        return instructions.get(self.explanation_detail, instructions[3])
