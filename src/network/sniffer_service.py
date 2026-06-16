@@ -3,7 +3,6 @@ Network sniffer service that runs independently and writes to shared data file.
 This allows the UI to run without root privileges while the sniffer runs with sudo.
 """
 
-import json
 import os
 import threading
 import time
@@ -12,10 +11,10 @@ import joblib
 from scapy.all import IP, TCP, UDP, sniff
 
 from src.ml.feature_extractor import FeatureExtractor
+from src.utils.crypto_utils import get_crypto
 
 # Import logging
 from src.utils.logger import get_logger, get_user_message, log_exception
-from src.utils.crypto_utils import get_crypto
 
 logger = get_logger("sniffer_service")
 crypto = get_crypto()
@@ -113,7 +112,7 @@ class SnifferService:
                 }
                 self.captured_packets.append(packet_info)
                 print(
-                    f"✓ Traffic (no ML): {src_ip}:{src_port} -> {dst_ip}:{dst_port} [{protocol_name}]"
+                    f"Traffic (no ML): {src_ip}:{src_port} -> {dst_ip}:{dst_port} [{protocol_name}]"
                 )
             else:
                 # Add to buffer for batch processing
@@ -188,14 +187,14 @@ class SnifferService:
                 # Print packet info and alerts
                 if prediction == 1:
                     print(
-                        f"⚠️  POTENTIAL ATTACK DETECTED: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}] - Predicted: {predicted_label}"
+                        f"POTENTIAL ATTACK DETECTED: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}] - Predicted: {predicted_label}"
                     )
                     logger.warning(
                         f"Attack detected: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}]"
                     )
                 else:
                     print(
-                        f"✓ Normal traffic: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}]"
+                        f"Normal traffic: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}]"
                     )
                     logger.debug(
                         f"Normal traffic: {packet['src_ip']}:{packet['src_port']} -> {packet['dst_ip']}:{packet['dst_port']} [{packet['protocol_name']}]"

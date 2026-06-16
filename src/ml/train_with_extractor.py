@@ -165,9 +165,9 @@ def main():
     print(f"F1 Score: {f1*100:.2f}%")
 
     if accuracy >= 0.85 and precision >= 0.80 and recall >= 0.75:
-        print("\n✅ Model meets accuracy criteria for presentation")
+        print("\nModel meets accuracy criteria for presentation")
     else:
-        print("\n⚠️  Model does not meet all accuracy criteria")
+        print("\nModel does not meet all accuracy criteria")
 
     print("=" * 60)
 

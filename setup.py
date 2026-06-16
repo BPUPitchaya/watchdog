@@ -37,20 +37,20 @@ class SetupWizard:
             print("❌ Python 3.8 or higher is required")
             print(f"   Current version: {self.python_version.major}.{self.python_version.minor}")
             return False
-        print("✓ Python version compatible")
+        print("Python version compatible")
         return True
     
     def create_virtual_environment(self):
         """Create Python virtual environment"""
         print("Creating virtual environment...")
         if self.venv_path.exists():
-            print("✓ Virtual environment already exists")
+            print("Virtual environment already exists")
             return True
         
         try:
-            subprocess.run([sys.executable, "-m", "venv", str(self.venv_path)], 
+            subprocess.run([sys.executable, "-m", "venv", str(self.venv_path)],
                           check=True, capture_output=True)
-            print("✓ Virtual environment created")
+            print("Virtual environment created")
             return True
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to create virtual environment: {e}")
@@ -76,7 +76,7 @@ class SetupWizard:
         try:
             subprocess.run([str(self.get_venv_pip()), "install", "--upgrade", "pip"],
                           check=True, capture_output=True)
-            print("✓ Pip upgraded")
+            print("Pip upgraded")
             return True
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to upgrade pip: {e}")
@@ -94,7 +94,7 @@ class SetupWizard:
         try:
             subprocess.run([str(self.get_venv_pip()), "install", "-r", str(requirements_file)],
                           check=True, capture_output=True)
-            print("✓ Dependencies installed")
+            print("Dependencies installed")
             return True
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to install dependencies: {e}")
@@ -103,21 +103,21 @@ class SetupWizard:
     def check_system_requirements(self):
         """Check system-specific requirements"""
         print("Checking system requirements...")
-        
+
         if self.system == "Darwin":  # macOS
-            print("✓ macOS detected")
+            print("macOS detected")
             print("  Note: Network monitoring requires administrator privileges")
             print("  You will be prompted for permissions when running the application")
         elif self.system == "Windows":
-            print("✓ Windows detected")
+            print("Windows detected")
             print("  Note: Network monitoring requires administrator privileges")
             print("  Run as Administrator when launching the application")
         elif self.system == "Linux":
-            print("✓ Linux detected")
+            print("Linux detected")
             print("  Note: Network monitoring requires sudo privileges")
             print("  Run with sudo when launching the application")
         else:
-            print(f"⚠ Unknown system: {self.system}")
+            print(f"Unknown system: {self.system}")
         
         return True
     
@@ -134,7 +134,7 @@ cd "{self.project_root}"
 "{self.get_venv_python()}" src/ui/pyqt_dashboard.py
 """)
             os.chmod(launch_script, 0o755)
-            print("✓ Launch script created: launch_watchdog.sh")
+            print("Launch script created: launch_watchdog.sh")
             
         elif self.system == "Windows":
             # Windows - create batch file
@@ -144,7 +144,7 @@ cd "{self.project_root}"
 cd /d "{self.project_root}"
 "{self.get_venv_python()}" src/ui/pyqt_dashboard.py
 """)
-            print("✓ Launch script created: launch_watchdog.bat")
+            print("Launch script created: launch_watchdog.bat")
             
         elif self.system == "Linux":
             # Linux - create launch script
@@ -155,7 +155,7 @@ cd "{self.project_root}"
 "{self.get_venv_python()}" src/ui/pyqt_dashboard.py
 """)
             os.chmod(launch_script, 0o755)
-            print("✓ Launch script created: launch_watchdog.sh")
+            print("Launch script created: launch_watchdog.sh")
         
         return True
     
@@ -218,8 +218,8 @@ For issues or questions, please refer to the main README.md file.
         guide_file = self.project_root / "QUICK_START.md"
         with open(guide_file, 'w') as f:
             f.write(guide_content)
-        
-        print("✓ Quick start guide created: QUICK_START.md")
+
+        print("Quick start guide created: QUICK_START.md")
         return True
     
     def run_setup(self):
@@ -251,14 +251,14 @@ For issues or questions, please refer to the main README.md file.
         print("=" * 60)
         
         if failed_steps:
-            print(f"⚠ {len(failed_steps)} step(s) failed:")
+            print(f"WARNING: {len(failed_steps)} step(s) failed:")
             for step in failed_steps:
                 print(f"  - {step}")
             print()
             print("Please resolve the issues above and run setup again.")
             return False
         else:
-            print("✓ All steps completed successfully!")
+            print("All steps completed successfully!")
             print()
             print("To launch WATCHDOG:")
             if self.system == "Windows":

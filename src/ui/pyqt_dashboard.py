@@ -652,6 +652,7 @@ class WatchdogDashboard(QMainWindow):
         self.ai_mentor_page = None  # Will be set in create_pages()
         self.conversation_history = []  # Shared conversation history for AI chat sync
         self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
+        self.chat_history_file = "logs/chat_history.enc"  # Encrypted chat history file
         self._prediction_buffer = []  # Buffer for batch predictions
         self._prediction_sample_rate = self.settings_manager.get(
             "ml_sample_rate", 5
@@ -717,6 +718,9 @@ class WatchdogDashboard(QMainWindow):
         # Initial update (skip in layout-only)
         if not self.layout_only:
             self.update_ui()
+
+        # Load chat history on startup
+        self._load_chat_history()
 
     def _setup_keyboard_shortcuts(self):
         """Setup keyboard shortcuts for quick access."""
@@ -1942,6 +1946,13 @@ class WatchdogDashboard(QMainWindow):
         # Add to shared history
         self.conversation_history.append((sender, message))
 
+        # Limit history to prevent unbounded growth (keep last 500 messages)
+        if len(self.conversation_history) > 500:
+            self.conversation_history = self.conversation_history[-500:]
+
+        # Auto-save chat history
+        self._save_chat_history()
+
         # Update dashboard forensic panel chat (QTextEdit uses HTML)
         if hasattr(self, "forensic_panel") and self.forensic_panel:
             if sender == "user":
@@ -1954,6 +1965,57 @@ class WatchdogDashboard(QMainWindow):
         # Sync with AI Mentor page if available
         if self.ai_mentor_page:
             self.ai_mentor_page.sync_message(sender, message)
+
+    def _save_chat_history(self):
+        """Save chat history to encrypted file."""
+        try:
+            from src.utils.crypto_utils import get_crypto
+            from pathlib import Path
+
+            # Ensure logs directory exists
+            Path("logs").mkdir(exist_ok=True)
+
+            crypto = get_crypto()
+            chat_data = {
+                "conversation_history": self.conversation_history,
+                "timestamp": __import__("time").time(),
+            }
+            crypto.write_encrypted_file(chat_data, self.chat_history_file)
+        except Exception as e:
+            print(f"Failed to save chat history: {e}")
+
+    def _load_chat_history(self):
+        """Load chat history from encrypted file and restore to UI."""
+        try:
+            from src.utils.crypto_utils import get_crypto
+
+            crypto = get_crypto()
+            if crypto.file_exists(self.chat_history_file):
+                chat_data = crypto.read_encrypted_file(self.chat_history_file)
+                self.conversation_history = chat_data.get("conversation_history", [])
+                print(f"Loaded {len(self.conversation_history)} chat messages")
+
+                # Restore messages to UI after a short delay to ensure UI is ready
+                QTimer.singleShot(1000, self._restore_chat_to_ui)
+        except Exception as e:
+            print(f"Failed to load chat history: {e}")
+            self.conversation_history = []
+
+    def _restore_chat_to_ui(self):
+        """Restore loaded chat history to UI components."""
+        for sender, message in self.conversation_history:
+            # Update dashboard forensic panel chat
+            if hasattr(self, "forensic_panel") and self.forensic_panel:
+                if sender == "user":
+                    self.forensic_panel.chat_area.append(f"<b>You:</b> {message}")
+                else:  # ai
+                    self.forensic_panel.chat_area.append(
+                        f"<b><span style='color: #2DD4BF'>AI:</span></b> {message}"
+                    )
+
+            # Sync with AI Mentor page if available
+            if self.ai_mentor_page:
+                self.ai_mentor_page.sync_message(sender, message)
 
     def process_command(self, msg):
         """Process user commands and return appropriate responses."""
@@ -2150,11 +2212,11 @@ For AI-powered log analysis, enable Ollama integration."""
             return """WATCHDOG Monitoring Capabilities:
 
 Active Monitoring:
-✓ Real-time packet capture and analysis
-✓ ML-based threat detection ({'enabled' if self.model else 'disabled'})
-✓ Risk score calculation (0-100%)
-✓ Automated toast alerts for threats
-✓ Network traffic visualization
+- Real-time packet capture and analysis
+- ML-based threat detection ({'enabled' if self.model else 'disabled'})
+- Risk score calculation (0-100%)
+- Automated toast alerts for threats
+- Network traffic visualization
 
 Dashboard Views:
 - Live Sentinel: Current traffic + threat gauge
@@ -2494,6 +2556,9 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
             self.settings_page.set_model(model_name)
 
     def closeEvent(self, event):
+        # Save chat history before closing
+        self._save_chat_history()
+
         # Stop all timers
         if hasattr(self, "timer"):
             self.timer.stop()

@@ -610,6 +610,72 @@ class SettingsPage:
         """)
         local_model_layout.addWidget(local_model_toggle)
         scroll_layout.addWidget(local_model_container)
+
+        # Chat History Management
+        chat_history_container = QWidget()
+        chat_history_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_dark']};
+                border: none;
+                border-radius: 8px;
+                padding: 10px;
+            }}
+        """)
+        chat_history_layout = QVBoxLayout(chat_history_container)
+        chat_history_layout.setSpacing(8)
+
+        chat_history_label = QLabel("Chat History Management")
+        chat_history_label.setFont(QFont(THEME["font_mono"].strip("'"), 11))
+        chat_history_label.setStyleSheet(f"color: {THEME['text_primary']};")
+        chat_history_layout.addWidget(chat_history_label)
+
+        # Button layout
+        chat_buttons_layout = QHBoxLayout()
+        chat_buttons_layout.setSpacing(10)
+
+        # Export Chat History button
+        export_chat_btn = QPushButton("Export Chat History")
+        export_chat_btn.setMinimumHeight(35)
+        export_chat_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                border: none;
+                border-radius: 6px;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        export_chat_btn.clicked.connect(self._on_export_chat_history)
+        chat_buttons_layout.addWidget(export_chat_btn)
+
+        # Clear Chat History button
+        clear_chat_btn = QPushButton("Clear Chat History")
+        clear_chat_btn.setMinimumHeight(35)
+        clear_chat_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #dc3545;
+                border: none;
+                border-radius: 6px;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: #c82333;
+            }}
+        """)
+        clear_chat_btn.clicked.connect(self._on_clear_chat_history)
+        chat_buttons_layout.addWidget(clear_chat_btn)
+
+        chat_history_layout.addLayout(chat_buttons_layout)
+        scroll_layout.addWidget(chat_history_container)
+
         scroll_layout.addStretch()
 
         scroll_area.setWidget(scroll_content)
@@ -1467,6 +1533,111 @@ class SettingsPage:
             "High (Level 5)",
         ]
         self.risk_value_label.setText(risk_levels[value - 1])
+
+    def _on_clear_chat_history(self):
+        """Handle Clear Chat History button click with confirmation."""
+        try:
+            # Confirm with user
+            reply = QMessageBox.question(
+                self.dashboard,
+                "Clear Chat History",
+                "Are you sure you want to clear all chat history? This action cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                # Clear chat history in dashboard
+                if hasattr(self.dashboard, "conversation_history"):
+                    self.dashboard.conversation_history = []
+
+                # Clear UI components
+                if hasattr(self.dashboard, "forensic_panel") and self.dashboard.forensic_panel:
+                    self.dashboard.forensic_panel.chat_area.clear()
+
+                if self.dashboard.ai_mentor_page:
+                    # Clear AI Mentor chat
+                    for i in reversed(range(self.dashboard.ai_mentor_page.mentor_chat_layout.count())):
+                        item = self.dashboard.ai_mentor_page.mentor_chat_layout.itemAt(i)
+                        if item and item.widget():
+                            item.widget().deleteLater()
+
+                # Delete encrypted file
+                from src.utils.crypto_utils import get_crypto
+                from pathlib import Path
+
+                crypto = get_crypto()
+                chat_file = "logs/chat_history.enc"
+                if Path(chat_file).exists():
+                    Path(chat_file).unlink()
+
+                QMessageBox.information(
+                    self.dashboard, "Success", "Chat history cleared successfully."
+                )
+        except Exception as e:
+            QMessageBox.critical(self.dashboard, "Error", f"Failed to clear chat history: {str(e)}")
+
+    def _on_export_chat_history(self):
+        """Handle Export Chat History button click."""
+        try:
+            from PyQt6.QtWidgets import QFileDialog
+            import json
+            from datetime import datetime
+
+            if not hasattr(self.dashboard, "conversation_history"):
+                QMessageBox.warning(
+                    self.dashboard, "No History", "No chat history to export."
+                )
+                return
+
+            if not self.dashboard.conversation_history:
+                QMessageBox.warning(
+                    self.dashboard, "No History", "Chat history is empty."
+                )
+                return
+
+            # Ask user where to save
+            file_path, _ = QFileDialog.getSaveFileName(
+                self.dashboard,
+                "Export Chat History",
+                f"chat_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                "JSON Files (*.json);;Text Files (*.txt);;All Files (*)",
+            )
+
+            if not file_path:
+                return
+
+            # Prepare export data
+            export_data = {
+                "exported_at": datetime.now().isoformat(),
+                "message_count": len(self.dashboard.conversation_history),
+                "messages": [
+                    {"sender": sender, "message": message}
+                    for sender, message in self.dashboard.conversation_history
+                ],
+            }
+
+            # Save based on file extension
+            if file_path.endswith(".json"):
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(export_data, f, indent=2)
+            else:
+                # Plain text format
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(f"Chat History Export\n")
+                    f.write(f"Exported: {export_data['exported_at']}\n")
+                    f.write(f"Total Messages: {export_data['message_count']}\n")
+                    f.write("=" * 50 + "\n\n")
+                    for sender, message in self.dashboard.conversation_history:
+                        f.write(f"[{sender.upper()}]: {message}\n\n")
+
+            QMessageBox.information(
+                self.dashboard,
+                "Export Successful",
+                f"Chat history exported to:\n{file_path}",
+            )
+        except Exception as e:
+            QMessageBox.critical(self.dashboard, "Error", f"Failed to export chat history: {str(e)}")
 
     def apply_theme(self):
         """Re-apply current theme to settings page components."""

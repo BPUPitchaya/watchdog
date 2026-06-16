@@ -316,7 +316,7 @@ class HelpDialog(QDialog):
         layout.addSpacing(15)
 
         # Close button
-        close_btn = QPushButton("✓ Got it!")
+        close_btn = QPushButton("Got it!")
         close_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};

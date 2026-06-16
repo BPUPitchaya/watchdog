@@ -252,7 +252,7 @@ PAGE_HELP_CONTENT = {
             "• Click 'Export Logs' button\n"
             "• Choose where to save the logs\n"
             "• Select if you want to include the encryption key\n"
-            "• ⚠️ WARNING: Only include the key if you trust the destination\n"
+            "• WARNING: Only include the key if you trust the destination\n"
             "• Logs are saved as encrypted files (unreadable without key)\n\n"
             "STEP 2: Decrypt Logs (if you included the key)\n"
             "• Click 'Decrypt Logs' button\n"

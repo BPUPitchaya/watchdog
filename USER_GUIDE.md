@@ -1,6 +1,6 @@
 # WATCHDOG AI Dashboard - User Guide
 
-## 🚀 Quick Start (3 Easy Steps)
+## Quick Start (3 Easy Steps)
 
 ### Step 1: Install
 **Mac/Linux:**
@@ -29,7 +29,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 📋 What You'll See
+## What You'll See
 
 ### First Launch
 1. **Splash Screen** - WATCHDOG logo appears for 5 seconds
@@ -45,7 +45,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### "Permission Denied" Error
 **Solution:** Run with administrator privileges
@@ -67,16 +67,16 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🎯 Key Features
+## Key Features
 
-### ✅ What It Does
+### What It Does
 - Monitors your network traffic in real-time
 - Detects security threats using AI
 - Blocks suspicious IP addresses
 - Sends you security alerts
 - Works 100% locally - no cloud sync
 
-### 🔒 Privacy Guarantee
+### Privacy Guarantee
 - **All data stays on your device**
 - **No data transmitted to external servers**
 - **No cloud sync or remote storage**
@@ -84,7 +84,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 💡 Tips for Best Results
+## Tips for Best Results
 
 ### For Home Users
 - Run the application when you're concerned about network security
@@ -105,7 +105,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 📞 Getting Help
+## Getting Help
 
 ### Common Issues
 - **Installation problems:** Run `python3 setup.py` again
@@ -119,7 +119,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🎨 Customization
+## Customization
 
 ### Change Settings
 1. Click the gear icon (Settings)
@@ -140,14 +140,14 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🔐 Security Best Practices
+## Security Best Practices
 
 ### Recommended Settings
-- ✅ Enable desktop notifications
-- ✅ Keep system tray icon active
-- ✅ Set alert threshold to medium
-- ✅ Enable automatic IP blocking
-- ✅ Review security incidents weekly
+- Enable desktop notifications
+- Keep system tray icon active
+- Set alert threshold to medium
+- Enable automatic IP blocking
+- Review security incidents weekly
 
 ### What to Monitor
 - Unusual network activity
@@ -157,7 +157,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 📊 Understanding the Dashboard
+## Understanding the Dashboard
 
 ### Live Sentinel
 - Real-time network traffic
@@ -199,7 +199,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🚦 Status Indicators
+## Status Indicators
 
 ### Green (Safe)
 - No threats detected
@@ -218,7 +218,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 💾 Data Management
+## Data Management
 
 ### Automatic Cleanup
 - Old data is automatically deleted based on retention settings
@@ -239,7 +239,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🎓 Learning Resources
+## Learning Resources
 
 ### For Beginners
 - Start with the "Live Sentinel" page
@@ -258,7 +258,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🔄 Updates & Maintenance
+## Updates & Maintenance
 
 ### Automatic Updates
 - The application checks for updates automatically
@@ -273,7 +273,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 📱 System Requirements
+## System Requirements
 
 ### Minimum Requirements
 - **OS:** macOS 10.14+, Windows 10+, or Linux
@@ -291,7 +291,7 @@ Double-click `launch_watchdog.bat`
 
 ---
 
-## 🎉 You're All Set!
+## You're All Set!
 
 Your WATCHDOG AI Dashboard is now protecting your network. 
 

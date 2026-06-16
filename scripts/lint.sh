@@ -24,15 +24,15 @@ echo "=========================================="
 echo "Results:"
 echo "=========================================="
 if [ $LINT_EXIT -eq 0 ]; then
-    echo "✓ Ruff: No linting issues found"
+    echo "Ruff: No linting issues found"
 else
-    echo "✗ Ruff: Linting issues found (run 'ruff check --fix src tests' to auto-fix)"
+    echo "Ruff: Linting issues found (run 'ruff check --fix src tests' to auto-fix)"
 fi
 
 if [ $FORMAT_EXIT -eq 0 ]; then
-    echo "✓ Black: Code is properly formatted"
+    echo "Black: Code is properly formatted"
 else
-    echo "✗ Black: Code needs formatting (run 'black src tests' to fix)"
+    echo "Black: Code needs formatting (run 'black src tests' to fix)"
 fi
 
 echo ""

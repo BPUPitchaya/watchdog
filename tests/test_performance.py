@@ -60,9 +60,9 @@ class PerformanceTester:
 
         # Performance criteria
         if avg_time < 1.0:
-            print("✅ PASS: Average time < 1ms")
+            print("PASS: Average time < 1ms")
         else:
-            print("⚠️  WARNING: Average time >= 1ms")
+            print("WARNING: Average time >= 1ms")
 
         return avg_time < 1.0
 
@@ -113,9 +113,9 @@ class PerformanceTester:
 
         # Performance criteria
         if memory_increase < 100:
-            print("✅ PASS: Memory increase < 100MB")
+            print("PASS: Memory increase < 100MB")
         else:
-            print("⚠️  WARNING: Memory increase >= 100MB")
+            print("WARNING: Memory increase >= 100MB")
 
         return memory_increase < 100
 
@@ -165,9 +165,9 @@ class PerformanceTester:
 
         # Performance criteria
         if avg_cpu < 30:
-            print("✅ PASS: Average CPU < 30%")
+            print("PASS: Average CPU < 30%")
         else:
-            print("⚠️  WARNING: Average CPU >= 30%")
+            print("WARNING: Average CPU >= 30%")
 
         return avg_cpu < 30
 
@@ -235,10 +235,10 @@ class PerformanceTester:
         )
 
         if actual_pps >= target_pps * 0.9 and success_rate > 99:
-            print("✅ PASS: Throughput >= 90% of target, success rate > 99%")
+            print("PASS: Throughput >= 90% of target, success rate > 99%")
             return True
         else:
-            print("⚠️  WARNING: Throughput or success rate below threshold")
+            print("WARNING: Throughput or success rate below threshold")
             return False
 
     def generate_report(self):
@@ -318,10 +318,10 @@ def run_performance_tests():
     print(f"\nOverall: {passed}/{total} tests passed")
 
     if passed == total:
-        print("✅ All performance tests passed!")
+        print("All performance tests passed!")
         return 0
     else:
-        print("⚠️  Some performance tests failed")
+        print("Some performance tests failed")
         return 1
 
 

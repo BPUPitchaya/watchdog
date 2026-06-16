@@ -725,7 +725,7 @@ Analyzed: 1,247 packets""")
                     "Log files are encrypted. Would you like to include the encryption key?"
                 )
                 dialog.setInformativeText(
-                    "⚠️ WARNING: Including the encryption key allows anyone with access to decrypt the logs. Only include if you trust the destination."
+                    "WARNING: Including the encryption key allows anyone with access to decrypt the logs. Only include if you trust the destination."
                 )
                 dialog.setIcon(QMessageBox.Icon.Warning)
 
@@ -768,10 +768,10 @@ Analyzed: 1,247 packets""")
             # Show success message
             message = f"Successfully exported {copied_count} log file(s) to:\n{export_subdir}"
             if key_copied:
-                message += "\n\n✓ Encryption key included"
+                message += "\n\nEncryption key included"
             else:
                 message += (
-                    "\n\n⚠ Logs are encrypted - you will need the encryption key to read them"
+                    "\n\nWARNING: Logs are encrypted - you will need the encryption key to read them"
                 )
 
             QMessageBox.information(self.dashboard, "Export Complete", message)

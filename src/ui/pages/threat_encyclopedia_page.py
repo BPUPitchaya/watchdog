@@ -225,7 +225,7 @@ class SimulationEngine(QObject):
             # Show completion toast
             if self.dashboard and hasattr(self.dashboard, "show_toast"):
                 self.dashboard.show_toast(
-                    "✅ SIMULATION ENDED",
+                    "SIMULATION ENDED",
                     f"{threat_name} attack simulation stopped by user.",
                     "simulation",
                 )
@@ -687,32 +687,32 @@ No real harm will occur to your system.
         layout = QVBoxLayout(guide)
         layout.setSpacing(15)
 
-        title = QLabel("🎯 Security Sandbox Quick Start")
+        title = QLabel("Security Sandbox Quick Start")
         title.setStyleSheet("color: #76D7EA; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
         steps = QLabel("""
 <strong>How to use the Simulation Sandbox:</strong>
 
-1️⃣ <strong>Select an Attack</strong>
+1. <strong>Select an Attack</strong>
    Click any attack button in the left sidebar (Critical, High, or Medium risk)
 
-2️⃣ <strong>Review the Preview</strong>
+2. <strong>Review the Preview</strong>
    A dialog will show what to expect before starting
 
-3️⃣ <strong>Watch the Feed</strong>
+3. <strong>Watch the Feed</strong>
    • <strong>Technical Log</strong>: Shows packet details (IPs, ports, protocols)
    • <strong>Plain English</strong>: Human-readable explanations of threats
    • <strong>Stats Bar</strong>: Real-time packet count and rate
 
-4️⃣ <strong>Control the Simulation</strong>
+4. <strong>Control the Simulation</strong>
    • <strong>Pause</strong>: Temporarily stop the simulation
    • <strong>Emergency Stop</strong>: Immediately halt the attack
 
-5️⃣ <strong>Observe Dashboard</strong>
+5. <strong>Observe Dashboard</strong>
    The main dashboard will show alerts and threat detection
 
-💡 <strong>Tip:</strong> These are safe simulations - no real harm occurs!
+<strong>Tip:</strong> These are safe simulations - no real harm occurs!
         """)
         steps.setWordWrap(True)
         layout.addWidget(steps)
@@ -787,7 +787,7 @@ No real harm will occur to your system.
         # Flash dashboard alert
         if self.dashboard and hasattr(self.dashboard, "show_toast"):
             self.dashboard.show_toast(
-                "✅ SIMULATION COMPLETE",
+                "SIMULATION COMPLETE",
                 f"{threat_name} attack simulation finished. {self.packet_count} threats detected.",
                 "simulation",
             )
@@ -838,7 +838,7 @@ No real harm will occur to your system.
         # Flash visual feedback in dashboard
         if self.dashboard and hasattr(self.dashboard, "show_toast") and self.packet_count % 10 == 0:
             self.dashboard.show_toast(
-                f"⚠️ {threat} DETECTED",
+                f"{threat} DETECTED",
                 f"Threat detected from {src} to {dst}",
                 "threat",
             )
@@ -851,18 +851,18 @@ No real harm will occur to your system.
         port = packet.get("port", "-")
 
         summaries = {
-            "PHISHING": f"📧 Suspicious email traffic detected from {src} attempting to reach {dst}",
-            "MALWARE_C2": f"🦠 Malware command & control communication from {src} to {dst}",
-            "DDOS": f"🌊 DDoS flood attack detected from {src} targeting {dst}",
-            "MITM": f"🔓 Man-in-the-Middle attack detected - traffic interception between {src} and {dst}",
-            "SQL_INJECTION": f"💉 SQL injection attempt from {src} targeting database at {dst}:{port}",
-            "XSS": f"🔗 Cross-site scripting attack from {src} targeting web service at {dst}:{port}",
-            "ZERO_DAY": f"🚨 Zero-day exploit attempt from {src} targeting {dst}:{port}",
-            "BRUTE_FORCE": f"🔐 Brute force password attack from {src} targeting {dst}:{port}",
-            "CREDENTIAL_STUFFING": f"👤 Credential stuffing attack from {src} using stolen passwords against {dst}",
+            "PHISHING": f"Suspicious email traffic detected from {src} attempting to reach {dst}",
+            "MALWARE_C2": f"Malware command & control communication from {src} to {dst}",
+            "DDOS": f"DDoS flood attack detected from {src} targeting {dst}",
+            "MITM": f"Man-in-the-Middle attack detected - traffic interception between {src} and {dst}",
+            "SQL_INJECTION": f"SQL injection attempt from {src} targeting database at {dst}:{port}",
+            "XSS": f"Cross-site scripting attack from {src} targeting web service at {dst}:{port}",
+            "ZERO_DAY": f"Zero-day exploit attempt from {src} targeting {dst}:{port}",
+            "BRUTE_FORCE": f"Brute force password attack from {src} targeting {dst}:{port}",
+            "CREDENTIAL_STUFFING": f"Credential stuffing attack from {src} using stolen passwords against {dst}",
         }
 
-        return summaries.get(threat, f"⚠️ Unknown threat ({threat}) detected from {src} to {dst}")
+        return summaries.get(threat, f"Unknown threat ({threat}) detected from {src} to {dst}")
 
     def closeEvent(self, event):
         """Ensure simulation stops when window closes."""

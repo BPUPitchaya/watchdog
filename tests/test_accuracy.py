@@ -156,35 +156,35 @@ def test_model_accuracy():
     criteria_passed = True
 
     if accuracy >= 0.85:
-        print(f"✅ PASS: Accuracy >= 85% (actual: {accuracy*100:.2f}%)")
+        print(f"PASS: Accuracy >= 85% (actual: {accuracy*100:.2f}%)")
     else:
-        print(f"⚠️  WARNING: Accuracy < 85% (actual: {accuracy*100:.2f}%)")
+        print(f"WARNING: Accuracy < 85% (actual: {accuracy*100:.2f}%)")
         criteria_passed = False
 
     if precision >= 0.80:
-        print(f"✅ PASS: Precision >= 80% (actual: {precision*100:.2f}%)")
+        print(f"PASS: Precision >= 80% (actual: {precision*100:.2f}%)")
     else:
-        print(f"⚠️  WARNING: Precision < 80% (actual: {precision*100:.2f}%)")
+        print(f"WARNING: Precision < 80% (actual: {precision*100:.2f}%)")
         criteria_passed = False
 
     if recall >= 0.75:
-        print(f"✅ PASS: Recall >= 75% (actual: {recall*100:.2f}%)")
+        print(f"PASS: Recall >= 75% (actual: {recall*100:.2f}%)")
     else:
-        print(f"⚠️  WARNING: Recall < 75% (actual: {recall*100:.2f}%)")
+        print(f"WARNING: Recall < 75% (actual: {recall*100:.2f}%)")
         criteria_passed = False
 
     if fpr <= 0.10:
-        print(f"✅ PASS: False Positive Rate <= 10% (actual: {fpr*100:.2f}%)")
+        print(f"PASS: False Positive Rate <= 10% (actual: {fpr*100:.2f}%)")
     else:
-        print(f"⚠️  WARNING: False Positive Rate > 10% (actual: {fpr*100:.2f}%)")
+        print(f"WARNING: False Positive Rate > 10% (actual: {fpr*100:.2f}%)")
         criteria_passed = False
 
     print("\n" + "=" * 60)
     if criteria_passed:
-        print("✅ All accuracy criteria passed!")
+        print("All accuracy criteria passed!")
         return True
     else:
-        print("⚠️  Some accuracy criteria not met")
+        print("Some accuracy criteria not met")
         return False
 
 

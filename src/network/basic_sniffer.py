@@ -8,7 +8,6 @@ from scapy.config import conf
 
 conf.max_list_count = 50000  # Increase limit significantly to prevent route overflow
 
-import json
 import os
 import sys
 import threading
@@ -16,9 +15,10 @@ import time
 
 from scapy.all import IP, sniff
 
+from src.utils.crypto_utils import get_crypto
+
 # Import logging
 from src.utils.logger import get_logger, get_user_message, log_exception
-from src.utils.crypto_utils import get_crypto
 
 logger = get_logger("basic_sniffer")
 crypto = get_crypto()
