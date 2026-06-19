@@ -36,10 +36,14 @@ class ForensicVaultPage:
         vault_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
 
         # Start auto-refresh timer (e.g., every 5 seconds)
-        self.auto_update_timer = QTimer(vault_page)
-        self.auto_update_timer.timeout.connect(self.dashboard.load_flagged_incidents)
-        self.auto_update_timer.start(5000)
-        self.auto_update_enabled = True
+        # Disable in demo mode to prevent overwriting demo attack data
+        if hasattr(self.dashboard, "demo_mode") and self.dashboard.demo_mode:
+            self.auto_update_enabled = False
+        else:
+            self.auto_update_timer = QTimer(vault_page)
+            self.auto_update_timer.timeout.connect(self.dashboard.load_flagged_incidents)
+            self.auto_update_timer.start(5000)
+            self.auto_update_enabled = True
 
         # Main layout that fills the entire page
         main_layout = QVBoxLayout(vault_page)
@@ -163,7 +167,7 @@ class ForensicVaultPage:
                 "Destination IP",
                 "Protocol",
                 "Confidence",
-                "Threat Level",
+                "Attack Type",
                 "AI Summary",
                 "Action",
             ]
@@ -231,11 +235,14 @@ class ForensicVaultPage:
         scroll_area.setWidget(table_container)
         main_layout.addWidget(scroll_area, stretch=1)
 
-        # Refresh button
-        vault_refresh_btn = QPushButton("Load Flagged Incidents")
-        vault_refresh_btn.clicked.connect(self.dashboard.load_flagged_incidents)
-        vault_refresh_btn.setMinimumHeight(34)
-        vault_refresh_btn.setStyleSheet(f"""
+        # Button layout
+        button_layout = QHBoxLayout()
+
+        # Block Source IP button
+        block_src_btn = QPushButton("Block Source IP")
+        block_src_btn.clicked.connect(self._block_source_ip)
+        block_src_btn.setMinimumHeight(34)
+        block_src_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {THEME['primary']};
                 color: white;
@@ -250,7 +257,35 @@ class ForensicVaultPage:
                 background-color: {THEME['secondary']};
             }}
         """)
-        main_layout.addWidget(vault_refresh_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        button_layout.addWidget(block_src_btn)
+
+        # Block Destination IP button
+        block_dst_btn = QPushButton("Block Destination IP")
+        block_dst_btn.clicked.connect(self._block_destination_ip)
+        block_dst_btn.setMinimumHeight(34)
+        block_dst_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['primary']};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 20px;
+                font-weight: 600;
+                font-family: {THEME['font_mono']};
+                font-size: 12px;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME['secondary']};
+            }}
+        """)
+        button_layout.addWidget(block_dst_btn)
+
+        # Center the button layout
+        button_container = QWidget()
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.addLayout(button_layout)
+        button_container_layout.addStretch()
+        main_layout.addWidget(button_container)
 
         return vault_page
 
@@ -277,6 +312,84 @@ class ForensicVaultPage:
         self.vault_search.clear()
         for row in range(self.vault_table.rowCount()):
             self.vault_table.setRowHidden(row, False)
+
+    def _block_source_ip(self):
+        """Block the source IP of the selected threat."""
+        selected_rows = self.vault_table.selectionModel().selectedRows()
+        if not selected_rows:
+            self.dashboard.show_toast("No Selection", "Please select a threat first", "info")
+            return
+
+        for row in selected_rows:
+            row_index = row.row()
+            src_ip_item = self.vault_table.item(row_index, 1)
+            if src_ip_item:
+                src_ip = src_ip_item.text()
+                # Add to blocked IPs
+                if not hasattr(self.dashboard, "blocked_ips"):
+                    self.dashboard.blocked_ips = set()
+                if not hasattr(self.dashboard, "blocked_ip_reasons"):
+                    self.dashboard.blocked_ip_reasons = {}
+                if not hasattr(self.dashboard, "manual_blocked_ips"):
+                    self.dashboard.manual_blocked_ips = set()
+                if not hasattr(self.dashboard, "manual_block_count"):
+                    self.dashboard.manual_block_count = 0
+
+                self.dashboard.blocked_ips.add(src_ip)
+                self.dashboard.blocked_ip_reasons[src_ip] = "Manually blocked from Forensic Vault"
+                self.dashboard.manual_blocked_ips.add(src_ip)
+                self.dashboard.manual_block_count += 1
+
+                # Update Security Control
+                if hasattr(self.dashboard, "shield_page") and self.dashboard.shield_page:
+                    self.dashboard.shield_page._sync_blocked_ips()
+                    self.dashboard.shield_page.update_shield_statistics()
+
+                # Update action column in vault table
+                action_item = self.vault_table.item(row_index, 7)
+                if action_item:
+                    action_item.setText("Blocked (Src)")
+
+        self.dashboard.show_toast("IP Blocked", f"Source IP(s) blocked successfully", "block")
+
+    def _block_destination_ip(self):
+        """Block the destination IP of the selected threat."""
+        selected_rows = self.vault_table.selectionModel().selectedRows()
+        if not selected_rows:
+            self.dashboard.show_toast("No Selection", "Please select a threat first", "info")
+            return
+
+        for row in selected_rows:
+            row_index = row.row()
+            dst_ip_item = self.vault_table.item(row_index, 2)
+            if dst_ip_item:
+                dst_ip = dst_ip_item.text()
+                # Add to blocked IPs
+                if not hasattr(self.dashboard, "blocked_ips"):
+                    self.dashboard.blocked_ips = set()
+                if not hasattr(self.dashboard, "blocked_ip_reasons"):
+                    self.dashboard.blocked_ip_reasons = {}
+                if not hasattr(self.dashboard, "manual_blocked_ips"):
+                    self.dashboard.manual_blocked_ips = set()
+                if not hasattr(self.dashboard, "manual_block_count"):
+                    self.dashboard.manual_block_count = 0
+
+                self.dashboard.blocked_ips.add(dst_ip)
+                self.dashboard.blocked_ip_reasons[dst_ip] = "Manually blocked from Forensic Vault"
+                self.dashboard.manual_blocked_ips.add(dst_ip)
+                self.dashboard.manual_block_count += 1
+
+                # Update Security Control
+                if hasattr(self.dashboard, "shield_page") and self.dashboard.shield_page:
+                    self.dashboard.shield_page._sync_blocked_ips()
+                    self.dashboard.shield_page.update_shield_statistics()
+
+                # Update action column in vault table
+                action_item = self.vault_table.item(row_index, 7)
+                if action_item:
+                    action_item.setText("Blocked (Dst)")
+
+        self.dashboard.show_toast("IP Blocked", f"Destination IP(s) blocked successfully", "block")
 
     def _show_forensic_analysis(self, item):
         """Show forensic analysis dialog for clicked item."""

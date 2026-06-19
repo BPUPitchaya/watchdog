@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -151,10 +152,214 @@ class LiveSentinelPage(QWidget):
         # This method will be called by the dashboard to update statistics
         pass
 
+    def populate_demo_table(self):
+        """Populate the traffic table with demo data."""
+        if not hasattr(self, "table") or self.table is None:
+            return
+
+        sample_traffic = [
+            ("192.168.1.100", "10.0.0.1", "TCP", 1500, "85%", "Allowed"),
+            ("192.168.1.105", "10.0.0.5", "TCP", 1200, "92%", "Allowed"),
+            ("172.16.40.50", "192.168.1.1", "ICMP", 64, "45%", "Allowed"),
+            ("198.51.100.22", "172.16.40.172", "TCP", 800, "78%", "Allowed"),
+            ("203.0.113.45", "192.168.1.1", "TCP", 1500, "95%", "Blocked"),
+            ("198.51.100.23", "192.168.1.1", "TCP", 1500, "88%", "Blocked"),
+            ("192.0.2.100", "192.168.1.1", "HTTP", 1500, "92%", "Blocked"),
+            ("203.0.113.67", "192.168.1.1", "SSH", 1500, "85%", "Blocked"),
+            ("198.51.100.50", "192.168.1.1", "DNS", 1500, "90%", "Flagged"),
+            ("203.0.113.89", "192.168.1.1", "HTTP", 1500, "87%", "Flagged"),
+        ]
+        for row, (src_ip, dst_ip, protocol, length, confidence, action) in enumerate(sample_traffic):
+            self.table.setItem(row, 0, QTableWidgetItem(src_ip))
+            self.table.setItem(row, 1, QTableWidgetItem(dst_ip))
+            self.table.setItem(row, 2, QTableWidgetItem(protocol))
+            self.table.setItem(row, 3, QTableWidgetItem(str(length)))
+            self.table.setItem(row, 4, QTableWidgetItem(confidence))
+            self.table.setItem(row, 5, QTableWidgetItem(action))
+
+    def _trigger_demo_attack(self):
+        """Trigger a demo attack to show complete system response."""
+        try:
+            from datetime import datetime
+
+            # Create multiple mock threats for Forensic Vault (7 examples)
+            demo_threats = [
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "DDoS Attack",
+                    "source_ip": "203.0.113.45",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "TCP",
+                    "confidence": 95,
+                    "action": "Auto-blocked (Src)",
+                    "description": "High volume of SYN packets detected from single source",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "Port Scanning",
+                    "source_ip": "198.51.100.23",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "TCP",
+                    "confidence": 88,
+                    "action": "Auto-blocked (Src)",
+                    "description": "Sequential port probing behavior detected",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "SQL Injection Attempt",
+                    "source_ip": "192.0.2.100",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "HTTP",
+                    "confidence": 92,
+                    "action": "Auto-blocked (Src)",
+                    "description": "Malicious SQL patterns detected in HTTP requests",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "Brute Force Attack",
+                    "source_ip": "203.0.113.67",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "SSH",
+                    "confidence": 85,
+                    "action": "Auto-blocked (Src)",
+                    "description": "Multiple failed login attempts detected",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "Malware Communication",
+                    "source_ip": "198.51.100.50",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "DNS",
+                    "confidence": 90,
+                    "action": "Flagged",
+                    "description": "Suspicious DNS tunneling activity detected",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "XSS Attack",
+                    "source_ip": "203.0.113.89",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "HTTP",
+                    "confidence": 87,
+                    "action": "Flagged",
+                    "description": "Cross-site scripting patterns detected in web requests",
+                },
+                {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "attack_type": "Man-in-the-Middle",
+                    "source_ip": "192.0.2.150",
+                    "destination_ip": "192.168.1.1",
+                    "protocol": "HTTPS",
+                    "confidence": 93,
+                    "action": "Flagged",
+                    "description": "SSL certificate spoofing detected",
+                },
+            ]
+
+            # Add to flagged incidents for AI analysis (Forensic Vault)
+            # Convert to the format expected by the vault table
+            if not hasattr(self.dashboard, "flagged_incidents"):
+                self.dashboard.flagged_incidents = []
+            for threat in demo_threats:
+                vault_packet = {
+                    "timestamp": datetime.now().timestamp(),
+                    "src_ip": threat['source_ip'],
+                    "dst_ip": threat['destination_ip'],
+                    "protocol": threat['protocol'],
+                    "length": 1500,
+                    "src_port": 4444,
+                    "dst_port": 80,
+                    "flags": "S",
+                    "count": 9999,
+                    "ai_confidence": f"{threat['confidence']}%",
+                    "ai_threat": threat['attack_type'],
+                    "attack_type": threat['attack_type'],
+                    "confidence": threat['confidence'],
+                    "action": threat['action'],
+                    "description": threat['description'],
+                }
+                self.dashboard.flagged_incidents.insert(0, vault_packet)
+
+            # Add 4 IPs to Security Control blocked IPs
+            if not hasattr(self.dashboard, "blocked_ips"):
+                self.dashboard.blocked_ips = set()
+            if not hasattr(self.dashboard, "blocked_ip_reasons"):
+                self.dashboard.blocked_ip_reasons = {}
+
+            # Add first 4 threats as blocked IPs
+            for i in range(min(4, len(demo_threats))):
+                threat = demo_threats[i]
+                self.dashboard.blocked_ips.add(threat['source_ip'])
+                self.dashboard.blocked_ip_reasons[threat['source_ip']] = f"Auto-blocked - {threat['attack_type']} detected ({threat['confidence']}% confidence). {threat['description']}"
+
+            # Show toast notification for the primary attack
+            if hasattr(self.dashboard, "show_toast"):
+                self.dashboard.show_toast(
+                    "IP AUTO-BLOCKED",
+                    f"Attack from {demo_threats[0]['source_ip']} to {demo_threats[0]['destination_ip']}\nConfidence: {demo_threats[0]['confidence']}%\nIP has been automatically blocked",
+                    "block"
+                )
+
+            # Update Security Control page
+            if hasattr(self.dashboard, "shield_page") and self.dashboard.shield_page:
+                self.dashboard.shield_page._sync_blocked_ips()
+                self.dashboard.shield_page.update_shield_statistics()
+
+            # Update Forensic Vault page - use dashboard's vault table reference
+            if hasattr(self.dashboard, "vault_table") and self.dashboard.vault_table:
+                from PyQt6.QtGui import QColor, QFont
+                from PyQt6.QtWidgets import QTableWidgetItem
+
+                vault_table = self.dashboard.vault_table
+                vault_table.setRowCount(len(demo_threats))
+                for i, threat in enumerate(demo_threats):
+                    # Timestamp
+                    timestamp_item = QTableWidgetItem(threat['timestamp'])
+                    vault_table.setItem(i, 0, timestamp_item)
+
+                    # Source IP
+                    src_ip_item = QTableWidgetItem(threat['source_ip'])
+                    src_ip_item.setForeground(QColor(THEME["primary"]))
+                    src_ip_item.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+                    vault_table.setItem(i, 1, src_ip_item)
+
+                    # Destination IP
+                    dst_ip_item = QTableWidgetItem(threat['destination_ip'])
+                    vault_table.setItem(i, 2, dst_ip_item)
+
+                    # Protocol
+                    protocol_item = QTableWidgetItem(threat['protocol'])
+                    vault_table.setItem(i, 3, protocol_item)
+
+                    # Confidence
+                    confidence_item = QTableWidgetItem(f"{threat['confidence']}%")
+                    vault_table.setItem(i, 4, confidence_item)
+
+                    # Threat Level
+                    threat_item = QTableWidgetItem(threat['attack_type'])
+                    vault_table.setItem(i, 5, threat_item)
+
+                    # AI Summary
+                    summary_item = QTableWidgetItem("Click to view AI analysis")
+                    vault_table.setItem(i, 6, summary_item)
+
+                    # Action
+                    action_item = QTableWidgetItem(threat['action'])
+                    vault_table.setItem(i, 7, action_item)
+
+            print("Demo attack triggered successfully")
+
+        except Exception as e:
+            print(f"Error triggering demo attack: {e}")
+
     def update_all_widgets(self):
         self.update_system_health()
         self.update_risk_analysis()
         self.update_shield_statistics()
+        # Don't clear table in demo mode
+        if hasattr(self.dashboard, "demo_mode") and not self.dashboard.demo_mode:
+            # Only clear table in live mode
+            pass
 
     def create(self):
         """Create and return the live sentinel page widget."""
@@ -191,6 +396,28 @@ class LiveSentinelPage(QWidget):
             font-family: {THEME['font_mono']};
         """)
         header_layout.addWidget(live_pill)
+
+        # Demo Attack button (only visible in demo mode)
+        if hasattr(self.dashboard, "demo_mode") and self.dashboard.demo_mode:
+            demo_attack_btn = QPushButton("Demo Attack")
+            demo_attack_btn.setMinimumHeight(30)
+            demo_attack_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {THEME['danger']};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 6px 16px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+            """)
+            demo_attack_btn.clicked.connect(self._trigger_demo_attack)
+            header_layout.addWidget(demo_attack_btn)
 
         main_layout.addLayout(header_layout)
 
@@ -366,6 +593,28 @@ class LiveSentinelPage(QWidget):
         for row in range(10):
             for col in range(6):
                 self.table.setItem(row, col, QTableWidgetItem(""))
+
+        # Populate with sample data in demo mode
+        if hasattr(self.dashboard, "demo_mode") and self.dashboard.demo_mode:
+            sample_traffic = [
+                ("192.168.1.100", "10.0.0.1", "TCP", 1500, "85%", "Allowed"),
+                ("192.168.1.105", "10.0.0.5", "TCP", 1200, "92%", "Allowed"),
+                ("172.16.40.50", "192.168.1.1", "ICMP", 64, "45%", "Allowed"),
+                ("198.51.100.22", "172.16.40.172", "TCP", 800, "78%", "Allowed"),
+                ("203.0.113.45", "192.168.1.1", "TCP", 1500, "95%", "Blocked"),
+                ("198.51.100.23", "192.168.1.1", "TCP", 1500, "88%", "Blocked"),
+                ("192.0.2.100", "192.168.1.1", "HTTP", 1500, "92%", "Blocked"),
+                ("203.0.113.67", "192.168.1.1", "SSH", 1500, "85%", "Blocked"),
+                ("198.51.100.50", "192.168.1.1", "DNS", 1500, "90%", "Flagged"),
+                ("203.0.113.89", "192.168.1.1", "HTTP", 1500, "87%", "Flagged"),
+            ]
+            for row, (src_ip, dst_ip, protocol, length, confidence, action) in enumerate(sample_traffic):
+                self.table.setItem(row, 0, QTableWidgetItem(src_ip))
+                self.table.setItem(row, 1, QTableWidgetItem(dst_ip))
+                self.table.setItem(row, 2, QTableWidgetItem(protocol))
+                self.table.setItem(row, 3, QTableWidgetItem(str(length)))
+                self.table.setItem(row, 4, QTableWidgetItem(confidence))
+                self.table.setItem(row, 5, QTableWidgetItem(action))
 
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)

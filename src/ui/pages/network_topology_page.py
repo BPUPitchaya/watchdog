@@ -322,8 +322,12 @@ class NetworkTopologyPage:
         self.device_list.clear()
         self.topology_widget.set_devices([])
 
-        # Run scan directly on main thread (fast enough to not freeze UI)
-        self._perform_direct_scan()
+        # In demo mode, always use demo scan
+        if hasattr(self.dashboard, "demo_mode") and self.dashboard.demo_mode:
+            self._perform_demo_scan()
+        else:
+            # Run scan directly on main thread (fast enough to not freeze UI)
+            self._perform_direct_scan()
 
     def _perform_direct_scan(self):
         """Perform scan directly on main thread with immediate UI updates"""
@@ -465,6 +469,7 @@ class NetworkTopologyPage:
                 "hostname": "Router-Gateway",
                 "vendor": "Netgear",
                 "type": "pc",
+                "connections": ["192.168.1.5", "192.168.1.10", "192.168.1.15", "192.168.1.20"],
             },
             {
                 "ip": "192.168.1.5",
@@ -472,6 +477,7 @@ class NetworkTopologyPage:
                 "hostname": "iPhone-BPU",
                 "vendor": "Apple",
                 "type": "mobile",
+                "connections": ["192.168.1.1"],
             },
             {
                 "ip": "192.168.1.10",
@@ -479,6 +485,7 @@ class NetworkTopologyPage:
                 "hostname": "Laptop-Work",
                 "vendor": "Dell",
                 "type": "pc",
+                "connections": ["192.168.1.1"],
             },
             {
                 "ip": "192.168.1.15",
@@ -486,6 +493,7 @@ class NetworkTopologyPage:
                 "hostname": "Smart-TV",
                 "vendor": "Samsung",
                 "type": "iot",
+                "connections": ["192.168.1.1"],
             },
             {
                 "ip": "192.168.1.20",
@@ -493,6 +501,7 @@ class NetworkTopologyPage:
                 "hostname": "Security-Cam",
                 "vendor": "Ring",
                 "type": "iot",
+                "connections": ["192.168.1.1"],
             },
         ]
 
@@ -544,6 +553,9 @@ class NetworkTopologyPage:
         """Show details for selected device"""
         device = item.data(Qt.ItemDataRole.UserRole)
         if device:
+            connections = device.get("connections", [])
+            connections_text = ", ".join(connections) if connections else "None detected"
+
             details = f"""
 DEVICE DETAILS
 ═══════════════════════════════════════
@@ -552,6 +564,8 @@ MAC Address: {device['mac']}
 Hostname: {device['hostname']}
 Vendor: {device['vendor']}
 Device Type: {device['type'].upper()}
+
+Connected Devices: {connections_text}
 
 Scan Information:
 • Discovered via network scan

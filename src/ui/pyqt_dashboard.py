@@ -531,6 +531,7 @@ class WatchdogDashboard(QMainWindow):
 
         # Initialize UX components first (needed for onboarding check)
         self.settings_manager = SettingsManager()
+        self.settings = {}  # Initialize settings dictionary for runtime settings
         self.error_handler = ErrorHandler(self)
         self.notification_manager = NotificationManager(self)
         self.system_tray = SystemTrayIcon(self)
@@ -587,7 +588,7 @@ class WatchdogDashboard(QMainWindow):
             print(f"DEBUG: Demo mode = {self.demo_mode}")
 
             # Show main window after mode selection
-            self.show()
+            self.showFullScreen()
 
             # Update demo mode indicator
             if hasattr(self, "demo_indicator"):
@@ -659,7 +660,7 @@ class WatchdogDashboard(QMainWindow):
         )  # Load from settings
         self._packet_counter = 0  # Track packet count for sampling
         self.firewall_manager = FirewallManager()  # System-level IP blocking via pfctl
-        self.demo_mode = False  # Track whether demo mode is active
+        # demo_mode is set by mode selection dialog, don't overwrite here
 
         # Load ML (skip if layout-only)
         if not self.layout_only:
@@ -709,14 +710,14 @@ class WatchdogDashboard(QMainWindow):
         # Setup keyboard shortcuts
         self._setup_keyboard_shortcuts()
 
-        # Timer for auto-update (skip in layout-only)
-        if not self.layout_only:
+        # Timer for auto-update (skip in layout-only or demo mode)
+        if not self.layout_only and not self.demo_mode:
             self.timer = QTimer()
             self.timer.timeout.connect(self.update_ui)
             self.timer.start(5000)  # Increased to 5 seconds for better performance
 
-        # Initial update (skip in layout-only)
-        if not self.layout_only:
+        # Initial update (skip in layout-only or demo mode)
+        if not self.layout_only and not self.demo_mode:
             self.update_ui()
 
         # Load chat history on startup
@@ -1377,47 +1378,61 @@ class WatchdogDashboard(QMainWindow):
 
     def load_flagged_incidents(self):
         # Load flagged incidents from packet_data.json
-        try:
-            data = crypto.read_encrypted_file("packet_data.json")
-        except (FileNotFoundError, Exception):
-            data = {"packets": []}
-
-        packets = data.get("packets", [])
+        # In demo mode, start with empty data
+        if hasattr(self, "demo_mode") and self.demo_mode:
+            packets = []
+        else:
+            try:
+                data = crypto.read_encrypted_file("packet_data.json")
+            except (FileNotFoundError, Exception):
+                data = {"packets": []}
+            packets = data.get("packets", [])
 
         # Move heavy processing to background thread
         self.worker = IncidentsWorker(packets, self.model, self.extractor, self.layout_only)
         self.worker.finished.connect(self._update_vault_table)
         self.worker.start()
 
-    def _update_vault_table(self, flagged_packets):
-        # Always add sample flagged incidents for demonstration
-        sample_packets = [
-            {
-                "timestamp": 1773629875.0,
-                "src_ip": "192.168.1.100",
-                "dst_ip": "10.0.0.1",
-                "protocol": "TCP",
-                "length": 1500,
-                "src_port": 4444,
-                "dst_port": 80,
-                "flags": "S",
-                "count": 9999,
-            },
-            {
-                "timestamp": 1773629876.0,
-                "src_ip": "10.10.10.10",
-                "dst_ip": "172.16.40.172",
-                "protocol": "UDP",
-                "length": 512,
-                "src_port": 53,
-                "dst_port": 53,
-                "flags": "",
-                "count": 10000,
-            },
-            {
-                "timestamp": 1773629877.0,
-                "src_ip": "203.0.113.1",
-                "dst_ip": "172.16.40.172",
+    def _update_vault_table(self, flagged_packets, force_demo_data=False):
+        # In demo mode, don't add sample data unless forced
+        # If force_demo_data is True, use the flagged_packets directly without adding sample data
+        sample_packets = []
+        if hasattr(self, "demo_mode") and self.demo_mode:
+            if force_demo_data:
+                # Use the passed-in flagged_packets directly for demo attack
+                final_list = flagged_packets
+            else:
+                # Normal demo mode - empty
+                final_list = []
+        else:
+            # Always add sample flagged incidents for demonstration
+            sample_packets = [
+                {
+                    "timestamp": 1773629875.0,
+                    "src_ip": "192.168.1.100",
+                    "dst_ip": "10.0.0.1",
+                    "protocol": "TCP",
+                    "length": 1500,
+                    "src_port": 4444,
+                    "dst_port": 80,
+                    "flags": "S",
+                    "count": 9999,
+                },
+                {
+                    "timestamp": 1773629876.0,
+                    "src_ip": "10.10.10.10",
+                    "dst_ip": "172.16.40.172",
+                    "protocol": "UDP",
+                    "length": 512,
+                    "src_port": 53,
+                    "dst_port": 53,
+                    "flags": "",
+                    "count": 10000,
+                },
+                {
+                    "timestamp": 1773629877.0,
+                    "src_ip": "203.0.113.1",
+                    "dst_ip": "172.16.40.172",
                 "protocol": "TCP",
                 "length": 2000,
                 "src_port": 22,
@@ -1506,7 +1521,9 @@ class WatchdogDashboard(QMainWindow):
 
         # Merge sample packets if they aren't already represented (to ensure vault has content)
         # For simplicity in demo, we just add them
-        final_list = flagged_packets + sample_packets[:10]
+        # Skip this if force_demo_data is True (demo attack scenario)
+        if not force_demo_data:
+            final_list = flagged_packets + sample_packets[:10]
 
         if not hasattr(self, "vault_table") or self.vault_table is None:
             return
@@ -1798,8 +1815,8 @@ class WatchdogDashboard(QMainWindow):
         for _i in range(15):  # Generate 15 packets
             scenario = random.choice(threat_scenarios)
             packet = {
-                "source": scenario["source"],
-                "destination": scenario["destination"],
+                "src_ip": scenario["source"],
+                "dst_ip": scenario["destination"],
                 "protocol": scenario["protocol"],
                 "length": scenario["length"] + random.randint(-100, 100),
                 "timestamp": (
@@ -1832,8 +1849,8 @@ class WatchdogDashboard(QMainWindow):
             self.live_sentinel_page.update_all_widgets()
 
         packets = data.get("packets", [])
-        if packets:
-            # Update table
+        if packets and not self.demo_mode:
+            # Update table (skip in demo mode - table is pre-populated)
             self.table.setRowCount(min(10, len(packets)))
             for i, packet in enumerate(packets[-10:]):
                 self.table.setItem(i, 0, QTableWidgetItem(packet.get("src_ip", "")))
@@ -1845,92 +1862,43 @@ class WatchdogDashboard(QMainWindow):
                 # ML predictions for Confidence Score and Action (skip in layout-only)
                 # Use cache to avoid expensive ML computation on the main thread
                 if not self.layout_only and self.model and self.extractor:
-                    # Build a cache key from packet identity fields
-                    cache_key = (
-                        packet.get("src_ip", ""),
-                        packet.get("dst_ip", ""),
-                        packet.get("protocol", ""),
-                        packet.get("length", 0),
-                        packet.get("src_port", 0),
-                        packet.get("dst_port", 0),
-                        packet.get("flags", ""),
-                    )
-                    # Sampling: Only predict every Nth packet for performance
-                    self._packet_counter += 1
-                    should_predict = self._packet_counter % self._prediction_sample_rate == 0
-
-                    if cache_key in self._ml_cache:
-                        # Use cached result
-                        confidence, action = self._ml_cache[cache_key]
-                    elif should_predict:
-                        # Compute once and cache (only for sampled packets)
-                        packet_data = {
-                            "src_ip": packet.get("src_ip", ""),
-                            "dst_ip": packet.get("dst_ip", ""),
-                            "protocol": 6 if packet.get("protocol", "TCP").upper() == "TCP" else 17,
-                            "length": packet.get("length", 0),
-                            "src_port": packet.get("src_port", 0),
-                            "dst_port": packet.get("dst_port", 0),
-                            "flags": packet.get("flags", ""),
-                            "direction": "inbound",
-                        }
-                        features = self.extractor.extract_packet_features(packet_data)
-                        selected_features, feature_names = self.extractor.get_selected_features(
-                            features
-                        )
-                        import numpy as np
-
-                        # Use numpy array without feature names to avoid sklearn warning
-                        features_array = np.array([selected_features])
-                        prediction = self.model.predict(features_array)[0]
-                        probabilities = self.model.predict_proba(features_array)[0]
-                        confidence = max(probabilities) * 100
-                        action = "NORMAL" if prediction == 0 else "ATTACK"
-                        self._ml_cache[cache_key] = (confidence, action)
+                    # Check cache first
+                    cache_key = f"{packet.get('src_ip', '')}:{packet.get('dst_ip', '')}:{packet.get('protocol', '')}"
+                    if cache_key in self.confidence_cache:
+                        confidence, action = self.confidence_cache[cache_key]
                     else:
-                        # Skip prediction for non-sampled packets, assume NORMAL
-                        confidence = 0
-                        action = "NORMAL"
+                        # Compute ML prediction
+                        confidence, action = self._predict_threat(packet)
+                        self.confidence_cache[cache_key] = (confidence, action)
 
-                    if action == "ATTACK" and confidence > 70:
-                        src_ip = packet.get("src_ip", "unknown")
-                        dst_ip = packet.get("dst_ip", "unknown")
-
-                        # Check sensitivity threshold (0-100, default 75)
-                        sensitivity = getattr(self, "settings", {}).get("detection_sensitivity", 75)
-                        if confidence < sensitivity:
-                            # Skip alert if confidence is below sensitivity threshold
-                            continue
-
-                        # Check if this is a simulated attack
-                        is_simulation = packet.get("simulated", False)
-                        toast_type = "simulation" if is_simulation else "block"
-                        title = "SIMULATED THREAT" if is_simulation else "THREAT DETECTED"
-
-                        self.show_toast(
-                            title,
-                            f"Attack from {src_ip} to {dst_ip}\nConfidence: {confidence:.1f}%",
-                            toast_type,
-                        )
-
-                        # Check if auto-block is enabled
-                        auto_block = getattr(self, "settings", {}).get("auto_block", True)
-                        if auto_block:
-                            # Block the IP at firewall level
-                            self.firewall_manager.block_ip(src_ip)
-
-                            # Add to dashboard's blocked_ips set for UI display
-                            self.blocked_ips.add(src_ip)
-
-                        # Update shield page to show the newly blocked IP
-                        if hasattr(self, "shield_page") and self.shield_page:
-                            self.shield_page._sync_blocked_ips()
-                            self.shield_page.update_shield_statistics()
-                    self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.1f}%"))
+                    self.table.setItem(i, 4, QTableWidgetItem(f"{confidence}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
                 else:
+                    # Layout-only mode: show placeholder values
                     self.table.setItem(i, 4, QTableWidgetItem("N/A"))
-                    self.table.setItem(i, 5, QTableWidgetItem("UNKNOWN"))
+                    self.table.setItem(i, 5, QTableWidgetItem("N/A"))
+        elif self.demo_mode:
+            # In demo mode, populate with sample data
+            sample_traffic = [
+                ("192.168.1.100", "10.0.0.1", "TCP", 1500, "85%", "Allowed"),
+                ("192.168.1.105", "10.0.0.5", "TCP", 1200, "92%", "Allowed"),
+                ("172.16.40.50", "192.168.1.1", "ICMP", 64, "45%", "Allowed"),
+                ("198.51.100.22", "172.16.40.172", "TCP", 800, "78%", "Allowed"),
+                ("203.0.113.45", "192.168.1.1", "TCP", 1500, "95%", "Blocked"),
+                ("198.51.100.23", "192.168.1.1", "TCP", 1500, "88%", "Blocked"),
+                ("192.0.2.100", "192.168.1.1", "HTTP", 1500, "92%", "Blocked"),
+                ("203.0.113.67", "192.168.1.1", "SSH", 1500, "85%", "Blocked"),
+                ("198.51.100.50", "192.168.1.1", "DNS", 1500, "90%", "Flagged"),
+                ("203.0.113.89", "192.168.1.1", "HTTP", 1500, "87%", "Flagged"),
+            ]
+            self.table.setRowCount(len(sample_traffic))
+            for i, (src_ip, dst_ip, protocol, length, confidence, action) in enumerate(sample_traffic):
+                self.table.setItem(i, 0, QTableWidgetItem(src_ip))
+                self.table.setItem(i, 1, QTableWidgetItem(dst_ip))
+                self.table.setItem(i, 2, QTableWidgetItem(protocol))
+                self.table.setItem(i, 3, QTableWidgetItem(str(length)))
+                self.table.setItem(i, 4, QTableWidgetItem(confidence))
+                self.table.setItem(i, 5, QTableWidgetItem(action))
 
         # Update pps and gauge (skip in layout-only)
         if not self.layout_only:
@@ -2295,7 +2263,7 @@ Auto-refresh: Every 2 seconds"""
                 # Use numpy array without feature names to avoid sklearn warning
                 features_array = np.array([selected_features])
                 prediction = self.model.predict(features_array)[0]
-                label_map = {0: "NORMAL", 1: "ATTACK"}
+                label_map = {0: "Safe", 1: "ATTACK"}
                 return f"Prediction: {label_map.get(prediction, 'UNKNOWN')}"
             except Exception as e:
                 return f"Error: {str(e)}"
@@ -2715,6 +2683,32 @@ Enable Ollama AI (port 11434) for detailed answers to any question."""
             )
         )
         btn_layout.addWidget(block_btn)
+
+        # Auto-block toast button (Red with specific message)
+        autoblock_btn = QPushButton("Test Auto-Block Toast")
+        autoblock_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {THEME['danger']};
+                border: 2px solid {THEME['danger']};
+                border-radius: 8px;
+                padding: 12px 24px;
+                font-family: 'Segoe UI';
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 107, 107, 0.2);
+            }}
+        """)
+        autoblock_btn.clicked.connect(
+            lambda: self.show_toast(
+                "IP AUTO-BLOCKED",
+                "Attack from 203.0.113.45 to 192.168.1.1\nConfidence: 95%\nIP has been automatically blocked",
+                "block"
+            )
+        )
+        btn_layout.addWidget(autoblock_btn)
 
         # Multiple toasts button
         multi_btn = QPushButton("Test Multiple Toasts")
