@@ -13,6 +13,7 @@ import pandas as pd
 import joblib 
 import os
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+from visualisation import save_confusion_matrix_heatmap
 
 SELECTED_FEATURES = [
     'src_bytes', 'same_srv_rate', 'flag', 'dst_host_serror_rate', 
@@ -81,10 +82,22 @@ def run_efficacy_test():
     # RESULTS
     print("\n=== SYSTEM BENCHMARKING RESULTS ===")
     print(f"Overall Accuracy: {accuracy_score(y_test, predictions) * 100:.2f}%\n")
+    
+    cm = confusion_matrix(y_test, predictions, labels=['normal', 'attack'])
     print("Confusion Matrix (Normal, Attack):")
-    print(confusion_matrix(y_test, predictions, labels=['normal', 'attack']))
+    print(cm)
+    
     print("\nDetailed Classification Report:")
     print(classification_report(y_test, predictions, labels=['normal', 'attack']))
+
+    # --- VISUAL GENERATION FOR R&D REPORT ---
+    # Ask the user if they want to save the generated heatmap
+    save_choice = input("\nWould you like to save the confusion matrix heatmap as a PNG? (y/n): ").strip().lower()
+    
+    if save_choice == 'y':
+        save_confusion_matrix_heatmap(cm, script_dir)
+    else:
+        print("\n[INFO] Heatmap generation skipped. File not saved.")
 
 if __name__ == "__main__":
     run_efficacy_test()
