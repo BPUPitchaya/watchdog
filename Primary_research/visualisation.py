@@ -1,11 +1,3 @@
-"""
-VISUALIZATION HELPER
----------------------
-This module handles the generation of all academic-grade charts and graphics
-for the R&D report, keeping visual rendering libraries (matplotlib, seaborn)
-decoupled from the core execution and evaluation pipelines.
-"""
-
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
