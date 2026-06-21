@@ -178,3 +178,7 @@ ollama_storage/
 data/
 .log_encryption_key
 .packet_encryption_key
+local_settings.json
+logs/chat_history.enc
+chat_history_*.txt
+notifications.json

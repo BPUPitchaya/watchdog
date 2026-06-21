@@ -2,6 +2,7 @@
 THEMES = {
     "default": {
         "primary": "#00B4D8",
+        "primary_hover": "#0096B4",
         "secondary": "#0096B4",
         "success": "#22C55E",
         "warning": "#F59E0B",

@@ -35,11 +35,16 @@ class IncidentsWorker(QThread):
                 probabilities = self.model.predict_proba(features_array)[0]
                 confidence = max(probabilities) * 100
 
+                # Always enrich packet with AI results (even if not flagged)
+                packet["ai_confidence"] = f"{confidence:.1f}%"
+                packet["ai_threat"] = "ATTACK" if prediction == 1 else "Safe"
+
                 # Flag if ATTACK prediction OR low confidence (< 60%)
-                if confidence < 60.0:
-                    # Enrich packet with AI results
-                    packet["ai_confidence"] = f"{confidence:.1f}%"
-                    packet["ai_threat"] = "ATTACK" if prediction == 1 else "NORMAL"
+                if confidence < 60.0 or prediction == 1:
                     flagged_packets.append(packet)
+            else:
+                # Layout-only mode or no model: set default values
+                packet["ai_confidence"] = "N/A"
+                packet["ai_threat"] = "UNKNOWN"
 
         self.finished.emit(flagged_packets)

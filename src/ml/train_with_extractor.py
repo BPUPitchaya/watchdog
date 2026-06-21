@@ -71,7 +71,7 @@ def generate_training_data(n_samples=10000):
         selected_features, _ = extractor.get_selected_features(features)
         data.append(selected_features)
 
-    print(f"Generated {len(data)} samples (Normal: {labels.count(0)}, Attack: {labels.count(1)})")
+    print(f"Generated {len(data)} samples (Safe: {labels.count(0)}, Attack: {labels.count(1)})")
     return np.array(data), np.array(labels)
 
 
@@ -113,13 +113,13 @@ def evaluate_model(model, X_test, y_test):
     print(f"F1 Score: {f1:.4f}")
 
     print("\nClassification Report:")
-    print(classification_report(y_test, y_pred, target_names=["normal", "attack"]))
+    print(classification_report(y_test, y_pred, target_names=["safe", "attack"]))
 
     print("\nConfusion Matrix:")
     cm = confusion_matrix(y_test, y_pred)
     print("                Predicted")
-    print("                Normal  Attack")
-    print(f"Actual Normal    {cm[0][0]:4d}   {cm[0][1]:4d}")
+    print("                Safe  Attack")
+    print(f"Actual Safe    {cm[0][0]:4d}   {cm[0][1]:4d}")
     print(f"Actual Attack    {cm[1][0]:4d}   {cm[1][1]:4d}")
 
     return accuracy, precision, recall, f1

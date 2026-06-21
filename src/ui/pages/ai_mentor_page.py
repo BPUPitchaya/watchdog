@@ -838,8 +838,38 @@ Analyzed: 1,247 packets""")
 
             self.dashboard.flagged_incidents.insert(0, test_threat)  # Add at beginning
 
+            # Show toast notification
+            if hasattr(self.dashboard, "show_toast"):
+                self.dashboard.show_toast(
+                    "IP AUTO-BLOCKED",
+                    f"Attack from {test_threat['source_ip']} to {test_threat['destination_ip']}\nConfidence: {test_threat['confidence']}%\nIP has been automatically blocked",
+                    "block"
+                )
+
+            # Add IP to Security Control blocked IPs
+            if not hasattr(self.dashboard, "blocked_ips"):
+                self.dashboard.blocked_ips = set()
+            self.dashboard.blocked_ips.add(test_threat['source_ip'])
+
+            # Add detailed reason for the blocked IP
+            if not hasattr(self.dashboard, "blocked_ip_reasons"):
+                self.dashboard.blocked_ip_reasons = {}
+            self.dashboard.blocked_ip_reasons[test_threat['source_ip']] = f"Auto-blocked - {test_threat['attack_type']} detected ({test_threat['confidence']}% confidence). {test_threat['description']}"
+
+            # Update Security Control page
+            if hasattr(self.dashboard, "shield_page") and self.dashboard.shield_page:
+                self.dashboard.shield_page._sync_blocked_ips()
+                self.dashboard.shield_page.update_shield_statistics()
+
+            # Update Forensic Vault page
+            if hasattr(self.dashboard, "vault_page") and self.dashboard.vault_page:
+                self.dashboard.vault_page.update_vault_table()
+
             self._add_system_message(
                 f"Test threat created: {test_threat['attack_type']} from {test_threat['source_ip']}"
+            )
+            self._add_system_message(
+                "This demonstrates the complete attack response: toast notification, IP blocked in Security Control, and added to Forensic Vault."
             )
             self._add_system_message(
                 "Click 'Analyze Last Threat' to analyze this test threat with AI."

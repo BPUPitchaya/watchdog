@@ -165,7 +165,7 @@ class SnifferService:
 
             # Batch prediction
             predictions = self.model.predict(features_array)
-            label_map = {0: "normal", 1: "attack"}
+            label_map = {0: "safe", 1: "attack"}
 
             # Process results and store packet info
             for i, packet in enumerate(self.packet_buffer):

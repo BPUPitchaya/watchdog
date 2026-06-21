@@ -34,7 +34,7 @@ PAGE_HELP_CONTENT = {
             "• Green bars = Data going OUT (uploads, messages sent)\n"
             "• Height = Amount of data (taller = more traffic)\n\n"
             "HOW TO READ IT:\n"
-            "• Small bars = Normal browsing\n"
+            "• Small bars = Safe browsing\n"
             "• Medium bars = Streaming video\n"
             "• Big spikes = Large downloads or potential attacks\n\n"
             "WATCH FOR: Sudden huge spikes when you're not doing anything - that could be suspicious!",
@@ -157,7 +157,7 @@ PAGE_HELP_CONTENT = {
             "• Might let some suspicious stuff through\n\n"
             "BALANCED (Default setting)\n"
             "• Blocks most threats\n"
-            "• Occasionally might flag normal traffic\n"
+            "• Occasionally might flag safe traffic\n"
             "• Good for everyday users\n\n"
             "AGGRESSIVE (For high-security needs)\n"
             "• Blocks ANYTHING slightly suspicious\n"

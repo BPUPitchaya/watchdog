@@ -270,12 +270,6 @@ class SplashScreen(QSplashScreen):
 
         self.setPixmap(pixmap)
 
-        # Auto-close after 5 seconds
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self.close)
-        self.timer.start(5000)
-
 
 class TermsDialog(QDialog):
     """Minimalist terms and conditions dialog."""
@@ -558,10 +552,17 @@ class WatchdogDashboard(QMainWindow):
             # Process events to ensure splash is displayed
             QApplication.processEvents()
 
+            # Use QTimer for delay instead of sleep to ensure UI updates
+            # Create a timer to close splash after 5 seconds
+            splash_timer = QTimer()
+            splash_timer.setSingleShot(True)
+            splash_timer.timeout.connect(splash.close)
+            splash_timer.start(5000)
+
             # Wait for splash to close
             while not splash.isHidden():
                 QApplication.processEvents()
-                QThread.msleep(10)
+                QThread.msleep(50)
 
             print("Splash screen closed")
 
@@ -588,7 +589,7 @@ class WatchdogDashboard(QMainWindow):
             print(f"DEBUG: Demo mode = {self.demo_mode}")
 
             # Show main window after mode selection
-            self.showFullScreen()
+            self.showMaximized()
 
             # Update demo mode indicator
             if hasattr(self, "demo_indicator"):
@@ -606,7 +607,7 @@ class WatchdogDashboard(QMainWindow):
                 print("DEBUG: Showing onboarding wizard")
                 result = wizard.exec()
                 print(f"DEBUG: Wizard closed with result {result}")
-                if result == QDialog.DialogCode.Accepted:
+                if result == 1 or result == QDialog.DialogCode.Accepted:
                     wizard_completed = True
                     print("DEBUG: Wizard completed successfully")
                 else:
@@ -653,6 +654,7 @@ class WatchdogDashboard(QMainWindow):
         self.ai_mentor_page = None  # Will be set in create_pages()
         self.conversation_history = []  # Shared conversation history for AI chat sync
         self._ml_cache = {}  # Cache ML predictions to avoid recomputing on main thread
+        self.confidence_cache = {}  # Cache for confidence scores and actions
         self.chat_history_file = "logs/chat_history.enc"  # Encrypted chat history file
         self._prediction_buffer = []  # Buffer for batch predictions
         self._prediction_sample_rate = self.settings_manager.get(
@@ -1378,20 +1380,57 @@ class WatchdogDashboard(QMainWindow):
 
     def load_flagged_incidents(self):
         # Load flagged incidents from packet_data.json
-        # In demo mode, start with empty data
+        # In live mode, start with empty data (fresh session)
+        # In demo mode, load from packet_data.json for demo data
         if hasattr(self, "demo_mode") and self.demo_mode:
-            packets = []
-        else:
             try:
                 data = crypto.read_encrypted_file("packet_data.json")
             except (FileNotFoundError, Exception):
                 data = {"packets": []}
             packets = data.get("packets", [])
+        else:
+            packets = []
+            # Clear vault table in live mode for fresh session
+            if hasattr(self, "vault_table") and self.vault_table:
+                self.vault_table.setRowCount(0)
 
         # Move heavy processing to background thread
         self.worker = IncidentsWorker(packets, self.model, self.extractor, self.layout_only)
         self.worker.finished.connect(self._update_vault_table)
         self.worker.start()
+
+    def _add_to_vault(self, packet, confidence, action):
+        """Add a single flagged packet to the forensic vault."""
+        if not hasattr(self, "vault_table") or self.vault_table is None:
+            return
+
+        # Add new row to vault table
+        row = self.vault_table.rowCount()
+        self.vault_table.insertRow(row)
+
+        # Convert timestamp to human-readable format
+        timestamp = packet.get("timestamp", 0)
+        if isinstance(timestamp, (int, float)):
+            dt = datetime.datetime.fromtimestamp(timestamp)
+            timestamp = dt.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            timestamp = "Unknown"
+
+        src_ip = packet.get("src_ip", "")
+        dst_ip = packet.get("dst_ip", "")
+        protocol = packet.get("protocol", "Other")
+
+        self.vault_table.setItem(row, 0, QTableWidgetItem(timestamp))
+        src_ip_item = QTableWidgetItem(src_ip)
+        src_ip_item.setForeground(QColor(THEME["primary"]))
+        src_ip_item.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+        self.vault_table.setItem(row, 1, src_ip_item)
+        self.vault_table.setItem(row, 2, QTableWidgetItem(dst_ip))
+        self.vault_table.setItem(row, 3, QTableWidgetItem(protocol))
+        self.vault_table.setItem(row, 4, QTableWidgetItem(f"{confidence:.0f}%"))
+        self.vault_table.setItem(row, 5, QTableWidgetItem(action))
+        self.vault_table.setItem(row, 6, QTableWidgetItem("Click to view AI analysis"))
+        self.vault_table.setItem(row, 7, QTableWidgetItem("Analyze"))
 
     def _update_vault_table(self, flagged_packets, force_demo_data=False):
         # In demo mode, don't add sample data unless forced
@@ -1861,6 +1900,7 @@ class WatchdogDashboard(QMainWindow):
 
                 # ML predictions for Confidence Score and Action (skip in layout-only)
                 # Use cache to avoid expensive ML computation on the main thread
+                prediction = 0  # Initialize to safe default
                 if not self.layout_only and self.model and self.extractor:
                     # Check cache first
                     cache_key = f"{packet.get('src_ip', '')}:{packet.get('dst_ip', '')}:{packet.get('protocol', '')}"
@@ -1868,11 +1908,36 @@ class WatchdogDashboard(QMainWindow):
                         confidence, action = self.confidence_cache[cache_key]
                     else:
                         # Compute ML prediction
-                        confidence, action = self._predict_threat(packet)
+                        try:
+                            packet_data = {
+                                "src_ip": packet.get("src_ip", "192.168.1.1"),
+                                "dst_ip": packet.get("dst_ip", "10.0.0.1"),
+                                "protocol": 6 if packet.get("protocol", "TCP").upper() == "TCP" else 17,
+                                "length": packet.get("length", 100),
+                                "src_port": packet.get("src_port", 12345),
+                                "dst_port": packet.get("dst_port", 80),
+                                "flags": packet.get("flags", "S"),
+                                "direction": "inbound",
+                            }
+                            features = self.extractor.extract_packet_features(packet_data)
+                            selected_features, feature_names = self.extractor.get_selected_features(features)
+                            import numpy as np
+                            features_array = np.array([selected_features])
+                            prediction = self.model.predict(features_array)[0]
+                            probabilities = self.model.predict_proba(features_array)[0]
+                            confidence = max(probabilities) * 100
+                            action = "Flagged" if prediction == 1 else "Allowed"
+                        except Exception as e:
+                            confidence = 50
+                            action = "Allowed"
                         self.confidence_cache[cache_key] = (confidence, action)
 
-                    self.table.setItem(i, 4, QTableWidgetItem(f"{confidence}%"))
+                    self.table.setItem(i, 4, QTableWidgetItem(f"{confidence:.0f}%"))
                     self.table.setItem(i, 5, QTableWidgetItem(action))
+
+                    # If flagged, add to forensic vault
+                    if prediction == 1 and hasattr(self, "vault_table") and self.vault_table:
+                        self._add_to_vault(packet, confidence, action)
                 else:
                     # Layout-only mode: show placeholder values
                     self.table.setItem(i, 4, QTableWidgetItem("N/A"))
@@ -1884,10 +1949,10 @@ class WatchdogDashboard(QMainWindow):
                 ("192.168.1.105", "10.0.0.5", "TCP", 1200, "92%", "Allowed"),
                 ("172.16.40.50", "192.168.1.1", "ICMP", 64, "45%", "Allowed"),
                 ("198.51.100.22", "172.16.40.172", "TCP", 800, "78%", "Allowed"),
-                ("203.0.113.45", "192.168.1.1", "TCP", 1500, "95%", "Blocked"),
-                ("198.51.100.23", "192.168.1.1", "TCP", 1500, "88%", "Blocked"),
-                ("192.0.2.100", "192.168.1.1", "HTTP", 1500, "92%", "Blocked"),
-                ("203.0.113.67", "192.168.1.1", "SSH", 1500, "85%", "Blocked"),
+                ("203.0.113.45", "192.168.1.1", "TCP", 1500, "95%", "Flagged"),
+                ("198.51.100.23", "192.168.1.1", "TCP", 1500, "88%", "Flagged"),
+                ("192.0.2.100", "192.168.1.1", "HTTP", 1500, "92%", "Flagged"),
+                ("203.0.113.67", "192.168.1.1", "SSH", 1500, "85%", "Flagged"),
                 ("198.51.100.50", "192.168.1.1", "DNS", 1500, "90%", "Flagged"),
                 ("203.0.113.89", "192.168.1.1", "HTTP", 1500, "87%", "Flagged"),
             ]

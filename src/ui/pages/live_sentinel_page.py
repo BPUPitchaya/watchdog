@@ -433,7 +433,7 @@ class LiveSentinelPage(QWidget):
         traffic_widget = LiveTrafficWidget()
         traffic_card = self._create_metric_card("Live Traffic", traffic_widget)
         cards_layout.addWidget(traffic_card)
-        if hasattr(self, "sniffer") and self.sniffer.is_running:
+        if hasattr(self.dashboard, "sniffer") and self.dashboard.sniffer.is_running:
             traffic_widget.set_network_status("Connected")
 
         # Risk Analysis Card

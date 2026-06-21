@@ -157,7 +157,7 @@ def generate_synthetic_data(n_samples=10000):
     data["dst_host_rerror_rate"] = np.random.beta(0.3, 5, n_samples)
     data["dst_host_srv_rerror_rate"] = np.random.beta(0.3, 5, n_samples)
 
-    # Generate labels (normal vs attack)
+    # Generate labels (safe vs attack)
     # Create patterns: attacks have different feature distributions
     is_attack = np.random.random(n_samples) < 0.3  # 30% attacks
 
@@ -167,13 +167,13 @@ def generate_synthetic_data(n_samples=10000):
     data["src_bytes"][is_attack] = np.random.lognormal(9, 1, np.sum(is_attack)).astype(int)
     data["count"][is_attack] = np.random.poisson(20, np.sum(is_attack))
 
-    labels = np.where(is_attack, "attack", "normal")
+    labels = np.where(is_attack, "attack", "safe")
     data["label"] = labels
 
     df = pd.DataFrame(data)
     print(f"Generated synthetic dataset: {df.shape[0]} samples, {df.shape[1]} features")
     print(
-        f"Class distribution: Normal={np.sum(labels=='normal')}, Attack={np.sum(labels=='attack')}"
+        f"Class distribution: Safe={np.sum(labels=='safe')}, Attack={np.sum(labels=='attack')}"
     )
 
     return df

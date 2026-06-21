@@ -151,6 +151,9 @@ class AutonomousShieldPage:
         self.blocked_ip_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.blocked_ip_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
+        # Add click handler for showing IP details
+        self.blocked_ip_table.cellClicked.connect(self._on_ip_clicked)
+
         # Start with empty table
         self.blocked_ip_table.setRowCount(0)
 
@@ -374,9 +377,11 @@ class AutonomousShieldPage:
 
         main_layout.addLayout(split_layout, stretch=1)
 
-        # Initialize blocked IPs set
+        # Initialize blocked IPs set (empty for clean demo)
         self.dashboard.blocked_ips = set()
         self.dashboard.manual_block_count = 0
+        self.dashboard.manual_blocked_ips = set()
+        self.dashboard.blocked_ip_reasons = {}
 
         return shield_page
 
@@ -527,3 +532,110 @@ class AutonomousShieldPage:
         self.relaxed_btn.setChecked(value < 33)
         self.balanced_btn.setChecked(33 <= value < 66)
         self.aggressive_btn.setChecked(value >= 66)
+
+    def _on_ip_clicked(self, row, column):
+        """Handle click on blocked IP table row to show details."""
+        try:
+            ip_item = self.blocked_ip_table.item(row, 0)
+            if not ip_item:
+                return
+
+            ip_address = ip_item.text()
+
+            # Get detailed reason from dashboard
+            if hasattr(self.dashboard, "blocked_ip_reasons") and ip_address in self.dashboard.blocked_ip_reasons:
+                reason_text = self.dashboard.blocked_ip_reasons[ip_address]
+            else:
+                # Fallback to table reason
+                reason_widget = self.blocked_ip_table.cellWidget(row, 1)
+                if reason_widget:
+                    reason_text = reason_widget.text()
+                else:
+                    reason_text = "Unknown"
+
+            # Get timestamp from the table
+            timestamp_item = self.blocked_ip_table.item(row, 2)
+            if timestamp_item:
+                timestamp_text = timestamp_item.text()
+            else:
+                timestamp_text = "Unknown"
+
+            # Show details dialog
+            self._show_ip_details_dialog(ip_address, reason_text, timestamp_text)
+
+        except Exception as e:
+            print(f"Error showing IP details: {e}")
+
+    def _show_ip_details_dialog(self, ip_address, reason, timestamp):
+        """Show dialog with IP blocking details."""
+        try:
+            from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
+
+            dialog = QDialog(self.dashboard)
+            dialog.setWindowTitle(f"IP Details: {ip_address}")
+            dialog.setMinimumSize(400, 300)
+
+            layout = QVBoxLayout(dialog)
+
+            # IP Address
+            ip_label = QLabel(f"IP Address: {ip_address}")
+            ip_label.setFont(QFont(THEME["font_mono"].strip("'"), 14))
+            ip_label.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
+            layout.addWidget(ip_label)
+
+            # Reason
+            reason_title = QLabel("Block Reason:")
+            reason_title.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+            reason_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
+            layout.addWidget(reason_title)
+
+            reason_label = QLabel(reason)
+            reason_label.setFont(QFont(THEME["font_mono"].strip("'"), 11))
+            reason_label.setStyleSheet(f"color: {THEME['text_primary']};")
+            reason_label.setWordWrap(True)
+            layout.addWidget(reason_label)
+
+            # Timestamp
+            timestamp_title = QLabel("Blocked At:")
+            timestamp_title.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+            timestamp_title.setStyleSheet(f"color: {THEME['text_secondary']}; font-weight: 600;")
+            layout.addWidget(timestamp_title)
+
+            timestamp_label = QLabel(timestamp)
+            timestamp_label.setFont(QFont(THEME["font_mono"].strip("'"), 11))
+            timestamp_label.setStyleSheet(f"color: {THEME['text_primary']};")
+            layout.addWidget(timestamp_label)
+
+            # Additional info
+            info_label = QLabel("This IP has been blocked from accessing your network. You can unblock it using the 'Unblock Selected' button.")
+            info_label.setFont(QFont(THEME["font_mono"].strip("'"), 10))
+            info_label.setStyleSheet(f"color: {THEME['text_secondary']};")
+            info_label.setWordWrap(True)
+            layout.addWidget(info_label)
+
+            layout.addStretch()
+
+            # Close button
+            close_btn = QPushButton("Close")
+            close_btn.setMinimumHeight(35)
+            close_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {THEME['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-family: {THEME['font_mono']};
+                    font-size: 11px;
+                }}
+                QPushButton:hover {{
+                    background-color: {THEME['primary_hover']};
+                }}
+            """)
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn)
+
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Error showing IP details dialog: {e}")

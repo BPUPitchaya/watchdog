@@ -36,14 +36,10 @@ class ForensicVaultPage:
         vault_page.setStyleSheet(f"background-color: {THEME['bg_dark']};")
 
         # Start auto-refresh timer (e.g., every 5 seconds)
-        # Disable in demo mode to prevent overwriting demo attack data
-        if hasattr(self.dashboard, "demo_mode") and self.dashboard.demo_mode:
-            self.auto_update_enabled = False
-        else:
-            self.auto_update_timer = QTimer(vault_page)
-            self.auto_update_timer.timeout.connect(self.dashboard.load_flagged_incidents)
-            self.auto_update_timer.start(5000)
-            self.auto_update_enabled = True
+        # Disable in both live and demo mode to prevent auto-populating vault
+        # Live mode: vault should only show manually flagged incidents
+        # Demo mode: vault shows demo data from packet_data.json
+        self.auto_update_enabled = False
 
         # Main layout that fills the entire page
         main_layout = QVBoxLayout(vault_page)

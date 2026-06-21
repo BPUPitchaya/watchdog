@@ -845,6 +845,54 @@ class SettingsPage:
         retention_hint.setStyleSheet(f"color: {THEME['text_secondary']};")
         retention_layout.addWidget(retention_hint)
         scroll_layout.addWidget(retention_container)
+
+        # Toast Notification Testing
+        toast_test_container = QWidget()
+        toast_test_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {THEME['bg_card']};
+                border: 1px solid {THEME['border']};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
+        toast_test_layout = QVBoxLayout(toast_test_container)
+
+        toast_test_label = QLabel("Toast Notification Testing")
+        toast_test_label.setFont(QFont(THEME["font_mono"].strip("'"), 12))
+        toast_test_label.setStyleSheet(f"color: {THEME['text_primary']}; font-weight: 600;")
+        toast_test_layout.addWidget(toast_test_label)
+
+        toast_test_desc = QLabel("Test different notification types:")
+        toast_test_desc.setFont(QFont(THEME["font_mono"].strip("'"), 10))
+        toast_test_desc.setStyleSheet(f"color: {THEME['text_secondary']};")
+        toast_test_layout.addWidget(toast_test_desc)
+
+        # Test buttons
+        toast_btn_layout = QHBoxLayout()
+
+        test_autoblock_btn = QPushButton("Test Auto-Block Toast")
+        test_autoblock_btn.setMinimumHeight(30)
+        test_autoblock_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME['danger']};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-family: {THEME['font_mono']};
+                font-size: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: #DC2626;
+            }}
+        """)
+        test_autoblock_btn.clicked.connect(self._test_autoblock_toast)
+        toast_btn_layout.addWidget(test_autoblock_btn)
+
+        toast_test_layout.addLayout(toast_btn_layout)
+        scroll_layout.addWidget(toast_test_container)
+
         scroll_layout.addStretch()
 
         scroll_area.setWidget(scroll_content)
@@ -1017,6 +1065,12 @@ class SettingsPage:
         """)
         sensitivity_slider.valueChanged.connect(self._on_sensitivity_changed)
         sensitivity_layout.addWidget(sensitivity_slider)
+
+        # Add descriptive label
+        self.sensitivity_desc_label = QLabel("Balanced - Alerts on clear threats")
+        self.sensitivity_desc_label.setFont(QFont(THEME["font_mono"].strip("'"), 10))
+        self.sensitivity_desc_label.setStyleSheet(f"color: {THEME['text_secondary']};")
+        sensitivity_layout.addWidget(self.sensitivity_desc_label)
         security_layout.addWidget(sensitivity_container)
 
         # Auto-block toggle
@@ -1783,6 +1837,17 @@ class SettingsPage:
             # Store in dashboard settings
             if hasattr(self.dashboard, "settings"):
                 self.dashboard.settings["detection_sensitivity"] = value
+
+            # Update descriptive label based on value
+            if hasattr(self, "sensitivity_desc_label"):
+                if value < 30:
+                    self.sensitivity_desc_label.setText("Relaxed - Only alerts on definite threats")
+                elif value < 60:
+                    self.sensitivity_desc_label.setText("Balanced - Alerts on clear threats")
+                elif value < 80:
+                    self.sensitivity_desc_label.setText("Cautious - Alerts on suspicious activity")
+                else:
+                    self.sensitivity_desc_label.setText("Strict - Alerts on any uncertainty")
         except Exception as e:
             print(f"Error changing sensitivity: {e}")
 
@@ -1916,6 +1981,18 @@ Version: 1.0"""
 
         except Exception as e:
             print(f"Error showing Terms & Conditions: {e}")
+
+    def _test_autoblock_toast(self):
+        """Test the auto-block toast notification."""
+        try:
+            if hasattr(self.dashboard, "show_toast"):
+                self.dashboard.show_toast(
+                    "IP AUTO-BLOCKED",
+                    "Attack from 203.0.113.45 to 192.168.1.1\nConfidence: 95%\nIP has been automatically blocked",
+                    "block"
+                )
+        except Exception as e:
+            print(f"Error testing auto-block toast: {e}")
 
     def apply_theme(self):
         """Re-apply current theme to settings page components."""

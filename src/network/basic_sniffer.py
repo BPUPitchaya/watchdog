@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 
-from scapy.all import IP, sniff
+from scapy.all import IP, TCP, sniff
 
 from src.utils.crypto_utils import get_crypto
 
@@ -55,6 +55,16 @@ class BasicSniffer:
                 src_ip = packet[IP].src
                 dst_ip = packet[IP].dst
                 protocol = packet[IP].proto
+                length = len(packet)
+
+                # Extract ports if available
+                src_port = packet.getfieldval("sport") if hasattr(packet, "sport") else 0
+                dst_port = packet.getfieldval("dport") if hasattr(packet, "dport") else 0
+
+                # Extract TCP flags if available
+                flags = "S"  # Default
+                if TCP in packet:
+                    flags = str(packet[TCP].flags)  # Convert FlagValue to string for JSON serialization
 
                 # Determine protocol name
                 if protocol == 6:  # TCP
@@ -64,12 +74,16 @@ class BasicSniffer:
                 else:
                     protocol_name = f"PROTO-{protocol}"
 
-                # Store packet info
+                # Store packet info with all fields needed for ML
                 packet_info = {
                     "count": self.packet_count,
                     "src_ip": src_ip,
                     "dst_ip": dst_ip,
                     "protocol": protocol_name,
+                    "length": length,
+                    "src_port": src_port,
+                    "dst_port": dst_port,
+                    "flags": flags,
                     "timestamp": time.time(),
                 }
 
