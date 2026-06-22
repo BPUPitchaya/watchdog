@@ -282,7 +282,9 @@ class AutonomousShieldPage:
                 }}
             """)
 
-        self.relaxed_btn.setChecked(True)
+        self.relaxed_btn.setChecked(False)
+        self.balanced_btn.setChecked(False)
+        self.aggressive_btn.setChecked(True)
         buttons_layout.addWidget(self.relaxed_btn)
         buttons_layout.addWidget(self.balanced_btn)
         buttons_layout.addWidget(self.aggressive_btn)
@@ -515,6 +517,11 @@ class AutonomousShieldPage:
     def _update_confidence_threshold(self, value):
         """Update the confidence threshold display and color."""
         self.confidence_label.setText(f"{value}%")
+
+        # Store in dashboard settings for use in ML prediction logic
+        if hasattr(self.dashboard, "settings"):
+            self.dashboard.settings["confidence_threshold"] = value
+            print(f"Confidence threshold updated to {value}%")
 
         # Update label color based on threshold value
         if value < 33:

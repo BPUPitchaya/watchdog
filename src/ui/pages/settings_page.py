@@ -716,56 +716,6 @@ class SettingsPage:
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setSpacing(15)
 
-        # Risk Threshold slider
-        risk_container = QWidget()
-        risk_container.setStyleSheet(f"""
-            QWidget {{
-                background-color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 8px;
-                padding: 10px;
-            }}
-        """)
-        risk_layout = QVBoxLayout(risk_container)
-        risk_layout.setSpacing(8)
-
-        risk_label = QLabel("Risk Threshold (Desktop Notification Trigger)")
-        risk_label.setFont(QFont(THEME["font_mono"].strip("'"), 11))
-        risk_label.setStyleSheet(f"color: {THEME['text_primary']};")
-        risk_layout.addWidget(risk_label)
-
-        self.risk_slider = QSlider(Qt.Orientation.Horizontal)
-        self.risk_slider.setRange(1, 5)
-        self.risk_slider.setValue(3)
-        self.risk_slider.setMinimumHeight(25)
-        self.risk_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: none;
-                height: 6px;
-                background: {THEME['bg_card']};
-                border-radius: 3px;
-            }}
-            QSlider::sub-page:horizontal {{
-                background: {THEME['primary']};
-                border-radius: 3px;
-            }}
-            QSlider::handle:horizontal {{
-                background: white;
-                border: 2px solid {THEME['primary']};
-                width: 14px;
-                border-radius: 7px;
-                margin: -4px 0;
-            }}
-        """)
-        risk_layout.addWidget(self.risk_slider)
-
-        self.risk_value_label = QLabel("Medium (Level 3)")
-        self.risk_value_label.setFont(QFont(THEME["font_mono"].strip("'"), 9))
-        self.risk_value_label.setStyleSheet(f"color: {THEME['text_secondary']};")
-        self.risk_slider.valueChanged.connect(self._on_risk_changed)
-        risk_layout.addWidget(self.risk_value_label)
-        scroll_layout.addWidget(risk_container)
-
         # Sound Alerts toggle
         sound_container = QWidget()
         sound_container.setMaximumHeight(50)
@@ -1026,52 +976,6 @@ class SettingsPage:
             f"color: {THEME['text_primary']}; font-weight: 600; margin-bottom: 8px;"
         )
         security_layout.addWidget(security_header)
-
-        # Sensitivity slider
-        sensitivity_container = QWidget()
-        sensitivity_container.setStyleSheet(f"""
-            QWidget {{
-                background-color: {THEME['bg_dark']};
-                border: none;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-        """)
-        sensitivity_layout = QVBoxLayout(sensitivity_container)
-
-        sensitivity_label = QLabel("Detection Sensitivity")
-        sensitivity_label.setFont(QFont(THEME["font_mono"].strip("'"), 12))
-        sensitivity_label.setStyleSheet(f"color: {THEME['text_primary']};")
-        sensitivity_layout.addWidget(sensitivity_label)
-
-        sensitivity_slider = QSlider(Qt.Orientation.Horizontal)
-        sensitivity_slider.setRange(0, 100)
-        sensitivity_slider.setValue(75)
-        sensitivity_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {THEME['border']};
-                height: 8px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {THEME['danger']}, stop:0.5 {THEME['warning']}, stop:1 {THEME['success']});
-                border-radius: 4px;
-            }}
-            QSlider::handle:horizontal {{
-                background: white;
-                border: 2px solid {THEME['primary']};
-                width: 18px;
-                border-radius: 9px;
-                margin: -5px 0;
-            }}
-        """)
-        sensitivity_slider.valueChanged.connect(self._on_sensitivity_changed)
-        sensitivity_layout.addWidget(sensitivity_slider)
-
-        # Add descriptive label
-        self.sensitivity_desc_label = QLabel("Balanced - Alerts on clear threats")
-        self.sensitivity_desc_label.setFont(QFont(THEME["font_mono"].strip("'"), 10))
-        self.sensitivity_desc_label.setStyleSheet(f"color: {THEME['text_secondary']};")
-        sensitivity_layout.addWidget(self.sensitivity_desc_label)
-        security_layout.addWidget(sensitivity_container)
 
         # Auto-block toggle
         autoblock_container = QWidget()
@@ -1627,17 +1531,6 @@ class SettingsPage:
         except ValueError:
             print(f"Model {model_name} not found in settings page")
 
-    def _on_risk_changed(self, value):
-        """Handle Risk Threshold slider change."""
-        risk_levels = [
-            "Low (Level 1)",
-            "Low-Medium (Level 2)",
-            "Medium (Level 3)",
-            "Medium-High (Level 4)",
-            "High (Level 5)",
-        ]
-        self.risk_value_label.setText(risk_levels[value - 1])
-
     def _on_clear_chat_history(self):
         """Handle Clear Chat History button click with confirmation."""
         try:
@@ -1829,27 +1722,6 @@ class SettingsPage:
             # Note: Would require theme reload
         except Exception as e:
             print(f"Error changing theme: {e}")
-
-    def _on_sensitivity_changed(self, value):
-        """Handle detection sensitivity slider change."""
-        try:
-            print(f"Detection sensitivity: {value}%")
-            # Store in dashboard settings
-            if hasattr(self.dashboard, "settings"):
-                self.dashboard.settings["detection_sensitivity"] = value
-
-            # Update descriptive label based on value
-            if hasattr(self, "sensitivity_desc_label"):
-                if value < 30:
-                    self.sensitivity_desc_label.setText("Relaxed - Only alerts on definite threats")
-                elif value < 60:
-                    self.sensitivity_desc_label.setText("Balanced - Alerts on clear threats")
-                elif value < 80:
-                    self.sensitivity_desc_label.setText("Cautious - Alerts on suspicious activity")
-                else:
-                    self.sensitivity_desc_label.setText("Strict - Alerts on any uncertainty")
-        except Exception as e:
-            print(f"Error changing sensitivity: {e}")
 
     def _on_autoblock_changed(self, state):
         """Handle auto-block toggle."""

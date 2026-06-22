@@ -4,12 +4,13 @@ from PyQt6.QtCore import QThread, pyqtSignal
 class IncidentsWorker(QThread):
     finished = pyqtSignal(list)
 
-    def __init__(self, packets, model, extractor, layout_only):
+    def __init__(self, packets, model, extractor, layout_only, confidence_threshold=60):
         super().__init__()
         self.packets = packets
         self.model = model
         self.extractor = extractor
         self.layout_only = layout_only
+        self.confidence_threshold = confidence_threshold
 
     def run(self):
         flagged_packets = []
@@ -39,8 +40,8 @@ class IncidentsWorker(QThread):
                 packet["ai_confidence"] = f"{confidence:.1f}%"
                 packet["ai_threat"] = "ATTACK" if prediction == 1 else "Safe"
 
-                # Flag if ATTACK prediction OR low confidence (< 60%)
-                if confidence < 60.0 or prediction == 1:
+                # Flag if ATTACK prediction OR low confidence (below threshold)
+                if confidence < self.confidence_threshold or prediction == 1:
                     flagged_packets.append(packet)
             else:
                 # Layout-only mode or no model: set default values

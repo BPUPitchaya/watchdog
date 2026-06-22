@@ -138,7 +138,7 @@ from src.ui.widgets import (
 
 
 class SplashScreen(QSplashScreen):
-    """Minimalist splash screen with logo."""
+    """Minimalist splash screen with animated loading bar."""
 
     def __init__(self, parent=None):
         # Create pixmap for splash screen
@@ -152,6 +152,8 @@ class SplashScreen(QSplashScreen):
         height = min(screen_geometry.height() - 100, 800)
 
         # Create pixmap
+        self.width = width
+        self.height = height
         pixmap = QPixmap(width, height)
 
         super().__init__(pixmap)
@@ -161,27 +163,58 @@ class SplashScreen(QSplashScreen):
         y = (screen_geometry.height() - height) // 2
         self.move(x, y)
 
-        # Draw content on pixmap
+        # Progress tracking
+        self.progress = 0
+        self.loading_steps = [
+            "Initializing...",
+            "Loading ML models...",
+            "Starting network services...",
+            "Configuring firewall...",
+            "Preparing dashboard...",
+            "Almost ready...",
+        ]
+
+        # Timer for animation
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_progress)
+        self.timer.start(50)  # Update every 50ms
+
+        # Initial draw
+        self.draw_splash()
+
+    def update_progress(self):
+        """Update progress and redraw splash screen."""
+        self.progress += 1
+        if self.progress >= 100:
+            self.timer.stop()
+            self.progress = 100
+        self.draw_splash()
+
+    def draw_splash(self):
+        """Draw the splash screen with current progress."""
+        pixmap = QPixmap(self.width, self.height)
+        self.setPixmap(pixmap)
+
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Gradient background
-        gradient = QLinearGradient(0, 0, width, height)
+        gradient = QLinearGradient(0, 0, self.width, self.height)
         gradient.setColorAt(0, QColor(THEME["bg_dark"]))
         gradient.setColorAt(1, QColor("#0F1318"))
         painter.fillRect(pixmap.rect(), gradient)
 
         # Decorative circles
         painter.setPen(Qt.PenStyle.NoPen)
-        center_x = width // 2
-        center_y = height // 2 - 50
+        center_x = self.width // 2
+        center_y = self.height // 2 - 50
 
         # Large outer circle
         color1 = QColor(THEME["primary"])
         color1.setAlpha(20)
         painter.setBrush(color1)
         painter.drawEllipse(
-            QPoint(center_x, center_y), min(width, height) // 3, min(width, height) // 3
+            QPoint(center_x, center_y), min(self.width, self.height) // 3, min(self.width, self.height) // 3
         )
 
         # Medium circle
@@ -189,7 +222,7 @@ class SplashScreen(QSplashScreen):
         color2.setAlpha(40)
         painter.setBrush(color2)
         painter.drawEllipse(
-            QPoint(center_x, center_y), min(width, height) // 4, min(width, height) // 4
+            QPoint(center_x, center_y), min(self.width, self.height) // 4, min(self.width, self.height) // 4
         )
 
         # Small inner circle
@@ -197,61 +230,64 @@ class SplashScreen(QSplashScreen):
         color3.setAlpha(60)
         painter.setBrush(color3)
         painter.drawEllipse(
-            QPoint(center_x, center_y), min(width, height) // 6, min(width, height) // 6
+            QPoint(center_x, center_y), min(self.width, self.height) // 6, min(self.width, self.height) // 6
         )
 
         # Logo
         logo_path = resource_path("assets/logo.png")
         if os.path.exists(logo_path):
             logo_pixmap = QPixmap(logo_path)
-            logo_size = min(width, height) // 5
+            logo_size = min(self.width, self.height) // 5
             scaled_logo = logo_pixmap.scaled(
                 logo_size,
                 logo_size,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
-            logo_x = (width - scaled_logo.width()) // 2
-            logo_y = (height - scaled_logo.height()) // 2 - 80
+            logo_x = (self.width - scaled_logo.width()) // 2
+            logo_y = (self.height - scaled_logo.height()) // 2 - 80
             painter.drawPixmap(logo_x, logo_y, scaled_logo)
         else:
             painter.setPen(QColor(THEME["primary"]))
-            font_size = min(width, height) // 10
+            font_size = min(self.width, self.height) // 10
             font = QFont("Segoe UI", font_size, QFont.Weight.Bold)
             painter.setFont(font)
             painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "WATCHDOG")
 
         # Title
         painter.setPen(QColor(THEME["primary"]))
-        font = QFont("Segoe UI", min(width, height) // 30, QFont.Weight.Bold)
+        font = QFont("Segoe UI", min(self.width, self.height) // 30, QFont.Weight.Bold)
         painter.setFont(font)
-        title_rect = QRect(0, center_y + min(width, height) // 4, width, 50)
+        title_rect = QRect(0, center_y + min(self.width, self.height) // 4, self.width, 50)
         painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, "Network Security Monitoring")
 
         # Subtitle
         painter.setPen(QColor("#FFFFFF"))
-        font = QFont("Segoe UI", min(width, height) // 50)
+        font = QFont("Segoe UI", min(self.width, self.height) // 50)
         painter.setFont(font)
-        subtitle_rect = QRect(0, center_y + min(width, height) // 4 + 40, width, 40)
+        subtitle_rect = QRect(0, center_y + min(self.width, self.height) // 4 + 40, self.width, 40)
         painter.drawText(
             subtitle_rect, Qt.AlignmentFlag.AlignCenter, "AI-Powered Threat Detection System"
         )
 
-        # Loading text
+        # Loading text (changes based on progress)
+        step_index = min(self.progress // (100 // len(self.loading_steps)), len(self.loading_steps) - 1)
+        loading_text = self.loading_steps[step_index]
         painter.setPen(QColor(THEME["primary"]))
-        font = QFont("Segoe UI", min(width, height) // 45, QFont.Weight.Medium)
+        font = QFont("Segoe UI", min(self.width, self.height) // 45, QFont.Weight.Medium)
         painter.setFont(font)
-        loading_rect = QRect(0, height - 100, width, 40)
-        painter.drawText(loading_rect, Qt.AlignmentFlag.AlignCenter, "Initializing...")
+        loading_rect = QRect(0, self.height - 100, self.width, 40)
+        painter.drawText(loading_rect, Qt.AlignmentFlag.AlignCenter, loading_text)
 
         # Progress bar background
-        progress_bg_rect = QRect(width // 4, height - 60, width // 2, 4)
+        progress_bg_rect = QRect(self.width // 4, self.height - 60, self.width // 2, 4)
         painter.setBrush(QColor(THEME["bg_card"]))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(progress_bg_rect, 2, 2)
 
-        # Progress bar fill (animated-looking)
-        progress_fill_rect = QRect(width // 4, height - 60, width // 4, 4)
+        # Progress bar fill (animated)
+        progress_width = (self.width // 2) * (self.progress / 100)
+        progress_fill_rect = QRect(self.width // 4, self.height - 60, int(progress_width), 4)
         painter.setBrush(QColor(THEME["primary"]))
         painter.drawRoundedRect(progress_fill_rect, 2, 2)
 
@@ -259,16 +295,15 @@ class SplashScreen(QSplashScreen):
         version_color = QColor(THEME["text_secondary"])
         version_color.setAlpha(100)
         painter.setPen(version_color)
-        font = QFont("Segoe UI", min(width, height) // 70)
+        font = QFont("Segoe UI", min(self.width, self.height) // 70)
         painter.setFont(font)
-        version_rect = QRect(0, height - 30, width, 30)
+        version_rect = QRect(0, self.height - 30, self.width, 30)
         painter.drawText(
             version_rect, Qt.AlignmentFlag.AlignCenter, "v2.0 | Secure • Monitor • Protect"
         )
 
         painter.end()
-
-        self.setPixmap(pixmap)
+        self.show()
 
 
 class TermsDialog(QDialog):
@@ -526,6 +561,7 @@ class WatchdogDashboard(QMainWindow):
         # Initialize UX components first (needed for onboarding check)
         self.settings_manager = SettingsManager()
         self.settings = {}  # Initialize settings dictionary for runtime settings
+        self.settings["confidence_threshold"] = 60  # Default confidence threshold (60%)
         self.error_handler = ErrorHandler(self)
         self.notification_manager = NotificationManager(self)
         self.system_tray = SystemTrayIcon(self)
@@ -552,18 +588,12 @@ class WatchdogDashboard(QMainWindow):
             # Process events to ensure splash is displayed
             QApplication.processEvents()
 
-            # Use QTimer for delay instead of sleep to ensure UI updates
-            # Create a timer to close splash after 5 seconds
-            splash_timer = QTimer()
-            splash_timer.setSingleShot(True)
-            splash_timer.timeout.connect(splash.close)
-            splash_timer.start(5000)
-
-            # Wait for splash to close
-            while not splash.isHidden():
+            # Wait for splash animation to complete (progress reaches 100%)
+            while splash.progress < 100:
                 QApplication.processEvents()
                 QThread.msleep(50)
 
+            splash.close()
             print("Splash screen closed")
 
             # Show terms dialog after splash with auto-accept for GUI launches
@@ -1395,7 +1425,8 @@ class WatchdogDashboard(QMainWindow):
                 self.vault_table.setRowCount(0)
 
         # Move heavy processing to background thread
-        self.worker = IncidentsWorker(packets, self.model, self.extractor, self.layout_only)
+        confidence_threshold = self.settings.get("confidence_threshold", 60)
+        self.worker = IncidentsWorker(packets, self.model, self.extractor, self.layout_only, confidence_threshold)
         self.worker.finished.connect(self._update_vault_table)
         self.worker.start()
 
@@ -1926,7 +1957,8 @@ class WatchdogDashboard(QMainWindow):
                             prediction = self.model.predict(features_array)[0]
                             probabilities = self.model.predict_proba(features_array)[0]
                             confidence = max(probabilities) * 100
-                            action = "Flagged" if prediction == 1 else "Allowed"
+                            confidence_threshold = self.settings.get("confidence_threshold", 60)
+                            action = "Flagged" if prediction == 1 or confidence < confidence_threshold else "Allowed"
                         except Exception as e:
                             confidence = 50
                             action = "Allowed"
@@ -1936,7 +1968,8 @@ class WatchdogDashboard(QMainWindow):
                     self.table.setItem(i, 5, QTableWidgetItem(action))
 
                     # If flagged, add to forensic vault
-                    if prediction == 1 and hasattr(self, "vault_table") and self.vault_table:
+                    confidence_threshold = self.settings.get("confidence_threshold", 60)
+                    if (prediction == 1 or confidence < confidence_threshold) and hasattr(self, "vault_table") and self.vault_table:
                         self._add_to_vault(packet, confidence, action)
                 else:
                     # Layout-only mode: show placeholder values
