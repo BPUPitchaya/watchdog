@@ -94,41 +94,62 @@ Watchdog is a comprehensive network security solution that monitors network traf
    ```
 
 5. **Install Ollama** (for AI assistant):
-   
+
+   **AI Model Options & RAM Requirements:**
+
+   Watchdog supports 4 AI models. Choose based on your system's RAM:
+
+   - **llama3.2:1b** (~1GB RAM) - Fast, basic answers. Recommended for 8GB systems.
+   - **llama3.2:3b** (~2GB RAM) - Balanced speed/quality. For 8-16GB systems.
+   - **llama3:8b** (~4-5GB RAM) - Good quality, slower. For 16GB+ systems.
+   - **phi4** (~6GB RAM) - Best quality, very slow on 8GB. For 16GB++ systems.
+
    **Option 1: Auto-Install (Recommended)**
    ```bash
-   # Run the auto-installer script
+   # Run the auto-installer script (downloads llama3.2:1b by default)
    python src/ai/ollama_installer.py --auto-install
-   
+
+   # To download a specific model:
+   python src/ai/ollama_installer.py --auto-install --model llama3.2:3b
+
    # This will automatically:
    # - Detect if Ollama is installed
    # - Download and install Ollama for your platform
-   # - Pull the required AI model
+   # - Pull the specified AI model
    ```
-   
+
    **Option 2: Manual Installation**
-   
+
    **macOS**:
    ```bash
    # Download from https://ollama.ai/download
-   # After installation, pull Llama 3 model
-   ollama pull llama3
+   # After installation, pull your preferred model:
+   ollama pull llama3.2:1b    # For 8GB RAM
+   ollama pull llama3.2:3b    # For 8-16GB RAM
+   ollama pull llama3:8b      # For 16GB+ RAM
+   ollama pull phi4           # For 16GB++ RAM (best quality)
    ```
-   
+
    **Linux**:
    ```bash
    # Install using curl
    curl -fsSL https://ollama.ai/install.sh | sh
-   # Pull Llama 3 model after installation
-   ollama pull llama3
+   # Pull your preferred model after installation:
+   ollama pull llama3.2:1b    # For 8GB RAM
+   ollama pull llama3.2:3b    # For 8-16GB RAM
+   ollama pull llama3:8b      # For 16GB+ RAM
+   ollama pull phi4           # For 16GB++ RAM (best quality)
    ```
-   
+
    **Windows**:
    ```powershell
    # Download installer from https://ollama.ai/download
    # Run installer and restart terminal
-   # Pull Llama 3 model after installation
-   ollama pull llama3
+   # Pull your preferred model after installation:
+   ollama pull llama3.2:1b    # For 8GB RAM
+   ollama pull llama3.2:3b    # For 8-16GB RAM
+   ollama pull llama3:8b      # For 16GB+ RAM
+   ollama pull phi4           # For 16GB++ RAM (best quality)
    ```
 
 ## Usage
