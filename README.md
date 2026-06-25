@@ -4,7 +4,7 @@ An AI-powered network intrusion detection and prevention system built with Pytho
 
 ## Project Overview
 
-Watchdog is a comprehensive network security solution that monitors network traffic in real-time, detects potential threats using machine learning, and provides automated threat response capabilities. The system features a modern web-based interface and an AI assistant for intelligent log analysis.
+Watchdog is a comprehensive network security solution that monitors network traffic in real-time, detects potential threats using machine learning, and provides automated threat response capabilities. The system features a modern desktop interface built with PyQt6 and an AI assistant for intelligent log analysis.
 
 ## Features
 
@@ -13,7 +13,8 @@ Watchdog is a comprehensive network security solution that monitors network traf
 - **Modern UI Interface**: PyQt6-based desktop dashboard with real-time visualizations
 - **AI Assistant**: Llama 3 integration for intelligent log analysis and explanation
 - **Automated Response**: Firewall automation for threat mitigation
-- **Cross-platform**: Works on macOS, Linux, and Windows
+- **Cross-platform UI**: Works on macOS, Linux, and Windows
+- **Firewall Automation**: macOS `pfctl`-based IP blocking with timeout-based auto-unblock
 - **Threat Simulation**: Interactive attack simulation with plain English explanations
 - **Progress Tracking**: Real-time statistics and progress indicators for simulations
 - **Quick Start Guide**: Built-in onboarding for new users
@@ -21,6 +22,10 @@ Watchdog is a comprehensive network security solution that monitors network traf
 - **Analyze Last Threat**: AI-powered analysis of detected threats with SME-friendly explanations
 - **Test Threat**: Create mock threats for testing threat analysis features
 - **Clear All Blocked IPs**: Bulk removal of all blocked IPs from firewall with double confirmation
+
+## Updates
+
+Watchdog runs entirely on your local machine with no external connectivity required. Updates are released on GitHub for users who want them, but the application will never auto-update or phone home on its own. To update manually, download the latest release archive from the GitHub Releases page, extract it to a new folder, and copy your existing `models/`, `logs/`, and any personal config files from your old installation into the new one. Alternatively, if you originally cloned the repository with Git, you can run `git pull origin main` from the project directory to fetch the latest changes.
 
 ## Technology Stack
 
@@ -233,13 +238,21 @@ watchdog/
 ├── README.md                    # Project documentation
 ├── requirements.txt             # Python dependencies
 ├── .gitignore                  # Git ignore file
-├── main.py                     # Main application entry point
-├── integrated_watchdog.py      # Integrated watchdog script
+├── launch_watchdog.sh          # Quick launch script
 ├── run_all.sh                  # Script to run all components
 ├── stop_all.sh                 # Script to stop all components
-├── packet_data.json            # Example packet data
+├── build_macos.sh              # macOS build script
+├── build_windows.bat           # Windows build script
+├── build_windows.py            # Windows build helper
+├── setup.py                    # Package setup
+├── setup_mac.py                # macOS-specific setup
+├── packet_data.json            # Encrypted captured packet data
+├── local_settings.json         # Local user settings
+├── notifications.json          # Notification state
 ├── source.txt                  # Data source file
 ├── data/                       # Data directory
+├── models/                     # Trained ML models (local only)
+├── logs/                       # Application logs (local only)
 ├── eda_plots/                  # Exploratory Data Analysis plots
 │   ├── correlation_matrix.png
 │   ├── dst_bytes_distribution.png
@@ -271,13 +284,10 @@ watchdog/
 │   │   ├── __init__.py
 │   │   ├── basic_sniffer.py    # Basic packet sniffer
 │   │   └── sniffer_service.py  # Network sniffing service
-│   ├── ui/                     # User Interface components (PyQt/Flet)
+│   ├── ui/                     # User Interface components (PyQt6)
 │   │   ├── __init__.py
-│   │   ├── hello_world.py      # Example UI file
 │   │   ├── help_content.py     # Help content for the UI
-│   │   ├── modern_dashboard.py # Modern dashboard layout
-│   │   ├── pyqt_dashboard.py   # Main PyQt dashboard application
-│   │   ├── streamlit_dashboard.py # Streamlit dashboard alternative
+│   │   ├── pyqt_dashboard.py   # Main PyQt6 dashboard application
 │   │   ├── theme.py            # UI theme definitions
 │   │   ├── assets/             # UI assets (icons, fonts)
 │   │   │   ├── Ai assistant icon.png
@@ -439,7 +449,7 @@ This project uses a hybrid branch organization approach to balance stability wit
 
 This is a collaborative project between Pitchaya and Blossom. Please follow the established development workflow:
 
-1. Create feature branches from `develop`
+1. Create feature branches from `primary_research`
 2. Test changes thoroughly before merging
 3. Update documentation for new features
 4. Follow PEP 8 coding standards
@@ -458,5 +468,4 @@ This project is developed for educational purposes as part of a university proje
 
 - NSL-KDD dataset providers
 - Scapy development team
-- Flet framework contributors
 - Ollama and Llama 3 developers

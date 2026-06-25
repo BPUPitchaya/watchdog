@@ -170,12 +170,16 @@ cython_debug/
 .DS_Store
 
 # Project specific
+*.backup
+presentation.txt
 *.pcap
 network_logs/
 packet_data.json
 eda_plots/
 ollama_storage/
 data/
+models/
+logs/
 .log_encryption_key
 .packet_encryption_key
 local_settings.json
