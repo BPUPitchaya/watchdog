@@ -265,7 +265,6 @@ watchdog/
 ├── src/                        # Source code directory
 │   ├── __init__.py
 │   ├── firewall_manager.py     # Manages firewall rules
-│   ├── test_traffic.py         # Script for testing network traffic
 │   ├── ai/                     # AI assistant components
 │   │   ├── __init__.py
 │   │   ├── ollama_client.py    # Client for Ollama/Llama 3 interaction
@@ -273,13 +272,9 @@ watchdog/
 │   │   └── utils.py            # AI related utility functions
 │   ├── ml/                     # Machine learning components
 │   │   ├── __init__.py
-│   │   ├── dataset_analysis.py # Scripts for dataset analysis
-│   │   ├── dataset_preparation.py # Data preparation and preprocessing
 │   │   ├── feature_extractor.py # Extracts features from network data
-│   │   ├── feature_selection.py # Selects relevant features
-│   │   ├── integration_testing.py # ML integration tests
-│   │   ├── model_training.py   # Trains the ML model
-│   │   └── train_with_extractor.py # Training with feature extractor
+│   │   ├── model_training.py   # Trains the ML model (NSL-KDD Random Forest)
+│   │   └── train_with_extractor.py # Training with real-time feature extractor
 │   ├── network/                # Network monitoring components
 │   │   ├── __init__.py
 │   │   ├── basic_sniffer.py    # Basic packet sniffer
